@@ -6,5 +6,8 @@ I started here to learn using GitHub first. Content will follow later, after tes
 Experiment 1:
 I edited this file with a new sign in (new user), created a pull request and closed the pull request.
 Nothing is changed (for owner RobertPatzke)
-Exüperiment 2:
+Experiment 2:
 I changed this file again and will create a pull request.
+As user RobertPatzke I merged this file to the master branch.
+
+x test neue Zeile

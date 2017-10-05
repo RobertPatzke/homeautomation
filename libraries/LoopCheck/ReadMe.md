@@ -12,6 +12,9 @@ The tools presented with LoopCheck-library give You the features of (many) timer
 based on the Arduino-function *micros()* which is called with the macro SYSMICSEC, 
 defined in *LoopCheck.h*.
 
-You will find, that there is another file included: *environment.h*, which you can find 
- [here]
-(https://github.com/RobertPatzke/homeautomation/blob/developer/libraries/environment/environment.h "environment.h")
+You will find, that there is another file included: *environment.h*, which you can find here:
+https://github.com/RobertPatzke/homeautomation/blob/developer/libraries/environment/environment.h
+*environment.h* defines the IDE you are using, the CPU and specific development boards. 
+Code is in several parts conditional, depending on the definitions you make in *environment.h*.
+You will see, that this library is not fixed to Arduino, it may be used for any environment
+where cyclic called functions happen.

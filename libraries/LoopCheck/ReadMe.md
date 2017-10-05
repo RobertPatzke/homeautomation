@@ -9,7 +9,7 @@ Using a real timer is a good solution, but some CPUs have only less timers
 and they sometimes are already used for some libraries.
 
 The tools presented with LoopCheck-library give You the features of (many) timers inside *loop()* 
-based on the Arduino-function *micros()*. This function is called with the macro SYSMICSEC, 
+based on the Arduino-function *micros()* which is called with the macro SYSMICSEC, 
 defined in *LoopCheck.h*.
 
 You will find, that there is another file included: *environment.h*.

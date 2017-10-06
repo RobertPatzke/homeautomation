@@ -4,16 +4,19 @@
 #include "LoopCheck.h"
 
 #define TestLed 23
-// The built in LED of Arduino boards (and similar development boards like
-// ESP32 Dev) is connected to a pin (most 13), which is also used for the
+// The built in LED of some Arduino boards (and similar development boards like
+// ESP32 Dev) seem to be connected to a pin (most 13), which is also used for the
 // serial transmit (TxD).
 // The blink example of Arduino works, because they switch the pin and then
 // they freeze the program bei function <delay(milliseconds)>.
 // But if you leave loop() for Arduino internal functions, the pin is
-// no more valid, it is used for TxD.
-// In other words, the blink example of Arduino does not work without delay.
+// no more valid, it is used for TxD (or some other purpose).
+// In other words, with some (many?) boards, the blink example of Arduino does 
+// not work without the delay in loop-function.
 // Because we now use a software-timer instead of a delay,
-// we must use another pin to connect our own LED
+// we must use another pin to connect our own LED or look for a built-in LED
+// which is not used outside loop-function.
+// E.g. the blue LED of ESP32 DEVKIT V1 (doit) is connected at pin 2.
 
 LoopCheck loopCheck;
 // Creating an instance of class LoopCheck

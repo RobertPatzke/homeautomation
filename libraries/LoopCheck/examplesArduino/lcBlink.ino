@@ -6,7 +6,7 @@
 #define TestLed 23
 // The built in LED of some Arduino boards (and similar development boards like
 // ESP32 Dev) seem to be connected to a pin (most 13), which is also used for the
-// serial transmit (TxD).
+// serial transmit (TxD) or other purposes.
 // The blink example of Arduino works, because they switch the pin and then
 // they freeze the program bei function <delay(milliseconds)>.
 // But if you leave loop() for Arduino internal functions, the pin is
@@ -41,9 +41,9 @@ void loop()
   if(loopCheck.timerMilli(0, 500, 0))
   {
     // This is a timer of LoopCheck:
-    // The first argument is an index (0 - NrOfLoopTasks) which is identifying
+    // The first argument is an index (0 - NrOfTimerTasks) which is identifying
     // a timer. timerMicro and timerMilli use the same function in LooopCheck.cpp
-    // and so You have NrOfLoopTasks timer, either timerMilli or timerMicro.
+    // and so You have only NrOfLoopTasks timers, either timerMilli or timerMicro.
     // The second argument is the cycle time (in milliseconds with timerMilli
     // and in microseconds with timerMicro.
     // The third argument is the number of cycles. The value 0 stands for an
@@ -72,10 +72,10 @@ void loop()
 
 // With using LoopCheck, the blinking of a LED does not freeze the loop function.
 // Depending on the speed of your CPU, this programm takes mikroseconds or only
-// fractions of microsecond and the LED is switched on and off every second.
+// fractions of microsecond in one loop and the LED is switched on and off every second.
 // You can use up to NrOfTimerTask timers (defined in LoopCheck.h) inside loop
 // without creating a big load for the CPU.
 // The timers do not fire in the same cycle. If You use many timers, they do
 // not meet in the same cycle of the loop. So it will not happen, that your
-// application creates a long duration of loop, if all timers meet the same
+// application creates a long duration of loop if all timers meet the same
 // ending time.

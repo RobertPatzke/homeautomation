@@ -59,7 +59,7 @@ class LoopCheck
   // Klassenspezifische Datentypen
   // -------------------------------------------------------------------------
   //
-  typedef struct _CtrlTask
+  typedef struct _TimerTask
   {
     bool            counterStarted;
     bool            finished;
@@ -67,7 +67,14 @@ class LoopCheck
     unsigned long   startCount;
     unsigned long   runCounter;
     unsigned int    repCounter;
-  } CtrlTask;
+  } TimerTask;
+
+  typedef struct _OnceTask
+  {
+    bool            finished;
+    bool            firstRun;
+    unsigned int    waitCounter;
+  } OnceTask;
 
 private:
   // -------------------------------------------------------------------------
@@ -97,9 +104,9 @@ private:
   bool          firstLoop;              // Spezielle Kennzeichnung erste loop()
   bool          taskHappened;           // Kennzeichnung: Es lief ein LoopTask
 
-  CtrlTask      ctrlTaskList[NrOfLoopTasks];    // Steuerung der zyklischen
+  TimerTask     timerTaskList[NrOfLoopTasks];    // Steuerung der zyklischen
                                                 // Tasks (Timer-Ersatz in loop())
-  bool          onceTaskList[NrOfOnceTasks];
+  OnceTask      onceTaskList[NrOfOnceTasks];
   bool          toggleTaskList[NrOfToggleTasks];
 
   int           year;               // Betriebsstundenzähler gesamt
@@ -115,7 +122,7 @@ private:
   // Lokale Funktionen
   // -------------------------------------------------------------------------
   //
-  void initCtrlTask();
+  void initTasks();
 
 public:
   // -------------------------------------------------------------------------
@@ -143,8 +150,9 @@ public:
 
   bool timerMilli(int taskIdx, unsigned long repeatTime, unsigned int repetitions);
 
-  bool once(int taskIdx);
-  // Diese Funktion liefert nur beim ersten Aufruf den Wert <true>
+  bool once(int taskIdx, unsigned int nrOfLoops);
+  // Diese Funktion liefert nur einmal den Wert <true>
+  // nach Ablauf von nrOfLoops Aufrufen
 
   bool toggle(int taskIdx);
   // Diese Funktion liefert abwechselnd die Werte <true> oder <false>

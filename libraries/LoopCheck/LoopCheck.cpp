@@ -33,21 +33,25 @@
     taskHappened    = false;
     toggleMilli     = true;
 
-    initCtrlTask();
+    initTasks();
   }
 
-  void LoopCheck::initCtrlTask()
+  void LoopCheck::initTasks()
   {
     for (int i = 0; i < NrOfLoopTasks; i++)
     {
-      ctrlTaskList[i].counterStarted    = false;
-      ctrlTaskList[i].finished          = false;
-      ctrlTaskList[i].firstRun          = true;
-      ctrlTaskList[i].runCounter        = 0;
+      timerTaskList[i].counterStarted    = false;
+      timerTaskList[i].finished          = false;
+      timerTaskList[i].firstRun          = true;
+      timerTaskList[i].runCounter        = 0;
     }
 
     for( int i = 0; i < NrOfOnceTasks; i++)
-      onceTaskList[i] = false;
+    {
+      onceTaskList[i].finished      = false;
+      onceTaskList[i].firstRun      = true;
+      onceTaskList[i].waitCounter   = 0;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -145,12 +149,12 @@
   bool LoopCheck::timerMicro
     (int taskIdx, unsigned long repeatTime, unsigned int repetitions)
   {
-    CtrlTask *ctrlPtr;
+    TimerTask *ctrlPtr;
 
     if(taskIdx < 0) return(false);
     if(taskIdx >= NrOfLoopTasks) return(false);
 
-    ctrlPtr = &ctrlTaskList[taskIdx];
+    ctrlPtr = &timerTaskList[taskIdx];
 
     if(ctrlPtr->finished == true) return(false);
 
@@ -192,12 +196,29 @@
     return(timerMicro(taskIdx,repeatTime * 1000,repetitions));
   }
 
-  bool LoopCheck::once(int taskIdx)
+  bool LoopCheck::once(int taskIdx, unsigned int nrOfLoops)
   {
     if(taskIdx < 0) return(false);
     if(taskIdx >= NrOfOnceTasks) return(false);
-    if(onceTaskList[taskIdx] == true) return(false);
-    onceTaskList[taskIdx] = true;
+
+    if(onceTaskList[taskIdx].finished == true) return(false);
+    if(nrOfLoops <= 1)
+    {
+      onceTaskList[taskIdx].finished = true;
+      return(true);
+    }
+
+    if(onceTaskList[taskIdx].firstRun == true)
+    {
+      onceTaskList[taskIdx].firstRun = false;
+      onceTaskList[taskIdx].waitCounter = nrOfLoops;
+    }
+
+    onceTaskList[taskIdx].waitCounter--;
+    if(onceTaskList[taskIdx].waitCounter > 0)
+      return(false);
+
+    onceTaskList[taskIdx].finished = true;
     return(true);
   }
 
@@ -216,7 +237,7 @@
   {
     if(taskIdx < 0) return(0);
     if(taskIdx >= NrOfLoopTasks) return(0);
-    return(ctrlTaskList[taskIdx].runCounter);
+    return(timerTaskList[taskIdx].runCounter);
   }
 
   unsigned long LoopCheck::operationTime(OpHourMeter *opHourMeter)

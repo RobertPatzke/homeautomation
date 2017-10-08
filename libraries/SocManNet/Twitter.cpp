@@ -1,7 +1,7 @@
 /*
   Twitter.cpp
-  Zwitscherer für Arduino Due
-  Robert Patzke, 08. März 2015
+  Zwitscherer fï¿½r Arduino Due
+  Robert Patzke, 08. Mï¿½rz 2015
 */
 
 #include 	<string.h>
@@ -430,7 +430,7 @@ void Twitter::createMsgHeader()
   sprintf(msgHeader, "%s:%s:%s:%d:%d:%s:%d:",
           "N10",              // Header Umas-Telegramm
           netHnd->MacAddress, // Sender, MAC-Adresse
-          netHnd->IntAddress, // Sender, IP-Adresse
+          netHnd->IpAddress,  // Sender, IP-Adresse
           53,                 // Umas-Kommando (Schreibzugriff)
           0,                  // Kommunikationsvariable, Handle / Wiederholungssteuerung
           objectName,         // Kommunikationsvariable, Name
@@ -518,7 +518,7 @@ int Twitter::pduFromTime(char * timeStr)
 }
 
 // ----------------------------------------------------------------------------
-// Geräteparameter festlegen / ändern
+// Gerï¿½teparameter festlegen / ï¿½ndern
 // ----------------------------------------------------------------------------
 //
 

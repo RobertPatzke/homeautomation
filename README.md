@@ -16,8 +16,8 @@ before it is published in the master repository.
 
 # Current development tools and targets
 At present I use the Arduino library environment for targets Arduino Due and development boards 
-for the WiFi-SoCs ESP8266 and ESP32 (https://github.com/espressif/arduino-esp32). 
-For the software development I use Eclipse/Sloeber (http://eclipse.baeyens.it/) on Ubuntu (and sometimes also on Windows). 
+for the WiFi-SoCs ESP8266 and [ESP32](https://github.com/espressif/arduino-esp32). 
+For the software development I use [Eclipse/Sloeber](http://eclipse.baeyens.it/) on Ubuntu (and sometimes also on Windows). 
 One of my students created a bootable USB-Stick with Linux MINT and Sloeber, 
 which will be a give-away for students joining the microprocessor laboratory at the University of 
 Applied Sciences and Arts in Hannover/Germany. 

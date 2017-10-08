@@ -44,6 +44,10 @@ void loop()
     // 1. arg is task index (0-7), 2. arg is loop number
     // I.e. : do only once with the first loop
     useDelay = true;
+    // Of course this could be better done in the setup-function (above),
+    // but it is a chance to show the once-function of LoopCheck.
+    // Mind the 2. argument, you can do setups subsequently because
+    // once-function is skipping the entered number of loops
   }
 
   if(loopCheck.timerMilli(0, 1000, 25))
@@ -81,7 +85,7 @@ void loop()
 }
 
 // This example looks rather complex for simply showing the elapsed operation time.
-// But ist had to be shown, that the operation time counter only works
+// But it had to be shown, that the operation time counter only works
 // if the loop cycle time (time between two following loops) is less than
 // 1 millisecond.
 // This is not a mistake. LoopCheck was built to watch and control the behaviour

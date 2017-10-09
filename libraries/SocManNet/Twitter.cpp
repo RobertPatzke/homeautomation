@@ -10,68 +10,66 @@
 //#include 	"rtc_clock.h"																			//RTC
 
 // ----------------------------------------------------------------------------
-// Statische Variablen, Initialisierungen
-// ----------------------------------------------------------------------------
-int Twitter::pduCounter = 0;
-
-// ----------------------------------------------------------------------------
 // Konstruktoren und Initialisierungen
 // ----------------------------------------------------------------------------
 //
 
 Twitter::Twitter()
 {
-	baseMode 			= 0;
+	baseMode 		= 0;
 	baseState 		= 0;
 	cntSendMsg 		= 0;
 	crPDUStatus 	= cpsHeader;
-	debugOn 			= false;
+	debugOn 		= false;
 	delayCounter 	= 0;
 	deviceKey 		= 0;
 	deviceState 	= 0;
-	enabled 			= false;
+	enabled 		= false;
 	errorCode 		= 0;
-	errorMsg 			= (char *) "noError";
-	netHnd 				= 0;
-	nrFloatValues = 0;
+	errorMsg 		= (char *) "noError";
+	netHnd 			= 0;
+	nrFloatValues   = 0;
 	nrIntValues 	= 0;
 	nrTextValues 	= 0;
-	posX 					= 0;
-	posY 					= 0;
-	posZ 					= 0;
+	posX 			= 0;
+	posY 			= 0;
+	posZ 			= 0;
 	resultMsg 		= (char *) "noMsg";
-//	rtcClockHnd 	= NULL;
-	runError      = rsWait;
-	runStatus     = rsWait;
-	speed         = normalSpeed;
-	speedCounter  = 0;
+	runError        = rsWait;
+	runStatus       = rsWait;
+	speed           = normalSpeed;
+	speedCounter    = 0;
+	refDateTimePdu  = "2017-10-09T18:00:00.000+00:00";
+	pduCounter      = 0;
 }
 
 
-Twitter::Twitter(SocManNet * inNetHnd,
-                 char *      commObject,
-                 int         nrIntVal,
-                 int         nrFloatVal,
-                 int         nrTextVal,
-                 Speed       inSpeed)
+Twitter::Twitter(SocManNet *    inNetHnd,
+                 const char *   ptrDateTimePdu,
+                 char *         commObject,
+                 int            nrIntVal,
+                 int            nrFloatVal,
+                 int            nrTextVal,
+                 Speed          inSpeed)
 {
-  init(inNetHnd, commObject, nrIntVal, nrFloatVal, nrTextVal, inSpeed);
+  init(inNetHnd, ptrDateTimePdu, commObject,
+       nrIntVal, nrFloatVal, nrTextVal, inSpeed);
 }
 
 Twitter::Twitter(SocManNet * inNetHnd, char *commObject)
 {
-  init(inNetHnd, commObject, 4, 4, 4, normalSpeed);
+  init(inNetHnd, refDateTimePdu,
+       commObject, 4, 4, 4, normalSpeed);
 }
 
-void Twitter::init(SocManNet * inNetHnd,
-                   char *      commObject,
-                   int         nrInt,
-                   int         nrFloat,
-                   int         nrText,
-                   Speed       inSpeed)
+void Twitter::init(SocManNet *  inNetHnd,
+                   const char * ptrDateTimePdu,
+                   char *       commObject,
+                   int          nrInt,
+                   int          nrFloat,
+                   int          nrText,
+                   Speed        inSpeed)
 {
-  //uint8_t ipAdr[4];
-
   //---------------------------------------------------------------------------
   // Globale Variablen zur Steuerung initialisieren
   //---------------------------------------------------------------------------
@@ -93,8 +91,6 @@ void Twitter::init(SocManNet * inNetHnd,
   memset(intValArray, 0, sizeof(intValArray));
   memset(floatValArray, 0, sizeof(floatValArray));
   memset(textValArray, 0, sizeof(textValArray));
-
-  //rtcClockHnd = NULL;
 
   //---------------------------------------------------------------------------
   // Globale Variablen fuer Debugzwecke
@@ -149,6 +145,7 @@ void Twitter::init(SocManNet * inNetHnd,
   // lokale Variablen fuer die Kommunikationsschnittstelle
   // --------------------------------------------------------------------------
   netHnd = inNetHnd;
+  refDateTimePdu = ptrDateTimePdu;
 
   // --------------------------------------------------------------------------
   // Interne Variablen fuer Statistik
@@ -230,7 +227,7 @@ void Twitter::run(int secFactor, int delay)
     case rsCreate:
     // ------------------------------------------------------------------ //
       // Telegramm aufbauen
-      fin = createPDU(secFactor);
+      fin = createPDU();
       if(fin == 1)
       {
         runStatus = rsSend;
@@ -268,7 +265,7 @@ void Twitter::run(int secFactor, int delay)
   }
 }
 
-int Twitter::createPDU(int frequency)
+int Twitter::createPDU()
 {
   int ready;
   size_t len;
@@ -427,15 +424,21 @@ int Twitter::createPDU(int frequency)
 
 void Twitter::createMsgHeader()
 {
+  SmnIfInfo ifInfo;
+
+  netHnd->getIfInfo(&ifInfo);
+
   sprintf(msgHeader, "%s:%s:%s:%d:%d:%s:%d:",
           "N10",              // Header Umas-Telegramm
-          netHnd->MacAddress, // Sender, MAC-Adresse
-          netHnd->IpAddress,  // Sender, IP-Adresse
+          ifInfo.macAdrCStr,  // Sender, MAC-Adresse
+          ifInfo.ipAdrCStr,   // Sender, IP-Adresse
           53,                 // Umas-Kommando (Schreibzugriff)
           0,                  // Kommunikationsvariable, Handle / Wiederholungssteuerung
           objectName,         // Kommunikationsvariable, Name
           0                   // Kommunikationsvariable, Index
          );
+
+  itoa(deviceKey, pduDeviceKeyStr, 10);  // wird bei createDeviceHeader verwendet
 
   //writeDebug(msgHeader);
 
@@ -446,7 +449,17 @@ void Twitter::createDeviceHeader(void)
 {
   pduCounter++;
 
-  sprintf(pduHeader, "%u;%u;%u;%s;", pduCounter, deviceKey, deviceState, deviceName);
+  itoa(pduCounter, pduCounterStr, 10);
+  itoa(deviceState, pduDeviceStateStr, 10);
+
+  strcpy(pduHeader,pduCounterStr);
+  strcat(pduHeader,";");
+  strcat(pduHeader,pduDeviceKeyStr);
+  strcat(pduHeader,";");
+  strcat(pduHeader,pduDeviceStateStr);
+  strcat(pduHeader,";");
+  strcat(pduHeader,deviceName);
+  strcat(pduHeader,";");
 
   //writeDebug(pduHeader);
 
@@ -455,61 +468,7 @@ void Twitter::createDeviceHeader(void)
 
 int Twitter::pduFromTime(char * timeStr)
 {
-  int hour;
-  int minute;
-  int second;
-  int day;
-  int month;
-  int year;
-
-  //---------------------------------------------------------------------------
-  // Lokale Variablen initialisieren
-  //---------------------------------------------------------------------------
-  hour = 0;
-  minute = 0;
-  second = 0;
-  day = 0;
-  month = 0;
-  year  = 0;
-
-  //---------------------------------------------------------------------------
-  // Time-String zuruecksetzen
-  //---------------------------------------------------------------------------
-  timeStr[0] = '\0';
-
-  //---------------------------------------------------------------------------
-  // PDU-Time definieren
-  //---------------------------------------------------------------------------
-  // Datum und Zeit ermitteln
-/*  if(rtcClockHnd == NULL)
-  {
-    hour = 11;
-    minute = 36;
-    second = 0;
-    day = 30;
-    month = 3;
-    year  = 2015;
-  }
-  else
-  {
-    hour = rtcClockHnd->get_hours();
-    minute = rtcClockHnd->get_minutes();
-    second = rtcClockHnd->get_seconds();
-
-    day = rtcClockHnd->get_days();
-    month = rtcClockHnd->get_months();
-    year = rtcClockHnd->get_years();
-  }
-*/
-  // Datum und Zeit in PDU-Format konvertieren
-  sprintf(timeStr, "%d-%02d-%02dT%02d:%02d:%02d.00+00:00",
-          year,
-          month,
-          day,
-          hour,
-          minute,
-          second
-         );
+  strcpy(timeStr,refDateTimePdu);
 
   //---------------------------------------------------------------------------
   // Ergebnis definieren
@@ -518,7 +477,7 @@ int Twitter::pduFromTime(char * timeStr)
 }
 
 // ----------------------------------------------------------------------------
-// Ger�teparameter festlegen / �ndern
+// Geräteparameter festlegen / ändern
 // ----------------------------------------------------------------------------
 //
 

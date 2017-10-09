@@ -1,7 +1,7 @@
 /*
   Twitter.h
-  Zwitscherer für Arduino Due
-  Robert Patzke, 08. März 2015
+  Zwitscherer fï¿½r Arduino Due
+  Robert Patzke, 08. Mï¿½rz 2015
 */
 
 #ifndef Twitter_h
@@ -59,35 +59,37 @@ Speed;
 class Twitter
 {
   // --------------------------------------------------------------------------
-  // Methoden (Funktionen) für den Anwender
+  // Methoden (Funktionen) fÃ¼r den Anwender
   // --------------------------------------------------------------------------
   //
   public:
     // Konstruktoren
     //
     Twitter();
-    Twitter(SocManNet * inNetHnd,
-            char *      commObject,
-            int         nrIntVal,
-            int         nrFloatVal,
-            int         nrTextVal,
-            Speed       inSpeed);
+    Twitter(SocManNet *     inNetHnd,
+            const char *    ptrDateTimePdu,
+            char *          commObject,
+            int             nrIntVal,
+            int             nrFloatVal,
+            int             nrTextVal,
+            Speed           inSpeed);
 
     Twitter(SocManNet * inNetHnd, char *commObject);
 
-    void init(SocManNet * inNetHnd,
-              char *      commObject,
-              int         nrInt,
-              int         nrFloat,
-              int         nrString,
-              Speed       inSpeed);
+    void init(SocManNet *   inNetHnd,
+              const char *  ptrDateTimePdu,
+              char *        commObject,
+              int           nrInt,
+              int           nrFloat,
+              int           nrString,
+              Speed         inSpeed);
 
     // Zyklischer Einstieg in die ZM
     //
     void      run(int SecFactor);
     void      run(int SecFactor, int delay);
 
-    // Geräteparameter festlegen
+    // GerÃ¤teparameter festlegen
     //
     void      setDeviceName(char * name);
     void      setDeviceKey(int key);
@@ -109,11 +111,14 @@ class Twitter
   // --------------------------------------------------------------------------
   //
   public:
-    static int pduCounter;
+    int         pduCounter;
 
-    int        errorCode;
-    char *     errorMsg;
-    char *     resultMsg;
+    int         errorCode;
+    char *      errorMsg;
+    char *      resultMsg;
+
+    const char *    refDateTimePdu;
+    // Zeiger auf den aktuellen String von Datum/Uhrzeit
 
     bool       enabled;
     Speed      speed;
@@ -148,7 +153,10 @@ class Twitter
     char      objectName[TWITTER_OBJ_NAME_LEN];
 
     char      msgHeader[MSG_HEADER_LEN];
-    char      pduHeader[PDU_HEADER_LEN];
+    char      pduHeader[DEV_NAME_LEN + 16 + 16 + 16 + 8];
+    char      pduCounterStr[16];
+    char      pduDeviceKeyStr[16];
+    char      pduDeviceStateStr[16];
     char      pduTime[PDU_TIME_LEN];
     char      pduMsg[PDU_MSG_LEN];
 
@@ -181,7 +189,7 @@ class Twitter
   // --------------------------------------------------------------------------
   //
   private:
-    int createPDU(int frequency);
+    int createPDU();
     void createMsgHeader(void);
     void createDeviceHeader(void);
     int pduFromTime(char * timeStr);

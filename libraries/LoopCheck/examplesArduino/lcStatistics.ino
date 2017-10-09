@@ -72,6 +72,8 @@ void loop()
     loopCheck.getStatistics(&statistics);
     Serial.printf("AvgInLoopTime: %05d[us], AvgOutLoopTime: %05d[us]\r\n",
                   statistics.loopAvgTime,statistics.bgAvgTime);
+    Serial.printf("LoopPeriodAlarm: %d, AlarmCounter: %d\r\n",
+                  statistics.periodAlarm,statistics.alarmCount);
   }
 
   if(loopCheck.timerMilli(2, 10000, 1))

@@ -124,6 +124,16 @@ private:
   int           msec;
   bool          toggleMilli;
 
+  int           dtYear;             // Zeit / Uhr
+  int           dtMonth;
+  int           dtDay;
+  int           dtHour;
+  int           dtMin;
+  int           dtSec;
+  int           dtmSec;
+  int           febLen;
+  char          dateTimeStr[30];
+
   unsigned int  periodMicros;           // Zeit zwischen zwei loop-Aufrufen
   unsigned int  periodMinMicros;
   unsigned int  periodMaxMicros;
@@ -137,6 +147,7 @@ private:
   //
   void initTasks();
   void initStatistics();
+  void initClock();
 
 public:
   // -------------------------------------------------------------------------
@@ -182,6 +193,13 @@ public:
 
   void resetStatistics();
   // Rücksetzen der Statistikdaten
+
+  bool setDateTime(const char *dtStr);
+  // Setzen der Uhr über standardisierten String
+
+  const char * refDateTime();
+  // Zeiger auf Datum/Uhrzeit holen
+
 
   // -------------------------------------------------------------------------
   // Anwendervariablen

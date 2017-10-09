@@ -15,6 +15,16 @@
   //
   LoopCheck::LoopCheck()
   {
+    firstLoop       = true;
+    taskHappened    = false;
+    toggleMilli     = true;
+
+    initStatistics();
+    initTasks();
+  }
+
+  void LoopCheck::initStatistics()
+  {
     backgroundMicros        = 0;
     loopMicros              = 0;
     loopStartMicros         = 0;
@@ -26,14 +36,13 @@
     loopMinMicros           = (unsigned long) -1;
     loopAvgMicros           = 0;
     loopCounter             = 0;
+    periodFailCount         = 0;
+    periodMaxMicros         = 0;
+    periodMinMicros         = (unsigned int) -1;
+    periodMicros            = 0;
+    periodFailAlarm         = false;
 
     calcAvgCounter          = 0;
-
-    firstLoop       = true;
-    taskHappened    = false;
-    toggleMilli     = true;
-
-    initTasks();
   }
 
   void LoopCheck::initTasks()
@@ -60,8 +69,10 @@
   //
   void LoopCheck::begin()
   {
-    unsigned int restMicros;
+    unsigned int    restMicros;
+    unsigned long   lastMicros;
 
+    lastMicros = loopStartMicros;
     loopStartMicros = SYSMICSEC;
     restMicros = (int) (loopStartMicros % 1000);
 
@@ -109,6 +120,16 @@
         backgroundMaxMicros = backgroundMicros;
       if(backgroundMicros < backgroundMinMicros)
         backgroundMinMicros = backgroundMicros;
+      periodMicros = loopStartMicros - lastMicros;
+      if(periodMicros > periodMaxMicros)
+        periodMaxMicros = periodMicros;
+      if(periodMicros < periodMinMicros)
+        periodMinMicros = periodMicros;
+      if(periodMicros > 1000)
+      {
+        periodFailAlarm = true;
+        periodFailCount++;
+      }
     }
   }
 
@@ -253,15 +274,48 @@
 
   unsigned long LoopCheck::getStatistics(LoopStatistics *statistics)
   {
-    statistics->loopTime    = (int) loopMicros;
-    statistics->loopMaxTime = (int) loopMaxMicros;
-    statistics->loopMinTime = (int) loopMinMicros;
-    statistics->loopAvgTime = (int) loopAvgMicros;
-    statistics->bgTime      = (int) backgroundMicros;
-    statistics->bgMaxTime   = (int) backgroundMaxMicros;
-    statistics->bgMinTime   = (int) backgroundMinMicros;
-    statistics->bgAvgTime   = (int) backgroundAvgMicros;
+    statistics->loopTime    =   (unsigned int) loopMicros;
+    statistics->loopMaxTime =   (unsigned int) loopMaxMicros;
+    statistics->loopMinTime =   (unsigned int) loopMinMicros;
+    statistics->loopAvgTime =   (unsigned int) loopAvgMicros;
+
+    statistics->bgTime      =   (unsigned int) backgroundMicros;
+    statistics->bgMaxTime   =   (unsigned int) backgroundMaxMicros;
+    statistics->bgMinTime   =   (unsigned int) backgroundMinMicros;
+    statistics->bgAvgTime   =   (unsigned int) backgroundAvgMicros;
+
+    statistics->alarmCount  =   periodFailCount;
+    statistics->periodAlarm =   periodFailAlarm;
+    periodFailAlarm = false;
+
+    statistics->loopPeriod  =   periodMicros;
+    statistics->maxPeriod   =   periodMaxMicros;
+    statistics->minPeriod   =   periodMinMicros;
+
     return(loopCounter);
+  }
+
+  void LoopCheck::resetStatistics()
+  {
+    backgroundMicros        = 0;
+    loopMicros              = 0;
+
+    backgroundMaxMicros     = 0;
+    backgroundMinMicros     = (unsigned long) -1;
+    backgroundAvgMicros     = 0;
+
+    loopMaxMicros           = 0;
+    loopMinMicros           = (unsigned long) -1;
+    loopAvgMicros           = 0;
+    loopCounter             = 0;
+
+    periodFailCount         = 0;
+    periodMaxMicros         = 0;
+    periodMinMicros         = (unsigned int) -1;
+    periodMicros            = 0;
+    periodFailAlarm         = false;
+
+    calcAvgCounter          = 0;
   }
 
   // -------------------------------------------------------------------------

@@ -36,15 +36,22 @@ typedef struct _OpHourMeter
 
 typedef struct _LoopStatistics
 {
-  unsigned int    loopTime;       // Schleifenzeit in Mikrosekunden
-  unsigned int    loopMaxTime;    // Maximale Schleifenzeit
-  unsigned int    loopMinTime;    // Minimale Schleifenzeit
-  unsigned int    loopAvgTime;    // Mittlere Schleifenzeit
+  unsigned int  loopTime;       // Schleifenzeit in Mikrosekunden
+  unsigned int  loopMaxTime;    // Maximale Schleifenzeit
+  unsigned int  loopMinTime;    // Minimale Schleifenzeit
+  unsigned int  loopAvgTime;    // Mittlere Schleifenzeit
 
-  unsigned int    bgTime;         // Zeit außerhalb der Schleife
-  unsigned int    bgMaxTime;      // Maximale Außenzeit
-  unsigned int    bgMinTime;      // Minimale Außenzeit
-  unsigned int    bgAvgTime;      // Mittlere Außenzeit
+  unsigned int  bgTime;         // Zeit außerhalb der Schleife
+  unsigned int  bgMaxTime;      // Maximale Außenzeit
+  unsigned int  bgMinTime;      // Minimale Außenzeit
+  unsigned int  bgAvgTime;      // Mittlere Außenzeit
+
+  unsigned int  loopPeriod;     // Zeit zwischen loop-Aufrufen
+  unsigned int  maxPeriod;      // Maximale Aufrufdistanz
+  unsigned int  minPeriod;      // Minimale Aufrufdistanz
+
+  bool          periodAlarm;    // Aufrufdistanz > 1 Millisekunde
+  unsigned int  alarmCount;     // Anzahl der Überschreitungen
 
 } LoopStatistics;
 
@@ -117,12 +124,19 @@ private:
   int           msec;
   bool          toggleMilli;
 
+  unsigned int  periodMicros;           // Zeit zwischen zwei loop-Aufrufen
+  unsigned int  periodMinMicros;
+  unsigned int  periodMaxMicros;
+  bool          periodFailAlarm;        // periodMicros > Millisekunde
+  unsigned int  periodFailCount;        // Anzahl der Überschreitungen
+
 private:
   // -------------------------------------------------------------------------
   // Lokale Funktionen
   // -------------------------------------------------------------------------
   //
   void initTasks();
+  void initStatistics();
 
 public:
   // -------------------------------------------------------------------------
@@ -165,6 +179,9 @@ public:
 
   unsigned long getStatistics(LoopStatistics *statistics);
   // Statistik über Ablaufzeiten
+
+  void resetStatistics();
+  // Rücksetzen der Statistikdaten
 
   // -------------------------------------------------------------------------
   // Anwendervariablen

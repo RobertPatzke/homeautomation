@@ -35,12 +35,18 @@ Twitter::Twitter()
 	posY 			= 0;
 	posZ 			= 0;
 	resultMsg 		= (char *) "noMsg";
-	runError        = rsWait;
-	runStatus       = rsWait;
+	runError        = rsInit;
+	runStatus       = rsInit;
 	speed           = normalSpeed;
 	speedCounter    = 0;
 	refDateTimePdu  = "2017-10-09T18:00:00.000+00:00";
 	pduCounter      = 0;
+	pduIdx          = 0;
+	loopIdx         = 0;
+	speedLimit      = 0;
+	overflow        = false;
+	markOverflow    = false;
+	overflowCounter = 0;
 }
 
 
@@ -134,10 +140,10 @@ void Twitter::init(SocManNet *  inNetHnd,
   memset(pduTime, 0, sizeof(pduTime));
   memset(pduMsg, 0, sizeof(pduMsg));
 
-  delayCounter = 0;
-  speedCounter = 8;
-  runStatus    = rsWait;
-  runError     = rsNrOfStates;
+  delayCounter  = 0;
+  speedCounter  = 0;
+  runStatus     = rsInit;
+  runError      = rsNrOfStates;
 
   crPDUStatus = cpsHeader;
 
@@ -178,9 +184,8 @@ void Twitter::run(int SecFactor)
 void Twitter::run(int secFactor, int delay)
 {
   int  fin;
-  int  speedLimit;
   size_t msgLen;
-	unsigned int sendLen;
+  unsigned int sendLen;
 
   //-------------------------------------------------------------------------
   // Pruefen, ob die Ausfuehrung der Zustandsmaschine erlaubt ist
@@ -204,9 +209,9 @@ void Twitter::run(int secFactor, int delay)
   switch(runStatus)
   {
     // ------------------------------------------------------------------ //
-    case rsWait:
+    case rsInit:
     // ------------------------------------------------------------------ //
-      speedCounter++;
+      speedCounter = 1;
       if(speed == highSpeed)
         speedLimit = secFactor/10;
       else if(speed == lowSpeed)
@@ -214,13 +219,7 @@ void Twitter::run(int secFactor, int delay)
       else
         speedLimit = secFactor;
 
-      if(speedCounter >= speedLimit)
-      {
-        speedCounter  = 8;
-        runStatus   = rsCreate;
-        errorCode   = 0;
-      }
-
+      runStatus = rsCreate;
       break;
 
     // ------------------------------------------------------------------ //
@@ -228,6 +227,8 @@ void Twitter::run(int secFactor, int delay)
     // ------------------------------------------------------------------ //
       // Telegramm aufbauen
       fin = createPDU();
+      speedCounter++;
+
       if(fin == 1)
       {
         runStatus = rsSend;
@@ -247,8 +248,30 @@ void Twitter::run(int secFactor, int delay)
         cntSendMsg++;
       }
 
-      // Telegramm senden
+      speedCounter++;
+
+      if(speedCounter > speedLimit)
+      {
+        overflow = true;
+        markOverflow = true;
+        overflowCounter++;
+      }
       runStatus = rsWait;
+      break;
+
+    // ------------------------------------------------------------------ //
+    case rsWait:
+    // ------------------------------------------------------------------ //
+      speedCounter++;
+
+      if(speedCounter >= speedLimit)
+      {
+        speedCounter    = 1;
+        errorCode       = 0;
+        overflow        = false;
+        runStatus       = rsCreate;
+      }
+
       break;
 
     // ------------------------------------------------------------------ //
@@ -269,6 +292,10 @@ int Twitter::createPDU()
 {
   int ready;
   size_t len;
+  char      tmpStr[32];
+  char      *srcPtr;
+  double    tmpFloat;
+  int       tmpInt;
 
   //-------------------------------------------------------------------------
   // Lokale Variablen initialisieren
@@ -284,61 +311,185 @@ int Twitter::createPDU()
     // ------------------------------------------------------------------- //
     case cpsHeader:
     // ------------------------------------------------------------------- //
-      // Telegramm-String zuruecksetzen
-      pduMsg[0] = 0;
-
       // Telegrammheader konstruieren
-      strcat(pduMsg, msgHeader);
+      pduIdx = 0;
+      srcPtr = msgHeader;
 
-      createDeviceHeader();
-      strcat(pduMsg, pduHeader);
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
 
-      // Naechsten Zustand setzen
+      crPDUStatus = cpsCounter;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsCounter:
+    // ------------------------------------------------------------------- //
+      pduCounter++;
+      srcPtr = itoa(pduCounter,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsDeviceKey;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsDeviceKey:
+    // ------------------------------------------------------------------- //
+      srcPtr = pduDeviceKeyStr;
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsDeviceState;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsDeviceState:
+    // ------------------------------------------------------------------- //
+      srcPtr = itoa(deviceState,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsDeviceName;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsDeviceName:
+    // ------------------------------------------------------------------- //
+      srcPtr = deviceName;
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
       crPDUStatus = cpsTime;
       break;
 
     // ------------------------------------------------------------------- //
     case cpsTime:
     // ------------------------------------------------------------------- //
-      // ISO-Zeitformat aus aktueller Zeit
-      pduFromTime(pduTime);
-      strcat(pduMsg, pduTime);
+      // ISO-Zeitformat mit aktueller Zeit über Referenz
+      //
+      srcPtr = (char *) refDateTimePdu;
 
-      // Naechsten Zustand setzen
-      crPDUStatus = cpsStandard;
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsPosX;
       break;
 
     // ------------------------------------------------------------------- //
-    case cpsStandard:
+    case cpsPosX:
     // ------------------------------------------------------------------- //
-      // Standard-Telegrammanfang
-      len = strlen(pduMsg);
+      //
+      srcPtr = itoa(posX,tmpStr,10);
 
-      sprintf(&pduMsg[len], ";%d;%d;%d;%d;%d",
-              posX,
-              posY,
-              posZ,
-              baseState,
-              baseMode
-             );
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
 
-      // Naechsten Zustand setzen
-      crPDUStatus = cpsValueHeader;
+      crPDUStatus = cpsPosY;
+      break;
+
+
+    // ------------------------------------------------------------------- //
+    case cpsPosY:
+    // ------------------------------------------------------------------- //
+      //
+      srcPtr = itoa(posY,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsPosZ;
       break;
 
     // ------------------------------------------------------------------- //
-    case cpsValueHeader:
+    case cpsPosZ:
     // ------------------------------------------------------------------- //
-      // Die Anzahl von Int/Float/Text-Werten
-      len = strlen(pduMsg);
+      //
+      srcPtr = itoa(posZ,tmpStr,10);
 
-      sprintf(&pduMsg[len], ";%d;%d;%d",
-              nrIntValues,
-              nrFloatValues,
-              nrTextValues
-             );
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
 
-      // Naechsten Zustand setzen
+      crPDUStatus = cpsBaseState;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsBaseState:
+    // ------------------------------------------------------------------- //
+      //
+      srcPtr = itoa(baseState,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsBaseMode;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsBaseMode:
+    // ------------------------------------------------------------------- //
+      //
+      srcPtr = itoa(baseMode,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsNrInt;
+      break;
+
+
+    // ------------------------------------------------------------------- //
+    case cpsNrInt:
+    // ------------------------------------------------------------------- //
+      //
+      srcPtr = itoa(nrIntValues,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsNrFloat;
+      break;
+
+
+    // ------------------------------------------------------------------- //
+    case cpsNrFloat:
+    // ------------------------------------------------------------------- //
+      //
+      srcPtr = itoa(nrFloatValues,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsNrText;
+      break;
+
+
+    // ------------------------------------------------------------------- //
+    case cpsNrText:
+    // ------------------------------------------------------------------- //
+      //
+      srcPtr = itoa(nrTextValues,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      loopIdx = 0;
       crPDUStatus = cpsIntValues;
       break;
 
@@ -348,15 +499,33 @@ int Twitter::createPDU()
       // Integerwerte als Telegrammelemente
       // Wenn kein Integerwert vorhanden ist, wird das Datenfeld
       // fuer Integerwerte nicht in das Telegramm eingetragen
-      for(int idx = 0; idx < nrIntValues; idx++)
+
+      if(loopIdx < nrIntValues)
       {
-        len = strlen(pduMsg);
-        sprintf(&pduMsg[len], ";%d", intValArray[idx]);
+        srcPtr = itoa(intValArray[loopIdx],tmpStr,10);
+
+        while(*srcPtr != '\0')
+          pduMsg[pduIdx++] = *srcPtr++;
+        pduMsg[pduIdx++] = ';';
+      }
+      else
+      {
+        loopIdx = 0;
+        crPDUStatus = cpsFloatValues;
+        break;
       }
 
-      // Naechsten Zustand setzen
-      crPDUStatus = cpsFloatValues;
+      loopIdx++;
+
+      if(loopIdx == nrIntValues)
+      {
+        loopIdx = 0;
+        crPDUStatus = cpsFloatValues;
+        break;
+      }
+
       break;
+
 
     // ------------------------------------------------------------------- //
     case cpsFloatValues:
@@ -364,15 +533,60 @@ int Twitter::createPDU()
       // Floatwerte als Telegrammelemente
       // Wenn kein Floatwert vorhanden ist, wird das Datenfeld
       // fuer Floatwerte nicht in das Telegramm eingetragen
-      for(int idx = 0; idx < nrFloatValues; idx++)
+      if(loopIdx < nrFloatValues)
       {
-        len = strlen(pduMsg);
-        sprintf(&pduMsg[len], ";%f", floatValArray[idx]);
+        tmpFloat = floatValArray[loopIdx];
+        tmpInt = (int) tmpFloat;
+        srcPtr = itoa(tmpInt,tmpStr,10);
+
+        while(*srcPtr != '\0')
+          pduMsg[pduIdx++] = *srcPtr++;
+
+        if(tmpFloat < 0)
+        {
+          tmpFloat = -tmpFloat;
+          tmpInt   = -tmpInt;
+        }
+
+        tmpFloat = FLOAT_PREC_FACTOR * (tmpFloat - (double) tmpInt);
+        tmpInt = (int) tmpFloat;
+
+        if(tmpInt != 0)
+        {
+          pduMsg[pduIdx++] = '.';
+
+          srcPtr = itoa(tmpInt,tmpStr,10);
+          len = strlen(tmpStr);
+
+          for(int i = 0; i < (FLOAT_PRECISION - len); i++)
+            pduMsg[pduIdx++] = '0';
+
+          while(*srcPtr != '\0')
+            pduMsg[pduIdx++] = *srcPtr++;
+
+          while(pduMsg[pduIdx - 1] == '0')
+            pduIdx--;
+        }
+        pduMsg[pduIdx++] = ';';
+      }
+      else
+      {
+        loopIdx = 0;
+        crPDUStatus = cpsTextValues;
+        break;
       }
 
-      // Naechsten Zustand setzen
-      crPDUStatus = cpsTextValues;
+      loopIdx++;
+
+      if(loopIdx == nrFloatValues)
+      {
+        loopIdx = 0;
+        crPDUStatus = cpsTextValues;
+        break;
+      }
+
       break;
+
 
     // ------------------------------------------------------------------- //
     case cpsTextValues:
@@ -380,28 +594,44 @@ int Twitter::createPDU()
       // Textwerte als Telegrammelemente
       // Wenn kein Textwert vorhanden ist, wird das Datenfeld
       // fuer Textwerte nicht in das Telegramm eingetragen
-      for(int idx = 0; idx < nrTextValues; idx ++)
-      {
-        len = strlen(pduMsg);
 
+      if(loopIdx < nrTextValues)
+      {
         if(textValArray != NULL)
         {
-          sprintf(&pduMsg[len], ";%s", textValArray[idx]);
+          srcPtr = textValArray[loopIdx];
+
+          while(*srcPtr != '\0')
+            pduMsg[pduIdx++] = *srcPtr++;
         }
-        else
-        {
-          sprintf(&pduMsg[len], ";");
-        }
+
+        pduMsg[pduIdx++] = ';';
+      }
+      else
+      {
+        goto crPduFin;
       }
 
-      // Das Telegramm abschliessen
-      strcat(pduMsg, "::");
+      loopIdx++;
 
-      // Das Erstellen des Telegramm ist fertig
-      ready = 1;
+      if(loopIdx == nrTextValues)
+      {
+crPduFin:
+        // Das Telegramm abschliessen
+        pduMsg[pduIdx - 1]  = ':';
+        pduMsg[pduIdx++]    = ':';
+        pduMsg[pduIdx]      = '\0';
 
-      // Naechsten Zustand setzen
-      crPDUStatus = cpsHeader;
+        // Das Erstellen des Telegramm ist fertig
+        ready = 1;
+
+        // Naechsten Zustand setzen
+        crPDUStatus = cpsHeader;
+        break;
+      }
+
+      break;
+
       break;
 
     // ------------------------------------------------------------------- //

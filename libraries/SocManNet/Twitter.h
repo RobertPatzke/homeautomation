@@ -23,11 +23,15 @@
 #define PDU_TIME_LEN   32
 #define PDU_MSG_LEN    1024
 
+#define FLOAT_PRECISION     6
+#define FLOAT_PREC_FACTOR   1000000
+
 typedef enum _RunStatus
 {
-  rsWait,
+  rsInit,
   rsCreate,
   rsSend,
+  rsWait,
   rsError,
   rsNrOfStates
 }
@@ -36,8 +40,19 @@ RunStatus;
 typedef enum _CrPDUStatus
 {
   cpsHeader,
+  cpsCounter,
+  cpsDeviceKey,
+  cpsDeviceState,
+  cpsDeviceName,
   cpsTime,
-  cpsStandard,
+  cpsPosX,
+  cpsPosY,
+  cpsPosZ,
+  cpsBaseState,
+  cpsBaseMode,
+  cpsNrInt,
+  cpsNrFloat,
+  cpsNrText,
   cpsValueHeader,
   cpsIntValues,
   cpsFloatValues,
@@ -123,6 +138,12 @@ class Twitter
     bool       enabled;
     Speed      speed;
 
+    bool       markOverflow;
+    bool       overflow;
+    // Aufruffrequenz zu gering, Zeitrahmen nicht haltbar
+
+    int        overflowCounter;
+
     int        posX;
     int        posY;
     int        posZ;
@@ -166,6 +187,10 @@ class Twitter
     int       deviceKey;
     int       deviceState;
     char      deviceName[DEV_NAME_LEN];
+
+    int       pduIdx;
+    int       loopIdx;
+    int       speedLimit;
 
     RunStatus runStatus;
     RunStatus runError;

@@ -191,6 +191,7 @@ void Twitter::run(int secFactor, int delay)
   // Pruefen, ob die Ausfuehrung der Zustandsmaschine erlaubt ist
   //-------------------------------------------------------------------------
   if(!enabled) return;
+  if(!netHnd->connected) return;
 
   //-------------------------------------------------------------------------
   // Eventuell die Ausfuehrung der Zustandsmaschine verzoegern

@@ -89,6 +89,11 @@
   //
   void LoopCheck::begin()
   {
+    begin(false);
+  }
+
+  void LoopCheck::begin(bool resetTime)
+  {
     unsigned int    restMicros;
     unsigned long   lastMicros;
     unsigned int    tmpInt;
@@ -96,7 +101,15 @@
     div_t           divResult;
 
     lastMicros = loopStartMicros;
-    loopStartMicros = SYSMICSEC;
+
+    loopStartMicros = SYSMICSEC - checkStartMicros;
+
+    if(firstLoop == true && resetTime == true)
+    {
+      checkStartMicros = loopStartMicros;
+      loopStartMicros = 0;
+    }
+
     restMicros = (int) (loopStartMicros % 1000);
 
     if((restMicros > 500) && (toggleMilli == true))

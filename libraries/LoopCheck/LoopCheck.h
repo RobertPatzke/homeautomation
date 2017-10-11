@@ -88,6 +88,8 @@ private:
   // Lokale Variablen
   // -------------------------------------------------------------------------
   //
+  unsigned long checkStartMicros;       // Zeit des ersten Aufrufs von begin()
+
   unsigned long backgroundMicros;       // Zeit, die außerhalb von loop()
                                         // verstrichen ist (in Mikrosekunden)
   unsigned long loopMicros;             // Zeit, die innerhalb von loop()
@@ -162,6 +164,9 @@ public:
   //
   void begin();     // Diese Funktion muss am Anfang der Schleife aufgerufen
                     // werden.
+
+  void begin(bool resetTime);   // Für lokale Zeitmessungen
+
   void end();       // Diese Funktion muss am Ende der Schleife aufgerufen
                     // werden.
 

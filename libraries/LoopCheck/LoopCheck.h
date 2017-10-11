@@ -15,8 +15,16 @@
 #define NrOfToggleTasks     8
 #define CalcAverageDepth    32
 
+
 #ifndef _environment_h
   #include "environment.h"
+#endif
+
+#ifdef smnSimLinux
+  #include <stdlib.h>
+  #include <string.h>
+  #include <time.h>
+  #define SYSMICSEC locMicros()
 #endif
 
 #ifdef smnSloeber
@@ -150,6 +158,7 @@ private:
   void initTasks();
   void initStatistics();
   void initClock();
+  unsigned long locMicros();
 
 public:
   // -------------------------------------------------------------------------

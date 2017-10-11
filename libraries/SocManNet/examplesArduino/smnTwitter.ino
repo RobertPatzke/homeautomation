@@ -18,7 +18,23 @@
 #include "Twitter.h"
 // Create messages and cyclic send broadcast
 
-LoopCheck   loopCheck;      // Instance of LoopCheck, we need only one here
+#define TestLed 23
+// The built in LED of some Arduino boards (and similar development boards like
+// ESP32 Dev) seem to be connected to a pin (most 13), which is also used for the
+// serial transmit (TxD) or other purposes.
+// The blink example of Arduino works, because they switch the pin and then
+// they freeze the program bei function <delay(milliseconds)>.
+// But if you leave loop() for Arduino internal functions, the pin is
+// no more valid, it is used for TxD (or some other purpose).
+// In other words, with some (many?) boards, the blink example of Arduino does
+// not work without the delay in loop-function.
+// Because we now use a software-timer instead of a delay,
+// we must use another pin to connect our own LED or look for a built-in LED
+// which is not used outside loop-function.
+// E.g. the blue LED of ESP32 DEVKIT V1 (doit) is connected at pin 2.
+
+
+LoopCheck   loopCheck;      // Instance of LoopCheck, normally only one needed
 SocManNet   socManNet;      // Instance of SocManNet, only one allowed
 Twitter     testTwitter;    // Instance of Twitter, number depends on resources
 
@@ -26,6 +42,56 @@ Twitter     testTwitter;    // Instance of Twitter, number depends on resources
 // Initialisation functions (here in header to avoid forward references)
 // ---------------------------------------------------------------------------
 //
+LoopCheck   localLoopCheck; // Demonstrate another LoopCheck for a loop
+                            // Normally you need only one instance to control
+                            // Arduino loop function. But to avoid calling
+                            // delay function here and for time measurement
+                            // we use another LoopCheck here
+SmnIfStatus   smnStatus;
+// With testing on ESP32 there was a problem, when this structure was defined
+// as a stack variable (defined inside <waitForConnection>)
+// The value of smnStatus.changed was true, though it was changed to false via
+// pointer in function SocManNet.getIfStatus().
+// I did not find the reason for this behaviour. With the definition of the
+// structure in global memory (outside <waitForConnection>) the error does
+// not occur.
+//
+
+bool waitForConnection()
+{
+  OpHourMeter   timeMeasure;
+  SmnIfInfo     smnInfo;
+
+  localLoopCheck.begin(true);       // true: reset time measurement
+  // -------------------------------------------------------------------------
+
+  // Whenever status changes, we will display ist
+  //
+  socManNet.getIfStatus(&smnStatus);
+  if(smnStatus.changed == true)
+  {
+    Serial.print("connected: "); Serial.print(smnStatus.connected);
+    Serial.print("   pending: "); Serial.print(smnStatus.initPending);
+    Serial.print("   connectCounter: "); Serial.print(smnStatus.connectCount);
+    Serial.print("   ifStatus: "); Serial.println(smnStatus.ifStatus);
+  }
+
+  if(socManNet.connected == true)
+  {
+    localLoopCheck.operationTime(&timeMeasure);
+    Serial.printf("\r\nDer Verbindungsaufbau hat %d,%03d Sekunden gedauert.\r\n",
+                  timeMeasure.Seconds,timeMeasure.Milliseconds);
+
+    socManNet.getIfInfo(&smnInfo);
+    Serial.print("MAC-Address: ");      Serial.print(smnInfo.macAdrCStr);
+    Serial.print("   IP-Address: ");    Serial.println(smnInfo.ipAdrCStr);
+    return(false);
+  }
+
+  // -------------------------------------------------------------------------
+  localLoopCheck.end();
+  return(true);
+}
 
 void initTwitter()
 {
@@ -95,48 +161,86 @@ void initTwitter()
 //
 void setup()
 {
+  bool  lokalLoopBusy;
+
+  pinMode(TestLed, OUTPUT);
+  // Setting a free pin for output (connect a LED via serial resistor)
+
   Serial.begin(115200);         // This is an example program and there will be
                                 // some information at the screen of the IDE
 
   socManNet.init(false);        // Start connecting to the network with the
                                 // IP-Address from socManNetUser.h
 
-  initTwitter();                // Initialisation of your Twitter (see above)
+  // Before initialisation of Twitter the connection of SocManNet to the
+  // network should be established. If using DHCP, it is mandatory to wait.
+  // Twitter needs the IP-Address of the network as part of the message
+  //
+  lokalLoopBusy = true;         // We'll take the chance to demonstrate
+                                // another use of LoopCheck in <waitForConnection>
+  while(lokalLoopBusy == true)
+    lokalLoopBusy = waitForConnection();
 
+  initTwitter();    // Initialisation of your Twitter (see above)
+                    // Twitter could be started now, but we will do that
+                    // in loop function to demonstration the usage of <once>
 }
 
 // ---------------------------------------------------------------------------
 // *****************************  loop  **************************************
 // ---------------------------------------------------------------------------
 //
+LoopStatistics  statistic;
+
 void loop()
 {
   loopCheck.begin();        // always start the loop with this function
   // -------------------------------------------------------------------------
 
-  if(socManNet.connected)
-    testTwitter.enabled = true;
-  else
-    testTwitter.enabled = false;
   //
-  // Switch Twitter on/off with the connection status
+  // Switch Twitter on after a delay of 1000 loop cycles
+  //
+  if(loopCheck.once(0, 1000))
+    testTwitter.enabled = true;
 
-  if(loopCheck.timerMilli(0, 2, 0))
+  //
+  // Show the real time behaviour of the loop
+  //
+  if(loopCheck.timerMilli(0, 100, 0))
+  {
+    loopCheck.getStatistics(&statistic);
+    if(statistic.periodAlarm)
+      digitalWrite(TestLed, HIGH);
+    else
+      digitalWrite(TestLed, LOW);
+  }
+  //
+  // LoopCheck makes a periodAlarm, when the cycle time of the loop calls
+  // are longer than a millisecond. It is not a principle problem, but
+  // timers with repetition time less a millisecond would have an error
+  // and the software clock as well as the operating time counter will
+  // miss a millisecond.
+  // Thus the basic real time behaviour depends on the call frequency of loop.
+  // In most applications there is no influence of a lower loop frequency.
+  // periodAlarm was installed for users, who want to make real time behaviour
+  // in milliseconds resolution.
+
+  if(loopCheck.timerMilli(1, 2, 0))
     testTwitter.run(500);   // giving the CPU to testTwitter for its tasks
   //
   // This happens every 2 milliseconds, which is a frequency of 500 Hz.
   // Twitter.run needs the frequency to calculate the twitter cycle time
 
-  if(loopCheck.timerMicro(1, 10, 0))
+  if(loopCheck.timerMicro(2, 10, 0))
     socManNet.run();        // giving the CPU to socManNet for its tasks
   //
-  // This should happen every 10 microseconds. But ist should be expected,
+  // This should happen every 10 microseconds. But we expected,
   // that the loop cycle time is longer than 10 microseconds.
   // So run() is called with every loop, if no other timer finishes before.
   // Thus, such a usage of timerMicro can only work, if it is the last
-  // timer in loop, because timers behind this too short timer will not
+  // timer in loop, as timers behind this too short timer will not
   // come to be finished, because we have allowed only one timer finishing
-  // in the same loop cycle.
+  // in the same loop cycle (to avoid CPU load peeks).
 
   // -------------------------------------------------------------------------
   loopCheck.end();          // always leave the loop with this function

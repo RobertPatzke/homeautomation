@@ -15,8 +15,16 @@
 #define NrOfToggleTasks     8
 #define CalcAverageDepth    32
 
+
 #ifndef _environment_h
   #include "environment.h"
+#endif
+
+#ifdef smnSimLinux
+  #include <stdlib.h>
+  #include <string.h>
+  #include <time.h>
+  #define SYSMICSEC locMicros()
 #endif
 
 #ifdef smnSloeber
@@ -36,15 +44,22 @@ typedef struct _OpHourMeter
 
 typedef struct _LoopStatistics
 {
-  unsigned int    loopTime;       // Schleifenzeit in Mikrosekunden
-  unsigned int    loopMaxTime;    // Maximale Schleifenzeit
-  unsigned int    loopMinTime;    // Minimale Schleifenzeit
-  unsigned int    loopAvgTime;    // Mittlere Schleifenzeit
+  unsigned int  loopTime;       // Schleifenzeit in Mikrosekunden
+  unsigned int  loopMaxTime;    // Maximale Schleifenzeit
+  unsigned int  loopMinTime;    // Minimale Schleifenzeit
+  unsigned int  loopAvgTime;    // Mittlere Schleifenzeit
 
-  unsigned int    bgTime;         // Zeit außerhalb der Schleife
-  unsigned int    bgMaxTime;      // Maximale Außenzeit
-  unsigned int    bgMinTime;      // Minimale Außenzeit
-  unsigned int    bgAvgTime;      // Mittlere Außenzeit
+  unsigned int  bgTime;         // Zeit außerhalb der Schleife
+  unsigned int  bgMaxTime;      // Maximale Außenzeit
+  unsigned int  bgMinTime;      // Minimale Außenzeit
+  unsigned int  bgAvgTime;      // Mittlere Außenzeit
+
+  unsigned int  loopPeriod;     // Zeit zwischen loop-Aufrufen
+  unsigned int  maxPeriod;      // Maximale Aufrufdistanz
+  unsigned int  minPeriod;      // Minimale Aufrufdistanz
+
+  bool          periodAlarm;    // Aufrufdistanz > 1 Millisekunde
+  unsigned int  alarmCount;     // Anzahl der Überschreitungen
 
 } LoopStatistics;
 
@@ -59,7 +74,7 @@ class LoopCheck
   // Klassenspezifische Datentypen
   // -------------------------------------------------------------------------
   //
-  typedef struct _CtrlTask
+  typedef struct _TimerTask
   {
     bool            counterStarted;
     bool            finished;
@@ -67,13 +82,22 @@ class LoopCheck
     unsigned long   startCount;
     unsigned long   runCounter;
     unsigned int    repCounter;
-  } CtrlTask;
+  } TimerTask;
+
+  typedef struct _OnceTask
+  {
+    bool            finished;
+    bool            firstRun;
+    unsigned int    waitCounter;
+  } OnceTask;
 
 private:
   // -------------------------------------------------------------------------
   // Lokale Variablen
   // -------------------------------------------------------------------------
   //
+  unsigned long checkStartMicros;       // Zeit des ersten Aufrufs von begin()
+
   unsigned long backgroundMicros;       // Zeit, die außerhalb von loop()
                                         // verstrichen ist (in Mikrosekunden)
   unsigned long loopMicros;             // Zeit, die innerhalb von loop()
@@ -97,9 +121,9 @@ private:
   bool          firstLoop;              // Spezielle Kennzeichnung erste loop()
   bool          taskHappened;           // Kennzeichnung: Es lief ein LoopTask
 
-  CtrlTask      ctrlTaskList[NrOfLoopTasks];    // Steuerung der zyklischen
+  TimerTask     timerTaskList[NrOfLoopTasks];    // Steuerung der zyklischen
                                                 // Tasks (Timer-Ersatz in loop())
-  bool          onceTaskList[NrOfOnceTasks];
+  OnceTask      onceTaskList[NrOfOnceTasks];
   bool          toggleTaskList[NrOfToggleTasks];
 
   int           year;               // Betriebsstundenzähler gesamt
@@ -110,12 +134,31 @@ private:
   int           msec;
   bool          toggleMilli;
 
+  int           dtYear;             // Zeit / Uhr
+  int           dtMonth;
+  int           dtDay;
+  int           dtHour;
+  int           dtMin;
+  int           dtSec;
+  int           dtmSec;
+  int           febLen;
+  char          dateTimeStr[30];
+
+  unsigned int  periodMicros;           // Zeit zwischen zwei loop-Aufrufen
+  unsigned int  periodMinMicros;
+  unsigned int  periodMaxMicros;
+  bool          periodFailAlarm;        // periodMicros > Millisekunde
+  unsigned int  periodFailCount;        // Anzahl der Überschreitungen
+
 private:
   // -------------------------------------------------------------------------
   // Lokale Funktionen
   // -------------------------------------------------------------------------
   //
-  void initCtrlTask();
+  void initTasks();
+  void initStatistics();
+  void initClock();
+  unsigned long locMicros();
 
 public:
   // -------------------------------------------------------------------------
@@ -130,6 +173,9 @@ public:
   //
   void begin();     // Diese Funktion muss am Anfang der Schleife aufgerufen
                     // werden.
+
+  void begin(bool resetTime);   // Für lokale Zeitmessungen
+
   void end();       // Diese Funktion muss am Ende der Schleife aufgerufen
                     // werden.
 
@@ -143,8 +189,9 @@ public:
 
   bool timerMilli(int taskIdx, unsigned long repeatTime, unsigned int repetitions);
 
-  bool once(int taskIdx);
-  // Diese Funktion liefert nur beim ersten Aufruf den Wert <true>
+  bool once(int taskIdx, unsigned int nrOfLoops);
+  // Diese Funktion liefert nur einmal den Wert <true>
+  // nach Ablauf von nrOfLoops Aufrufen
 
   bool toggle(int taskIdx);
   // Diese Funktion liefert abwechselnd die Werte <true> oder <false>
@@ -157,6 +204,16 @@ public:
 
   unsigned long getStatistics(LoopStatistics *statistics);
   // Statistik über Ablaufzeiten
+
+  void resetStatistics();
+  // Rücksetzen der Statistikdaten
+
+  bool setDateTime(const char *dtStr);
+  // Setzen der Uhr über standardisierten String
+
+  const char * refDateTime();
+  // Zeiger auf Datum/Uhrzeit holen
+
 
   // -------------------------------------------------------------------------
   // Anwendervariablen

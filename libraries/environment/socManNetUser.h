@@ -11,6 +11,11 @@
 #define _socManNetUser_h
 
 #define TestAtMFP
+// Delete this definition to use the content of (your) socManNetUser.h for
+// the parameters of the network.
+// Otherwise there is an #include in socManNetUser.h to another file,
+// which holds private network parameters and is not delivered with this project
+
 
 #ifndef TestAtMFP
 

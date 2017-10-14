@@ -71,6 +71,8 @@
 #define BROADCAST_IP_B2 99
 #define BROADCAST_IP_B3 255
 
+#define LOCAL_IP_ADR_STR (char *) "192.168.99.255"
+
 // IP-Gateway
 // ----------------------------------------------
 //

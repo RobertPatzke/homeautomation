@@ -19,9 +19,17 @@
   #include "socManNetUser.h"
 #endif
 
-    //-------------------------------------------------------------------------
-    // Inkludierte Dateien
-    //-------------------------------------------------------------------------
+#ifdef smnSimLinux
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <time.h>
+  #include <sys/socket.h>
+  #include <arpa/inet.h>
+  #include "arduinoDefs.h"
+  #define SYSMICSEC locMicros()
+#endif
+
 #ifdef smnSloeber
 #include "Arduino.h"
 #endif
@@ -160,6 +168,14 @@ private:
   IPAddress     ipPrimaryDNS;
   IPAddress     ipSecondaryDNS;
 
+#ifdef smnSimLinux
+  int                   socketId;
+  struct sockaddr_in    socketBcAdr;
+  int                   socketBcAdrLen;
+  struct sockaddr_in    socketRecAdr;
+  int                   socketRecAdrLen;
+#endif
+
 #ifdef smnArduinoShieldEth
   EthernetUDP   Udp;	// An EthernetUDP instance to let us send and receive packets over UDP
 #endif
@@ -227,6 +243,7 @@ public:
   char  *IpAddress;
   char  *ssid;
   char  *pass;
+  char  *BcAddress;
   bool  useDHCP;
 
   bool  connected;      // Status des Socket-Interfaces bzw. der Verbindung

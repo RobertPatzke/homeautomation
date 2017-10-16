@@ -525,8 +525,6 @@
     error = clock_gettime(CLOCK_MONOTONIC, &clockTime);
     retv = clockTime.tv_nsec / 1000;
     return(retv);
-#else
-    return(1000);
 #endif
   }
 

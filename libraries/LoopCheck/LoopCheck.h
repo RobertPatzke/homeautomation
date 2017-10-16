@@ -15,12 +15,13 @@
 #define NrOfToggleTasks     8
 #define CalcAverageDepth    32
 
-
-#ifndef _environment_h
+#ifdef UseGithubPath
+  #include "../environment/environment.h"
+#else
   #include "environment.h"
 #endif
 
-#ifdef smnSimLinux
+#if defined(smnSimLinux) || defined(smnSimWindows)
   #include <stdlib.h>
   #include <string.h>
   #include <time.h>

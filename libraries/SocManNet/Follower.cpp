@@ -1,6 +1,6 @@
 /*
   Follower.cpp
-  Lauschen  Twitter-Telegramme für Arduino Due
+  Lauschen  Twitter-Telegramme fï¿½r Arduino Due
   I.Farber, 07.04.2015
 */
 #include "Follower.h"
@@ -9,7 +9,7 @@
 // Statische Variablen, Initialisierungen
 // ----------------------------------------------------------------------------
 char strDbg[100];
-char * Follower::defaultObject = (char *) "AMES_StatusDsp";
+char * Follower::defaultObject = (char *) "TestTwitter";
 
 // ----------------------------------------------------------------------------
 // Ereignis-Funktion fuer den Empfang des Telegramms
@@ -46,32 +46,39 @@ void evtRecMsgDistributor(void * evtHnd, char * msg, unsigned int msgLen)
 Follower::Follower()
 {
 	busyMsgAnalysis 		= false;
-	cntRecMsg 					= 0;
-	debugOn 						= false;
-	enabled 						= false;
-	floatCount 					= 0;
-	intCount 						= 0;
-	netHnd 							= 0;
-	pduCount 						= 0;
+	cntRecMsg 				= 0;
+	debugOn 				= false;
+	enabled 				= false;
+	floatCount 				= 0;
+	intCount 				= 0;
+	netHnd 					= 0;
+	pduCount 				= 0;
 	recParseCounter 		= 0;
-	textCount 					= 0;
+	textCount 				= 0;
 
-  idxFieldPduCount        = 0;
-  idxFieldDeviceKey       = 0;
-  idxFieldDeviceState     = 0;
-  idxFieldDeviceName      = 0;
-  idxFieldDeviceTime      = 0;
-  idxFieldDevicePosX      = 0;
-  idxFieldDevicePosY      = 0;
-  idxFieldDevicePosZ      = 0;
-  idxFieldDeviceAppState  = 0;
-  idxFieldDeviceAppMode   = 0;
+  idxFieldPduCount          = 0;
+  idxFieldDeviceKey         = 0;
+  idxFieldDeviceState       = 0;
+  idxFieldDeviceName        = 0;
+  idxFieldDeviceTime        = 0;
+  idxFieldDevicePosX        = 0;
+  idxFieldDevicePosY        = 0;
+  idxFieldDevicePosZ        = 0;
+  idxFieldDeviceAppState    = 0;
+  idxFieldDeviceAppMode     = 0;
 
-  idxFieldIntCount        = 0;
-  idxFieldFloatCount      = 0;
-  idxFieldTextCount       = 0;
-  idxFieldValue           = 0;
+  idxFieldIntCount          = 0;
+  idxFieldFloatCount        = 0;
+  idxFieldTextCount         = 0;
+  idxFieldValue             = 0;
 
+  baseMode                  = 0;
+  baseState                 = 0;
+  deviceKey                 = 0;
+  deviceState               = 0;
+  posX                      = 0;
+  posY                      = 0;
+  posZ                      = 0;
 }
 
 Follower::Follower(SocManNet * inNetHnd)
@@ -87,7 +94,7 @@ Follower::Follower(SocManNet * inNetHnd, char * commObject)
 void Follower::init(SocManNet * inNetHnd, char * commObject)
 {
   //---------------------------------------------------------------------------
-  // Globale Variablen für die Anwendung initialisieren
+  // Globale Variablen fï¿½r die Anwendung initialisieren
   //---------------------------------------------------------------------------
   enabled = false;
 
@@ -611,7 +618,7 @@ int Follower::parseMsg2(char * msg, unsigned int msgLen)
   cntField    = 0;
 
   pduDataIdxField[pdiPduCount] = 0; // Der Msg-Index des PDU-Counter ist 0
-                                    // Das Telegramm fängt hier beim PDU-Counter an
+                                    // Das Telegramm fï¿½ngt hier beim PDU-Counter an
 
   //---------------------------------------------------------------------------
   // Telegramm parsen
@@ -621,10 +628,10 @@ int Follower::parseMsg2(char * msg, unsigned int msgLen)
     if(msg[idx] == ';')
     {
       // Das Datenfeld ist beendet
-      // und der Feldzähler wird auf das nächste Feld gesetzt
+      // und der Feldzï¿½hler wird auf das nï¿½chste Feld gesetzt
       cntField++;
 
-      // Falls Felder leer sind, müssen die Merker auf -1 gesetzt werden
+      // Falls Felder leer sind, mï¿½ssen die Merker auf -1 gesetzt werden
       if(msg[idx+1] == ';')
         pduDataIdxField[cntField] = -1;
       else
@@ -848,7 +855,7 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
     } // for
 
     // idxValueChar zeigt jetzt auf ;
-    idxValueStr = idxValueChar + 1;   // idxValueStr auf nächstes Wertfeld
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf nï¿½chstes Wertfeld
 
   } // if(locIntCount > 0)
 
@@ -983,7 +990,7 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
     } // for
         
     // idxValueChar zeigt jetzt auf ;
-    idxValueStr = idxValueChar + 1;   // idxValueStr auf nächstes Wertfeld
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf nï¿½chstes Wertfeld
   }
 
       //-----------------------------------------------------------------------
@@ -1288,7 +1295,7 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
     } // for
 
     // idxValueChar zeigt jetzt auf ;
-    idxValueStr = idxValueChar + 1;   // idxValueStr auf nächstes Wertfeld
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf nï¿½chstes Wertfeld
 
   } // if(locIntCount > 0)
 
@@ -1342,7 +1349,7 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
     } // for
 
     // idxValueChar zeigt jetzt auf ;
-    idxValueStr = idxValueChar + 1;   // idxValueStr auf nächstes Wertfeld
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf nï¿½chstes Wertfeld
   }
 
       //-----------------------------------------------------------------------
@@ -1417,7 +1424,13 @@ void Follower::writeDebug(char * str)
   //---------------------------------------------------------------------------
   // An Debug-Schnittstelle Nachricht weiterleiten
   //---------------------------------------------------------------------------
+#ifdef smnSloeber
   Serial.println(str);
+#endif
+
+#ifdef smnSimLinux
+  printf("%s\n",str);
+#endif
 }
 
 unsigned int Follower::getStatistic(char * strPtr)

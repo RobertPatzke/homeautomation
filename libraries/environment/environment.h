@@ -19,6 +19,7 @@
     #define smnSimLinux
     #define smnNotebook
     #define smnLINUX
+    #define smnDebugLinuxConsole
 
   #endif
 
@@ -30,6 +31,13 @@
 // Die Abfrage geschieht also mit #ifdef
 // Daraus folgt hier eine Liste der Möglichkeiten, die beliebig erweitert werden kann.
 // Die Auswahl erfolgt schließlich über aus- bzw. einkommentieren.
+//
+
+// Übergeordnete Festlegungen
+// ---------------------------------------------------------------------------
+//
+#define smnDebugArduino
+//#define smnDebugLinuxConsole
 //
 
 // IDE, Editor, etc.

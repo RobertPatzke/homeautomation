@@ -88,6 +88,12 @@ WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
   }
 #endif
 
+#ifdef smnSimLinux
+  IPAddress       ipAdr;
+  byte            macAdr[MAC_ADR_SIZE];
+
+#endif
+
         //---------------------------------------------------------------------
         // Konstruktor
         //---------------------------------------------------------------------
@@ -99,6 +105,7 @@ SocManNet::SocManNet()
 	idxFieldObjData	= 0;
 	idxFieldObjName	= 0;
 	IpAddress		= (char *) "1.1.1.1";
+    BcAddress       = (char *) "1.1.1.1";
 	MacAddress		= (char *) "1-1-1-1-1-1";
 	ssid            = (char *) "Netzwerkname";
 	pass            = (char *) "Passwort";
@@ -111,6 +118,16 @@ SocManNet::SocManNet()
 	initPending     = false;
 	useDHCP         = false;
 	error           = smnError_none;
+	socketId        = 0;
+	socketBcAdrLen  = 0;
+    socketRecAdrLen = 0;
+	ipBroadcast     = NULL;
+	ipLocal         = NULL;
+	ipSubNet        = NULL;
+	ipPrimaryDNS    = NULL;
+	ipSecondaryDNS  = NULL;
+	ipGateway       = NULL;
+	bcEnable        = 0;
 }
 
         //---------------------------------------------------------------------
@@ -154,6 +171,8 @@ enum SocManNetError SocManNet::init(bool dhcp)
   broadcastIp[1] = BROADCAST_IP_B1;
   broadcastIp[2] = BROADCAST_IP_B2;
   broadcastIp[3] = BROADCAST_IP_B3;
+
+  BcAddress = BROADCAST_IP_ADR_STR;
 
   // Broadcast Portnummer
   broadcastPort = BROADCAST_PORT;
@@ -251,7 +270,7 @@ SocManNetError  SocManNet::open()
 
 SocManNetError  SocManNet::reopen()
 {
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnSimLinux)
   byte ipAdrBytes[4];
   byte *macBytes;
 
@@ -272,18 +291,24 @@ SocManNetError  SocManNet::reopen()
 }
 
 SocManNetError
-SocManNet::open(byte * ptrMacLocal,
-                uint8_t *    ptrIpLocal,
-                unsigned int localPort,
-                uint8_t *    ptrIpBroadcast,
-                unsigned int broadcastPort,
-                uint8_t *    ptrIpSubNet,
-                uint8_t *    ptrIpGateway,
-                uint8_t *    ptrIpPrimDNS,
-                uint8_t *    ptrIpSecDNS
+SocManNet::open(byte *          ptrMacLocal,
+                uint8_t *       ptrIpLocal,
+                unsigned int    localPort,
+                uint8_t *       ptrIpBroadcast,
+                unsigned int    broadcastPort,
+                uint8_t *       ptrIpSubNet,
+                uint8_t *       ptrIpGateway,
+                uint8_t *       ptrIpPrimDNS,
+                uint8_t *       ptrIpSecDNS
                )
 {
+#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
   bool  ok;
+#endif
+
+#ifdef smnSimLinux
+  int   error;
+#endif
 
   //---------------------------------------------------------------------------
   // Pruefen, ob es moeglich ist, Socket zu oeffnen
@@ -361,6 +386,37 @@ SocManNet::open(byte * ptrMacLocal,
   connected = true;
 #endif
 
+#ifdef smnSimLinux
+  socketId = socket(AF_INET, SOCK_DGRAM, 0);
+  if(socketId < 0) return(smnError_socketFailed);
+
+  bcEnable = 1;
+  error =
+      setsockopt(socketId, SOL_SOCKET, SO_BROADCAST, &bcEnable, sizeof(bcEnable));
+  if(error < 0)
+    return(smnError_socketConf);
+
+  socketBcAdrLen = sizeof(socketBcAdr);
+  memset((char *) &socketBcAdr, 0, socketBcAdrLen);
+  socketBcAdr.sin_family = AF_INET;
+  socketBcAdr.sin_port = htons(broadcastPort);
+  inet_aton(BcAddress,&socketBcAdr.sin_addr);
+
+  socketRecAdrLen = sizeof(socketRecAdr);
+  memset((char *) &socketRecAdr, 0, socketRecAdrLen);
+  socketRecAdr.sin_family = AF_INET;
+  socketRecAdr.sin_port = htons(broadcastPort);
+  socketRecAdr.sin_addr.s_addr = INADDR_ANY;
+
+  error =
+      bind(socketId, (struct sockaddr *) &socketRecAdr, socketRecAdrLen);
+  if(error < 0)
+    return(smnError_bind);
+
+  connected = true;
+
+#endif
+
   //---------------------------------------------------------------------------
   // Ergebnis definieren
   //---------------------------------------------------------------------------
@@ -372,7 +428,7 @@ SocManNet::open(byte * ptrMacLocal,
         // UDP-Socket schliessen
         //---------------------------------------------------------------------
         //
-int SocManNet::close()
+int SocManNet::closeConnection()
 {
   //---------------------------------------------------------------------------
   // Pruefen, ob es moeglich/noetig ist, Socket zu schliessen
@@ -388,6 +444,11 @@ int SocManNet::close()
 
 #ifdef smnESP32
   WiFi.disconnect(true);
+#endif
+
+#ifdef smnSimLinux
+  shutdown(socketId, SHUT_RDWR);
+  close(socketId);
 #endif
 
   //---------------------------------------------------------------------------
@@ -530,11 +591,18 @@ int SocManNet::send(uint8_t * msg, unsigned int msgLen)
   //---------------------------------------------------------------------------
   // Telegramm versenden
   //---------------------------------------------------------------------------
+
+#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
   Udp.beginPacket(ipBroadcast, portBroadcast);
 
   Udp.write(msg, msgLen);
 
   Udp.endPacket();
+#endif
+
+#ifdef smnSimLinux
+  sendto(socketId, msg, msgLen, 0, (struct sockaddr *) &socketBcAdr, socketBcAdrLen);
+#endif
 
   cntSendMsg++;
 
@@ -559,16 +627,27 @@ int SocManNet::receive(unsigned char * buf, int bufSize)
   //---------------------------------------------------------------------------
   // Pruefen, ob Telegramm empfangen wurde
   //---------------------------------------------------------------------------
+#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
   packetSize = Udp.parsePacket();
+#endif
+
+#ifdef smnSimLinux
+  packetSize = (int) recvfrom
+      (socketId, buf, (unsigned long) bufSize - 1, MSG_DONTWAIT, NULL, NULL);
+#endif
+
   if(packetSize <= 0)
   {
     return(0);
   }
 
   //---------------------------------------------------------------------------
-  // Telegramm holen
+  // Telegramm holen (bei besonderen Treibern)
   //---------------------------------------------------------------------------
+
+#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
   Udp.read(buf, bufSize-1);
+#endif
 
   cntRecMsg++;
 
@@ -604,8 +683,6 @@ int SocManNet::receive(unsigned char * buf, int bufSize)
         //---------------------------------------------------------------------
 int SocManNet::checkSocManNetMsg(char * msg, unsigned int msgLen)
 {
-  char str[10];
-
   //---------------------------------------------------------------------------
   // Telegramm validieren
   //---------------------------------------------------------------------------
@@ -769,8 +846,8 @@ int SocManNet::parseMsg(char * msg, unsigned int msgLen)
 
 int SocManNet::parseMsg2(char * msg, unsigned int msgLen)
 {
-  int cntField;
-  int idx;
+  int           cntField;
+  unsigned int  idx;
 
   recParseCounter++;
 
@@ -778,7 +855,7 @@ int SocManNet::parseMsg2(char * msg, unsigned int msgLen)
   // Parser initialisieren
   //---------------------------------------------------------------------------
   cntField = 0;
-  pduHeadIdxField[phiType] = 0;   // Das Telegramm f�ngt mit dem Typ an
+  pduHeadIdxField[phiType] = 0;   // Das Telegramm fängt mit dem Typ an
 
   //---------------------------------------------------------------------------
   // Telegramm parsen
@@ -951,7 +1028,14 @@ void SocManNet::writeDebug(char * str)
   //---------------------------------------------------------------------------
   // An Debug-Schnittstelle Nachricht weiterleiten
   //---------------------------------------------------------------------------
+#ifdef smnDebugArduino
   Serial.println(str);
+#endif
+
+#ifdef smnDebugLinuxConsole
+  printf("%s", str);
+  printf("\n");
+#endif
 }
 
 

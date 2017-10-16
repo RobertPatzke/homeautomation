@@ -17,5 +17,5 @@ We also started a simulation of the Arduino environment on Linux integrated in t
 and controlled by switches defined at the IDE and in 
 [environment.h](https://github.com/RobertPatzke/homeautomation/blob/master/libraries/environment/environment.h).
 So there will also be examples to use the libraries with typical console applications on Linux placed in subfolder examplesLinux 
-(e.g. [testCppArduino](https://github.com/RobertPatzke/homeautomation/blob/master/libraries/LoopCheck/examplesLinux/testCppArduino.cpp). 
+(e.g. [testCppArduino](https://github.com/RobertPatzke/homeautomation/blob/master/libraries/LoopCheck/examplesLinux/testCppArduino.cpp)). 
 This was made for a quick testing (and debugging) of new software before it is downloaded to the target boards.

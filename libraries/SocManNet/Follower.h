@@ -1,15 +1,30 @@
 /*
   Follower.h
-  Lauschen  Twitter-Telegramme für Arduino Due
+  Lauschen  Twitter-Telegramme fï¿½r Arduino Due
   I.Farber, 07.04.2015
 */
 
 #ifndef Follower_h
 #define Follower_h
 
-#include <WString.h>
-#include "Arduino.h"
-#include "SocManNet.h"
+#ifndef _environment_h
+  #include "environment.h"
+#endif
+
+#ifdef smnSimLinux
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include "arduinoDefs.h"
+  #include "SocManNet.h"
+  #pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
+
+#ifdef smnSloeber
+  #include <WString.h>
+  #include "Arduino.h"
+  #include "SocManNet.h"
+#endif
 
 #define MAXNRINT    4
 #define MAXNRFLOAT  4
@@ -58,7 +73,7 @@ typedef struct _TextValue
 #define STATUSVAL_BM_EMPTY   0x00000002 // Noch kein Telegramm oder neuer Speicher
 #define STATUSVAL_BM_NONE    0x00000004 // Sender liefert keinen entsprechenden Wert
 #define STATUSVAL_BM_NEWPDU  0x00000008 // Ein neues Telegramm eingetroffen
-#define STATUSVAL_BM_IDX     0x00000010 // Für den Index liegt kein Wert vor
+#define STATUSVAL_BM_IDX     0x00000010 // Fï¿½r den Index liegt kein Wert vor
 #define STATUSVAL_BM_LOSTPDU 0x00000020 // Mehrere Telegramme nach letztem Zugriff
 
 enum pduDataIdx
@@ -99,7 +114,7 @@ class Follower
   };
 
   // --------------------------------------------------------------------------
-  // Methoden (Funktionen) für den Anwender
+  // Methoden (Funktionen) fÃ¼r den Anwender
   // --------------------------------------------------------------------------
   //
   public:
@@ -124,7 +139,7 @@ class Follower
     unsigned int getStatistic(char * strPtr);
 
   // -------------------------------------------------------------------------
-  // Globale Variablen für die Anwendung
+  // Globale Variablen fï¿½r die Anwendung
   // -------------------------------------------------------------------------
   //
   public:

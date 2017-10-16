@@ -19,9 +19,19 @@
   #include "socManNetUser.h"
 #endif
 
-    //-------------------------------------------------------------------------
-    // Inkludierte Dateien
-    //-------------------------------------------------------------------------
+#ifdef smnSimLinux
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+  #include <time.h>
+  #include <sys/socket.h>
+  #include <arpa/inet.h>
+  #include <unistd.h>
+  #include "arduinoDefs.h"
+  #define SYSMICSEC locMicros()
+  #pragma GCC diagnostic ignored "-Wwrite-strings"
+#endif
+
 #ifdef smnSloeber
 #include "Arduino.h"
 #endif
@@ -90,6 +100,9 @@ enum SocManNetError
   smnError_alreadyClosed,
   smnError_wrongArgument,
   smnError_configFailed,
+  smnError_socketFailed,
+  smnError_socketConf,
+  smnError_bind,
   smnError_notConnected,
   smnError_unexpected
 };
@@ -160,6 +173,14 @@ private:
   IPAddress     ipPrimaryDNS;
   IPAddress     ipSecondaryDNS;
 
+#ifdef smnSimLinux
+  int                   socketId;
+  struct sockaddr_in    socketBcAdr;
+  int                   socketBcAdrLen;
+  struct sockaddr_in    socketRecAdr;
+  int                   socketRecAdrLen;
+#endif
+
 #ifdef smnArduinoShieldEth
   EthernetUDP   Udp;	// An EthernetUDP instance to let us send and receive packets over UDP
 #endif
@@ -227,13 +248,14 @@ public:
   char  *IpAddress;
   char  *ssid;
   char  *pass;
+  char  *BcAddress;
   bool  useDHCP;
 
   bool  connected;      // Status des Socket-Interfaces bzw. der Verbindung
   bool  initialised;    //  "
   bool  staticInitDone; //  "
   bool  initPending;    // Interface-Initialisierung noch aktiv
-
+  int   bcEnable;
 
 public:
   // --------------------------------------------------------------------------
@@ -265,7 +287,7 @@ public:
        uint8_t *    ptrIpGateway,
        uint8_t *    ptrIpPrimDNS,
        uint8_t *    ptrIpSecDNS);
-  int close();
+  int closeConnection();
   int send(uint8_t * msg, unsigned int msgLen);
   void run(void);
   int attachEvtRecMsg(char * commObjName, void * evtHnd, BROADCAST_EVT evtFu);

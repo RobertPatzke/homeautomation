@@ -26,8 +26,10 @@
   #include <time.h>
   #include <sys/socket.h>
   #include <arpa/inet.h>
+  #include <unistd.h>
   #include "arduinoDefs.h"
   #define SYSMICSEC locMicros()
+  #pragma GCC diagnostic ignored "-Wwrite-strings"
 #endif
 
 #ifdef smnSloeber
@@ -98,6 +100,9 @@ enum SocManNetError
   smnError_alreadyClosed,
   smnError_wrongArgument,
   smnError_configFailed,
+  smnError_socketFailed,
+  smnError_socketConf,
+  smnError_bind,
   smnError_notConnected,
   smnError_unexpected
 };
@@ -250,7 +255,7 @@ public:
   bool  initialised;    //  "
   bool  staticInitDone; //  "
   bool  initPending;    // Interface-Initialisierung noch aktiv
-
+  int   bcEnable;
 
 public:
   // --------------------------------------------------------------------------
@@ -282,7 +287,7 @@ public:
        uint8_t *    ptrIpGateway,
        uint8_t *    ptrIpPrimDNS,
        uint8_t *    ptrIpSecDNS);
-  int close();
+  int closeConnection();
   int send(uint8_t * msg, unsigned int msgLen);
   void run(void);
   int attachEvtRecMsg(char * commObjName, void * evtHnd, BROADCAST_EVT evtFu);

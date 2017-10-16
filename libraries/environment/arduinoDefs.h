@@ -17,10 +17,9 @@
 // Simple type definitions
 // ---------------------------------------------------------------------------
 //
-
-#define uint8_t     unsigned char
-#define byte        unsigned char
-
+#ifndef byte
+  #define byte      unsigned char
+#endif
 
 // ---------------------------------------------------------------------------
 // Complex type definitions
@@ -31,7 +30,6 @@
 //
 
 #define IPAddress   byte *
-
 
 
 

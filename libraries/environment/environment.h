@@ -1,4 +1,4 @@
-//-----------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------
 // Thema:   Social Manufacturing Network / Development Environment
 // Datei:   environment.h
 // Editor:  Robert Patzke
@@ -23,6 +23,15 @@
 
   #endif
 
+  #ifdef smnWIN32_VS
+  // Meine Entwicklungs- und Testumgebung auf dem Notebook unter Windows
+
+    #define smnSimWindows
+    #define smnNotebook
+    #define smnWIN32
+    #define smnDebugWindowsConsole
+
+  #endif
 
 #else
 

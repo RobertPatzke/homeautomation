@@ -28,6 +28,10 @@
   #define SYSMICSEC locMicros()
 #endif
 
+#ifdef smnSimWindows
+#include <Windows.h>
+#endif
+
 #ifdef smnSloeber
   #include "Arduino.h"
   #define SYSMICSEC    micros()

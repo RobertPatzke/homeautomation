@@ -526,6 +526,16 @@
     retv = clockTime.tv_nsec / 1000;
     return(retv);
 #endif
+
+#ifdef smnSimWindows
+    LARGE_INTEGER countValue, frequency, result;
+
+    QueryPerformanceCounter(&countValue);
+    QueryPerformanceFrequency(&frequency);
+
+    result.QuadPart = (countValue.QuadPart * 1000000) / frequency.QuadPart;
+    return((unsigned long) result.QuadPart);
+#endif
   }
 
   // -------------------------------------------------------------------------

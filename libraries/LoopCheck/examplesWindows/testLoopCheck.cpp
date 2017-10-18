@@ -42,7 +42,6 @@ int main(int argc, char *argv[])
   lcDateTime      dateTime;
   int             msecOldPC, msecOldLC, msecOldOP;
   int             secOldPC, secOldLC, secOldOP;
-  OpHourMeter     opMeter;
   LoopStatistics  statistic;
 
   // -------------------------------------------------------------------------
@@ -50,7 +49,7 @@ int main(int argc, char *argv[])
   // -------------------------------------------------------------------------
   //
   printf("Testing simulation of Arduino with Windows\n");
-  printf("Check loop behaviour with LoopCheck, demonstrate clocks and their errors\n");
+  printf("Check loop behaviour with LoopCheck, demonstrate clocks\n");
   
   // Getting PC time with milliseconds resolution
   //
@@ -73,13 +72,6 @@ int main(int argc, char *argv[])
 
   loopCheck.setDateTime(dateTime);
 
-  // Preparing also some variables to show time differences with the
-  // operation time meter of LoopCheck
-  //
-  loopCheck.operationTime(&opMeter);
-  secOldOP  = opMeter.Seconds;
-  msecOldOP = opMeter.Milliseconds;
-
   // -------------------------------------------------------------------------
   // loop
   // -------------------------------------------------------------------------
@@ -89,14 +81,12 @@ int main(int argc, char *argv[])
     loopCheck.begin();      // this function has to be called first in loop
     // -----------------------------------------------------------------------
 
-    // Comparing the software clock with the PC clock and showing the difference:
-    // Here we will see the main difference between software running on a PC
-    // with Windows or running on a microcontroller board.
+    // Comparing the software clock with the PC clock and showing the difference
     //
     if(loopCheck.timerMilli(0,1000,0))
     {
       //
-      // This gets true every second (1000 milliseconds)
+      // This gets true once every second (1000 milliseconds)
       // The error is that of the PC counter (clock or performance timer)
 
       // Get the current PC time with milliseconds
@@ -110,7 +100,7 @@ int main(int argc, char *argv[])
       loopCheck.getDateTime(&dateTime);
 
       // Show the PC time and the LoopCheck time and their differences to the last measurement
-      // a second back
+      // a second back (do not mind the overflow error with the distance)
       //
       printf("PC Time = %02d:%02d:%02d,%03d Diff=%4d     LC Time = %02d:%02d:%02d,%03d Diff=%4d\n",
         timeStructPtr->tm_hour, timeStructPtr->tm_min, timeStructPtr->tm_sec, ftimeStruct.millitm,
@@ -120,8 +110,8 @@ int main(int argc, char *argv[])
       //
       // You will see, that the timer of LoopCheck is rather accurate. 
       // The variation of repetition time is less than 1% with some exceptions.
-      // But the LoopCheck software clock has an error of about 10% (to slow)
-      // which may depend on the hardware of your PC and the OS version.
+      // Also the LoopCheck software clock is nearly perfect, because the
+      // underlaying counters are synchronised to the OS clock
 
       // preperation for the measurement of next cycle
       //
@@ -130,37 +120,23 @@ int main(int argc, char *argv[])
       secOldPC = timeStructPtr->tm_sec;
       secOldLC = dateTime.Second;
 
-      // to show the reason of the errors in software clock, 
+      // to show the difference between microcontrollers and OS based computers
       // we will look into the statistics of LoopCheck
       //
       loopCheck.getStatistics(&statistic);
 
-      // to show, that also the operation time counter is affected the same way
-      // we will print also its values
+      // alarmCount is incremented, whenever the time between 2 loops exceeds PeriodMinTime
+      // (adjust PeriodMinTime in LoopCheck.h for your target system)
       //
-      loopCheck.operationTime(&opMeter);
+      printf("Loop violations: %4d ", statistic.alarmCount);
+      //
+      // we have also a classification of exceeding the millisecond of loop cycle time
+      // counting the number of exceedings indexed by number of milliseconds.
+      //
+      for(int i = 0; i < LoopScreeningGrades - 1; i++)
+        printf("  %2dms: %4d", i+1 , statistic.rtSreening[i]);
+      printf("  >%2dms: %4d\r\n\n", LoopScreeningGrades - 1, statistic.rtSreening[LoopScreeningGrades - 1]);
 
-      // alarmCount is incremented, whenever the time between 2 loops exceeds a millisecond
-      //
-      printf("Loop violations: %4d                OP Time = %02d:%02d:%02d,%03d Diff=%4d\n",
-        statistic.alarmCount,
-        opMeter.Hours, opMeter.Minutes, opMeter.Seconds, opMeter.Milliseconds,
-        opMeter.Milliseconds - msecOldOP + 1000*(opMeter.Seconds - secOldOP));
-      // 
-      // You will see, that there is a lot of exceeding the millisecond with loop cycle.
-      // Because the internal tick of the software clock is the millisecond, 
-      // we loose a tick whenever the loop repetition time exceeds the millisecond.
-      // It is possible to correct this error (because we get the value of
-      // elapsed time since start from the operating system).
-      // But we will not do this, because our concept is to optimize the software
-      // for microcontroller boards without an operating system like Windows or Linux.
-      // E.g. with ESP32 this error never happens (alarmCount is never increased) 
-      // though running Twitter and Follower on WiFi.
-
-      // preperation for next cycle
-      //
-      msecOldOP = opMeter.Milliseconds;
-      secOldOP  = opMeter.Seconds;
     }
 
     // -----------------------------------------------------------------------

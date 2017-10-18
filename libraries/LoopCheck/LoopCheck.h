@@ -10,11 +10,13 @@
 #define _LoopCheck_h
 //-----------------------------------------------------------------------------
 
-#define PeriodMinTime       1000
+#define PeriodMinTime       5000
 // Wenn der Aufrufzyklus der Loop diese Zeit (in Mikrosekunden) überschreitet,
 // dann wird ein Alarmbit gesetzt und ein Alarmzähler inkrementiert
 
-#define LoopScreeningGrades 6
+#ifndef LoopScreeningGrades
+  #define LoopScreeningGrades 6
+#endif
 
 #define NrOfLoopTasks       8
 #define NrOfOnceTasks       8
@@ -80,9 +82,11 @@ typedef struct _LoopStatistics
   unsigned int  maxPeriod;      // Maximale Aufrufdistanz
   unsigned int  minPeriod;      // Minimale Aufrufdistanz
 
-  bool          periodAlarm;    // Aufrufdistanz > 1 Millisekunde
+  bool          periodAlarm;    // Aufrufdistanz > PeriodMinTime
   unsigned int  alarmCount;     // Anzahl der Überschreitungen
 
+  unsigned int  rtSreening[LoopScreeningGrades];
+  // Echtzeitüberwachung (Klassierung der ms Überschreitungen)
 } LoopStatistics;
 
 

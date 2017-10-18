@@ -299,6 +299,15 @@
         periodFailAlarm = true;
         periodFailCount++;
       }
+
+      divResult = div(periodMicros, 1000);
+      if(divResult.quot > 0)
+      {
+        if(divResult.quot >= LoopScreeningGrades)
+          ++loopScreening[LoopScreeningGrades - 1];
+        else
+          ++loopScreening[divResult.quot -1];
+      }
     } // if()
 
     lastStartMicros = loopStartMicros;
@@ -464,6 +473,9 @@
     statistics->loopPeriod  =   periodMicros;
     statistics->maxPeriod   =   periodMaxMicros;
     statistics->minPeriod   =   periodMinMicros;
+
+    for (int i = 0; i < LoopScreeningGrades; i++)
+      statistics->rtSreening[i] = loopScreening[i];
 
     return(loopCounter);
   }

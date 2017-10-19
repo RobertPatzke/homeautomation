@@ -10,6 +10,14 @@
 #define _LoopCheck_h
 //-----------------------------------------------------------------------------
 
+#define PeriodMinTime       5000
+// Wenn der Aufrufzyklus der Loop diese Zeit (in Mikrosekunden) überschreitet,
+// dann wird ein Alarmbit gesetzt und ein Alarmzähler inkrementiert
+
+#ifndef LoopScreeningGrades
+  #define LoopScreeningGrades 6
+#endif
+
 #define NrOfLoopTasks       8
 #define NrOfOnceTasks       8
 #define NrOfToggleTasks     8
@@ -28,6 +36,10 @@
   #define SYSMICSEC locMicros()
 #endif
 
+#ifdef smnSimWindows
+#include <Windows.h>
+#endif
+
 #ifdef smnSloeber
   #include "Arduino.h"
   #define SYSMICSEC    micros()
@@ -42,6 +54,17 @@ typedef struct _OpHourMeter
   int   Seconds;
   int   Milliseconds;
 } OpHourMeter;
+
+typedef struct _lcDateTime
+{
+  int   Year;
+  int   Month;
+  int   Day;
+  int   Hour;
+  int   Minute;
+  int   Second;
+  int   Millisecond;
+} lcDateTime;
 
 typedef struct _LoopStatistics
 {
@@ -59,9 +82,11 @@ typedef struct _LoopStatistics
   unsigned int  maxPeriod;      // Maximale Aufrufdistanz
   unsigned int  minPeriod;      // Minimale Aufrufdistanz
 
-  bool          periodAlarm;    // Aufrufdistanz > 1 Millisekunde
+  bool          periodAlarm;    // Aufrufdistanz > PeriodMinTime
   unsigned int  alarmCount;     // Anzahl der Überschreitungen
 
+  unsigned int  rtSreening[LoopScreeningGrades];
+  // Echtzeitüberwachung (Klassierung der ms Überschreitungen)
 } LoopStatistics;
 
 
@@ -104,7 +129,13 @@ private:
   unsigned long loopMicros;             // Zeit, die innerhalb von loop()
                                         // verstrichen ist (in Mikrosekunden)
   unsigned long loopStartMicros;        // Loop-Startzeit (us seit CPU-Start)
+  unsigned long lastClockMicros;
+  unsigned long lastStartMicros;
+  unsigned long lastRestMicros;
+
   unsigned long loopEndMicros;          // Loop-Endezeit (us seit CPU-Start)
+  unsigned long clockCycleMicros;       // Abstand zwischen zwei clock ticks
+  unsigned long mainStartMicros;        // Zählerstand bei Programmstart
 
   unsigned long backgroundMaxMicros;    // Maximale Zeit außerhalb loop()
   unsigned long backgroundMinMicros;    // Minimale Zeit außerhalb loop()
@@ -117,6 +148,8 @@ private:
   unsigned long loopSumMicros;          // Summe für Mittelwertberechnung
 
   unsigned long loopCounter;            // Anzahl der loop()-Durchläufe
+
+  unsigned int  loopScreening[LoopScreeningGrades];
 
   int           calcAvgCounter;         // Zähler für die Mittelwertbildung
   bool          firstLoop;              // Spezielle Kennzeichnung erste loop()
@@ -211,6 +244,12 @@ public:
 
   bool setDateTime(const char *dtStr);
   // Setzen der Uhr über standardisierten String
+
+  bool setDateTime(lcDateTime dt);
+  // Setzen der Uhr über lokal definierte Struktur
+
+  bool getDateTime(lcDateTime *dt);
+  // Abfragen der Uhr über lokal definierte Struktur
 
   const char * refDateTime();
   // Zeiger auf Datum/Uhrzeit holen

@@ -89,39 +89,53 @@
   //
   void LoopCheck::begin()
   {
+#if defined(smnSimWindows) || defined(smnSimLinux)
+    begin(true);
+#else
     begin(false);
+#endif
   }
 
   void LoopCheck::begin(bool resetTime)
   {
+    unsigned int    cycleMillis;
     unsigned int    restMicros;
-    unsigned long   lastMicros;
     unsigned int    tmpInt;
     unsigned int    tmpInt100, tmpInt10, tmpInt1;
     div_t           divResult;
 
-    lastMicros = loopStartMicros;
+    loopStartMicros = SYSMICSEC;
+    clockCycleMicros = loopStartMicros - lastClockMicros + lastRestMicros;
+    //
+    // Zeit seit dem letzten Aufruf von begin()
 
-    loopStartMicros = SYSMICSEC - checkStartMicros;
-
-    if(firstLoop == true && resetTime == true)
+  
+    //
+    if(firstLoop == true)
     {
-      checkStartMicros = loopStartMicros;
-      loopStartMicros = 0;
+      clockCycleMicros = 0;
+      lastClockMicros = loopStartMicros;
     }
 
-    restMicros = (int) (loopStartMicros % 1000);
+    // Aufteilen in Millisekunden und Mikrosekunden
+    //
+    divResult = div((int) clockCycleMicros, 1000);
 
-    if((restMicros > 500) && (toggleMilli == true))
+    restMicros = divResult.rem;
+    cycleMillis = divResult.quot;
+
+    if(cycleMillis > 0)
     {
-      msec++;
-      dtmSec++;
+      lastRestMicros = restMicros;
+      lastClockMicros = loopStartMicros;
+      msec += cycleMillis;
+      dtmSec += cycleMillis;
 
       // Betriebsstundenzähler
       //
-      if(msec == 1000)
+      if(msec >= 1000)
       {
-        msec = 0;
+        msec -= 1000;
         sec++;
 
         if(sec == 60)
@@ -148,9 +162,10 @@
 
       // Software-Uhr
       //
-      if(dtmSec == 1000)
+      if(dtmSec >= 1000)
       {
-        dtmSec = 0;
+        dtmSec -= 1000;
+
         dtSec++;
         dateTimeStr[20] = '0';
         dateTimeStr[21] = '0';
@@ -265,14 +280,7 @@
         dateTimeStr[22] = (char) (tmpInt1   | 0x30);
       }
 
-      toggleMilli = false;
     }
-
-    if((restMicros < 500) && (toggleMilli == false))
-    {
-      toggleMilli = true;
-    }
-
 
     if(firstLoop == false)
     {
@@ -281,18 +289,31 @@
         backgroundMaxMicros = backgroundMicros;
       if(backgroundMicros < backgroundMinMicros)
         backgroundMinMicros = backgroundMicros;
-      periodMicros = loopStartMicros - lastMicros;
+      periodMicros = loopStartMicros - lastStartMicros;
       if(periodMicros > periodMaxMicros)
         periodMaxMicros = periodMicros;
       if(periodMicros < periodMinMicros)
         periodMinMicros = periodMicros;
-      if(periodMicros > 1000)
+      if(periodMicros > PeriodMinTime)
       {
         periodFailAlarm = true;
         periodFailCount++;
       }
-    }
+
+      divResult = div(periodMicros, 1000);
+      if(divResult.quot > 0)
+      {
+        if(divResult.quot >= LoopScreeningGrades)
+          ++loopScreening[LoopScreeningGrades - 1];
+        else
+          ++loopScreening[divResult.quot -1];
+      }
+    } // if()
+
+    lastStartMicros = loopStartMicros;
+
   }
+
 
   void LoopCheck::end()
   {
@@ -453,6 +474,9 @@
     statistics->maxPeriod   =   periodMaxMicros;
     statistics->minPeriod   =   periodMinMicros;
 
+    for (int i = 0; i < LoopScreeningGrades; i++)
+      statistics->rtSreening[i] = loopScreening[i];
+
     return(loopCounter);
   }
 
@@ -480,7 +504,7 @@
   }
 
   bool LoopCheck::setDateTime(const char *dtStr)
-   {
+  {
      if(strlen(dtStr) < 23) return(false);
      strcpy(dateTimeStr,dtStr);
      dtYear   = (dateTimeStr[0]  & 0x0F) * 1000 +
@@ -508,7 +532,31 @@
                 (dateTimeStr[22] & 0x0F);
 
      return(true);
-   }
+  }
+
+  bool LoopCheck::setDateTime(lcDateTime dt)
+  {
+    dtYear    = dt.Year;
+    dtMonth   = dt.Month;
+    dtDay     = dt.Day;
+    dtHour    = dt.Hour;
+    dtMin     = dt.Minute;
+    dtSec     = dt.Second;
+    dtmSec    = dt.Millisecond;
+    return(true);
+  }
+
+  bool LoopCheck::getDateTime(lcDateTime *dt)
+  {
+    dt->Year        = dtYear;
+    dt->Month       = dtMonth;
+    dt->Day         = dtDay;
+    dt->Hour        = dtHour;
+    dt->Minute      = dtMin;
+    dt->Second      = dtSec;
+    dt->Millisecond = dtmSec;
+    return(true);
+  }
 
   const char * LoopCheck::refDateTime()
   {
@@ -525,6 +573,16 @@
     error = clock_gettime(CLOCK_MONOTONIC, &clockTime);
     retv = clockTime.tv_nsec / 1000;
     return(retv);
+#endif
+
+#ifdef smnSimWindows
+    LARGE_INTEGER countValue, frequency, result;
+
+    QueryPerformanceCounter(&countValue);
+    QueryPerformanceFrequency(&frequency);
+
+    result.QuadPart = (countValue.QuadPart * 1000000) / frequency.QuadPart;
+    return((unsigned long) result.QuadPart);
 #endif
   }
 

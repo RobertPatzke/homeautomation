@@ -29,6 +29,7 @@ IPAddress       ipAdr;
 byte            macAdr[MAC_ADR_SIZE];
 bool            *connectedPtr;
 bool            *wifiPendingPtr;
+unsigned int    *connectCountPtr;
 int             wifiEventCounter = 0;
 int             wifiEventIdx = 0;
 WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
@@ -118,16 +119,13 @@ SocManNet::SocManNet()
 	initPending     = false;
 	useDHCP         = false;
 	error           = smnError_none;
-	socketId        = 0;
-	socketBcAdrLen  = 0;
-    socketRecAdrLen = 0;
-	ipBroadcast     = NULL;
-	ipLocal         = NULL;
-	ipSubNet        = NULL;
-	ipPrimaryDNS    = NULL;
-	ipSecondaryDNS  = NULL;
-	ipGateway       = NULL;
 	bcEnable        = 0;
+
+#ifdef smnSimLinux
+	socketId        = 0;
+    socketBcAdrLen  = 0;
+    socketRecAdrLen = 0;
+#endif
 }
 
         //---------------------------------------------------------------------
@@ -200,12 +198,32 @@ enum SocManNetError SocManNet::init(bool dhcp)
   secDnsIp[3] = SECDNS_IP_B3;
 
   // Kommunikationsobjekt initialisieren
-  init(LOCAL_MAC_ADR_STR,LOCAL_IP_ADR_STR,SMNSSID,SMNPASS,dhcp);
+  init((char *) LOCAL_MAC_ADR_STR,
+       (char *) LOCAL_IP_ADR_STR,
+       (char *) SMNSSID,
+       (char *) SMNPASS,dhcp);
+
+#ifdef smnESP32
+
+  // Umgebung für den Event initialisieren
+  locUdpPortPtr     = &localPort;
+  wifiUdpPtr        = &Udp;
+  connected         = false;
+  connectedPtr      = &connected;
+  connectCount      = 0;
+  connectCountPtr   = &connectCount;
+  wifiPendingPtr    = &initPending;
+
+  WiFi.onEvent(WiFiEventHandler);
+
+#endif
+
 
   // Kommunikationsschnittstelle oeffnen
   error = open  (
                 localMacAdr,localIp,localPort,broadcastIp,
-                broadcastPort,subNetMask,gatewayIp,primDnsIp,secDnsIp
+                broadcastPort,subNetMask,gatewayIp,primDnsIp,
+                secDnsIp, false
                 );
 
   return(error);
@@ -262,7 +280,8 @@ SocManNetError  SocManNet::open()
 {
   error = open  (
                 localMacAdr,localIp,localPort,broadcastIp,
-                broadcastPort,subNetMask,gatewayIp,primDnsIp,secDnsIp
+                broadcastPort,subNetMask,gatewayIp,primDnsIp,
+                secDnsIp, false
                 );
 
   return(error);
@@ -284,22 +303,24 @@ SocManNetError  SocManNet::reopen()
 
   error = open  (
                 macBytes,ipAdrBytes,localPort,broadcastIp,
-                broadcastPort,subNetMask,gatewayIp,primDnsIp,secDnsIp
+                broadcastPort,subNetMask,gatewayIp,primDnsIp,
+                secDnsIp, true
                 );
 
   return(error);
 }
 
 SocManNetError
-SocManNet::open(byte *          ptrMacLocal,
-                uint8_t *       ptrIpLocal,
-                unsigned int    localPort,
-                uint8_t *       ptrIpBroadcast,
-                unsigned int    broadcastPort,
-                uint8_t *       ptrIpSubNet,
-                uint8_t *       ptrIpGateway,
-                uint8_t *       ptrIpPrimDNS,
-                uint8_t *       ptrIpSecDNS
+SocManNet::open(byte * ptrMacLocal,
+                uint8_t *    ptrIpLocal,
+                unsigned int localPort,
+                uint8_t *    ptrIpBroadcast,
+                unsigned int broadcastPort,
+                uint8_t *    ptrIpSubNet,
+                uint8_t *    ptrIpGateway,
+                uint8_t *    ptrIpPrimDNS,
+                uint8_t *    ptrIpSecDNS,
+                bool         repOpen
                )
 {
 #if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
@@ -367,15 +388,6 @@ SocManNet::open(byte *          ptrMacLocal,
     if(ok == false)
       return(smnError_configFailed);
   }
-
-  // Umgebung für den Event initialisieren
-  locUdpPortPtr     = &localPort;
-  wifiUdpPtr        = &Udp;
-  connected         = false;
-  connectedPtr      = &connected;
-  wifiPendingPtr    = &initPending;
-
-  WiFi.onEvent(WiFiEventHandler);
 
   initPending = true;
   WiFi.begin(ssid,pass);
@@ -462,65 +474,67 @@ int SocManNet::closeConnection()
   return(smnError_none);
 }
 
-SmnIfInfo memSmnIfInfo;
-
-SmnIfInfo * SocManNet::getIfInfo()
+void SocManNet::getIfInfo(SmnIfInfo *memSmnIfInfo)
 {
 #ifdef smnESP32
-  memSmnIfInfo.ipAddress    = ipAdr;
-  sprintf(memSmnIfInfo.ipAdrCStr,"%d.%d.%d.%d",ipAdr[0],ipAdr[1],ipAdr[2],ipAdr[3]);
+  memSmnIfInfo->ipAddress    = ipAdr;
+  sprintf(memSmnIfInfo->ipAdrCStr,"%d.%d.%d.%d",ipAdr[0],ipAdr[1],ipAdr[2],ipAdr[3]);
 
-  memSmnIfInfo.macAddress   = macAdr;
-  sprintf(memSmnIfInfo.macAdrCStr,"%02X-%02X-%02X-%02X-%02X-%02X",
+  memSmnIfInfo->macAddress   = macAdr;
+  sprintf(memSmnIfInfo->macAdrCStr,"%02X-%02X-%02X-%02X-%02X-%02X",
           macAdr[0],macAdr[1],macAdr[2],macAdr[3],macAdr[4],macAdr[5]);
 
-  memSmnIfInfo.evtCounter   = wifiEventCounter;
-  memSmnIfInfo.evtIdx       = wifiEventIdx;
+  memSmnIfInfo->evtCounter   = wifiEventCounter;
+  memSmnIfInfo->evtIdx       = wifiEventIdx;
   if(wifiEventCounter >= SMNmaxNrIFEvt)
   {
     for(int i = 0; i < SMNmaxNrIFEvt; i++)
-      memSmnIfInfo.evtList[i] = (int) wifiEventList[i];
+      memSmnIfInfo->evtList[i] = (int) wifiEventList[i];
   }
   else if(wifiEventIdx > 0)
   {
     for(int i = 0; i < wifiEventIdx; i++)
-      memSmnIfInfo.evtList[i] = (int) wifiEventList[i];
+      memSmnIfInfo->evtList[i] = (int) wifiEventList[i];
   }
 #endif
 
-  return (&memSmnIfInfo);
+  return;
 }
 
-SmnIfStatus memSmnIfStatus;
-
-SmnIfStatus * SocManNet::getIfStatus()
+void SocManNet::getIfStatus(SmnIfStatus *memSmnIfStatus)
 {
 #ifdef smnESP32
   wl_status_t wifiStatus;
 
-  memSmnIfStatus.changed        = false;
+  memSmnIfStatus->changed        = false;
 
-  if(memSmnIfStatus.connected != connected)
+  if(memSmnIfStatus->connected != connected)
   {
-    memSmnIfStatus.connected    = connected;
-    memSmnIfStatus.changed      = true;
+    memSmnIfStatus->connected    = connected;
+    memSmnIfStatus->changed      = true;
   }
 
-  if(memSmnIfStatus.initPending != initPending)
+  if(memSmnIfStatus->initPending != initPending)
   {
-    memSmnIfStatus.initPending  = initPending;
-    memSmnIfStatus.changed      = true;
+    memSmnIfStatus->initPending  = initPending;
+    memSmnIfStatus->changed      = true;
+  }
+
+  if(memSmnIfStatus->connectCount != connectCount)
+  {
+    memSmnIfStatus->connectCount = connectCount;
+    memSmnIfStatus->changed      = true;
   }
 
   wifiStatus = WiFi.status();
-  if(memSmnIfStatus.ifStatus != (int) wifiStatus)
+  if(memSmnIfStatus->ifStatus != (int) wifiStatus)
   {
-    memSmnIfStatus.ifStatus     = (int) wifiStatus;
-    memSmnIfStatus.changed      = true;
+    memSmnIfStatus->ifStatus     = (int) wifiStatus;
+    memSmnIfStatus->changed      = true;
   }
 #endif
 
-  return (&memSmnIfStatus);
+  return;
 }
 
 char * SocManNet::getErrorMsg(enum SocManNetError err)
@@ -668,7 +682,7 @@ int SocManNet::receive(unsigned char * buf, int bufSize)
 
     msgLen = bufSize;
 
-    writeDebug("Message is too long for the debug output");
+    writeDebug((char *) "Message is too long for the debug output");
   }
 
   //---------------------------------------------------------------------------
@@ -896,8 +910,17 @@ void SocManNet::run(void)
   char        * objMsg;
   unsigned int  objMsgLen;
 
-  if(connected == false) return;
   if(error != smnError_none) return;
+  if(initPending) return;
+  if(connectCount == 0) return;
+
+  if(connected == false)
+  {
+    if(connectCount == connectMark) return;
+    reopen();
+    connectMark = connectCount;
+    return;
+  }
 
   //---------------------------------------------------------------------------
   // Telegramme empfangen

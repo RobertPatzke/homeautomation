@@ -89,6 +89,7 @@ typedef struct  _SmnIfStatus
   bool          changed;
   bool          connected;
   bool          initPending;
+  int           connectCount;
   int           ifStatus;
 } SmnIfStatus;
 
@@ -257,6 +258,9 @@ public:
   bool  initPending;    // Interface-Initialisierung noch aktiv
   int   bcEnable;
 
+  unsigned int  connectCount;   // Zähler für die aufgebauten Verbindungen
+  unsigned int  connectMark;    // Nachgeführter Merker als Zustand
+
 public:
   // --------------------------------------------------------------------------
   //  Allgemeine oeffentliche Funktionen
@@ -278,7 +282,7 @@ public:
   SocManNetError    reopen();
 
   SocManNetError
-  open(byte * ptrMacLocal,
+  open(byte *       ptrMacLocal,
        uint8_t *    ptrIpLocal,
        unsigned int localPort,
        uint8_t *    ptrIpBroadcast,
@@ -286,7 +290,8 @@ public:
        uint8_t *    ptrIpSubNet,
        uint8_t *    ptrIpGateway,
        uint8_t *    ptrIpPrimDNS,
-       uint8_t *    ptrIpSecDNS);
+       uint8_t *    ptrIpSecDNS,
+       bool         repOpen);
   int closeConnection();
   int send(uint8_t * msg, unsigned int msgLen);
   void run(void);
@@ -297,7 +302,7 @@ public:
   // --------------------------------------------------------------------------
   unsigned int      getStatistic(char * strPtr);
   char *            getErrorMsg(enum SocManNetError err);
-  SmnIfInfo *       getIfInfo();
-  SmnIfStatus *     getIfStatus();
+  void              getIfInfo(SmnIfInfo *);
+  void              getIfStatus(SmnIfStatus *);
 };
 #endif // _SocManNet_h

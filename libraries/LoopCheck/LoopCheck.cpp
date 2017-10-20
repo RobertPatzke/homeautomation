@@ -584,6 +584,10 @@
     result.QuadPart = (countValue.QuadPart * 1000000) / frequency.QuadPart;
     return((unsigned long) result.QuadPart);
 #endif
+
+#ifdef smnSloeber
+    return(micros());
+#endif
   }
 
   // -------------------------------------------------------------------------

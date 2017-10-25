@@ -9,6 +9,7 @@
 
 #include "LoopCheck.h"
 
+
   // -------------------------------------------------------------------------
   // Konstruktoren und Initialisierungen
   // -------------------------------------------------------------------------
@@ -119,7 +120,7 @@
 
     // Aufteilen in Millisekunden und Mikrosekunden
     //
-    divResult = div((int) clockCycleMicros, 1000);
+    divResult = DIV((int) clockCycleMicros, 1000);
 
     restMicros = divResult.rem;
     cycleMillis = divResult.quot;
@@ -218,11 +219,11 @@
                   dateTimeStr[5] = '0';
                   dateTimeStr[6] = '1';
 
-                  divResult   = div(tmpInt,100);
+                  divResult   = DIV(tmpInt,100);
                   tmpInt100   = divResult.quot;
                   tmpInt      = divResult.rem;
 
-                  divResult   = div(tmpInt,10);
+                  divResult   = DIV(tmpInt,10);
                   tmpInt10    = divResult.quot;
                   tmpInt1     = divResult.rem;
 
@@ -232,46 +233,46 @@
                 }
                 else
                 {
-                  divResult      = div(dtMonth,10);
+                  divResult      = DIV(dtMonth,10);
                   dateTimeStr[5] = (char) (divResult.quot | 0x30);
                   dateTimeStr[6] = (char) (divResult.rem  | 0x30);
                 }
               }
               else
               {
-                divResult      = div(dtDay,10);
+                divResult      = DIV(dtDay,10);
                 dateTimeStr[8] = (char) (divResult.quot | 0x30);
                 dateTimeStr[9] = (char) (divResult.rem  | 0x30);
               }
             }
             else
             {
-              divResult       = div(dtHour,10);
+              divResult       = DIV(dtHour,10);
               dateTimeStr[11] = (char) (divResult.quot | 0x30);
               dateTimeStr[12] = (char) (divResult.rem  | 0x30);
             }
           }
           else
           {
-            divResult       = div(dtMin,10);
+            divResult       = DIV(dtMin,10);
             dateTimeStr[14] = (char) (divResult.quot | 0x30);
             dateTimeStr[15] = (char) (divResult.rem  | 0x30);
           }
         }
         else
         {
-          divResult     = div(dtSec,10);
+          divResult     = DIV(dtSec,10);
           dateTimeStr[17] = (char) (divResult.quot | 0x30);
           dateTimeStr[18] = (char) (divResult.rem  | 0x30);
         }
       }
       else
       {
-        divResult   = div(dtmSec,100);
+        divResult   = DIV(dtmSec,100);
         tmpInt100   = divResult.quot;
         tmpInt      = divResult.rem;
 
-        divResult   = div(tmpInt,10);
+        divResult   = DIV(tmpInt,10);
         tmpInt10    = divResult.quot;
         tmpInt1     = divResult.rem;
 
@@ -300,7 +301,7 @@
         periodFailCount++;
       }
 
-      divResult = div(periodMicros, 1000);
+      divResult = DIV(periodMicros, 1000);
       if(divResult.quot > 0)
       {
         if(divResult.quot >= LoopScreeningGrades)
@@ -589,6 +590,18 @@
     return(micros());
 #endif
   }
+
+#ifdef smnESP8266
+  div_t LoopCheck::locDiv(int numer, int denom)
+  {
+    div_t retv;
+
+    retv.quot = numer / denom;
+    retv.rem  = numer % denom;
+
+    return(retv);
+  }
+#endif
 
   // -------------------------------------------------------------------------
   // Debug-Funktionen

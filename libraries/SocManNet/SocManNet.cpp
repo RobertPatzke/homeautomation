@@ -20,7 +20,7 @@
         // Ereignis (Event) der Schnittstelle verarbeiten
         //---------------------------------------------------------------------
         //
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
 
 WiFiUDP         *wifiUdpPtr;
 unsigned int    *locUdpPortPtr;
@@ -34,7 +34,11 @@ int             wifiEventCounter = 0;
 int             wifiEventIdx = 0;
 WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
 
-  void WiFiEventHandler(WiFiEvent_t wifiEvent)
+#endif
+
+#if defined(smnESP32)
+
+  void smnWiFiEventHandler(WiFiEvent_t wifiEvent)
   {
     String    tmpStr;
 
@@ -89,6 +93,61 @@ WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
   }
 #endif
 
+
+#ifdef smnESP8266
+
+  void smnWiFiEventHandler(WiFiEvent_t wifiEvent)
+  {
+    String    tmpStr;
+
+    wifiEventList[wifiEventIdx] = wifiEvent;
+    wifiEventCounter++;
+    wifiEventIdx++;
+    if(wifiEventIdx == SMNmaxNrIFEvt)
+      wifiEventIdx = 0;
+
+    switch(wifiEvent)
+    {
+      // Wenn nach einer intern definierten Zeit eine funktionierende
+      // Verbindung zum AP aufgebaut werden konnte:
+      //
+      case WIFI_EVENT_STAMODE_CONNECTED:                                        // SYSTEM_EVENT_STA_CONNECTED:          // 4
+        *wifiPendingPtr = true;         // Evt warten auf IP-Adresse
+        *connectedPtr = false;          // Verbindung noch nicht nutzbar
+        break;
+
+      // Wenn nach einer intern definierten Zeit keine funktionierende
+      // Verbindung zum AP aufgebaut werden konnte:
+      //
+      case WIFI_EVENT_STAMODE_DISCONNECTED:                                     // SYSTEM_EVENT_STA_DISCONNECTED:       // 5
+        *wifiPendingPtr = false;
+        *connectedPtr = false;
+        break;
+
+      // Sobald die Verbindung zum AP aufgebaut und eine Internet-Adresse
+      // zugewiesen wurde:
+      //
+      case WIFI_EVENT_STAMODE_GOT_IP:                                           // SYSTEM_EVENT_STA_GOT_IP:             // 7
+        *wifiPendingPtr = false;
+        *connectedPtr = true;
+        ipAdr = WiFi.localIP();
+        WiFi.macAddress(macAdr);
+        wifiUdpPtr->begin(*locUdpPortPtr);
+        break;
+
+      case WIFI_EVENT_STAMODE_DHCP_TIMEOUT:                                     // SYSTEM_EVENT_STA_LOST_IP:             // 8
+        *wifiPendingPtr = true;
+        *connectedPtr = false;
+        break;
+
+      default:
+        break;
+    }
+  }
+#endif
+
+
+
 #ifdef smnSimLinux
   IPAddress       ipAdr;
   byte            macAdr[MAC_ADR_SIZE];
@@ -120,11 +179,19 @@ SocManNet::SocManNet()
 	useDHCP         = false;
 	error           = smnError_none;
 	bcEnable        = 0;
+	connectCount    = 0;
+	connectMark     = 0;
 
 #ifdef smnSimLinux
 	socketId        = 0;
     socketBcAdrLen  = 0;
     socketRecAdrLen = 0;
+    ipLocal         = NULL;
+    ipPrimaryDNS    = NULL;
+    ipSecondaryDNS  = NULL;
+    ipGateway       = NULL;
+    ipSubNet        = NULL;
+    ipBroadcast     = NULL;
 #endif
 }
 
@@ -203,7 +270,7 @@ enum SocManNetError SocManNet::init(bool dhcp)
        (char *) SMNSSID,
        (char *) SMNPASS,dhcp);
 
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
 
   // Umgebung für den Event initialisieren
   locUdpPortPtr     = &localPort;
@@ -214,7 +281,7 @@ enum SocManNetError SocManNet::init(bool dhcp)
   connectCountPtr   = &connectCount;
   wifiPendingPtr    = &initPending;
 
-  WiFi.onEvent(WiFiEventHandler);
+  WiFi.onEvent(smnWiFiEventHandler);
 
 #endif
 
@@ -245,7 +312,7 @@ void SocManNet::init(char *macAdr, char *ipAdr, char *netName, char *netPass, bo
   //---------------------------------------------------------------------------
   memset(macLocal, 0, sizeof(macLocal));
 
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
   WiFi.disconnect(true);    // Eine eventuelle alte Verbindung beenden
 #endif
 
@@ -289,7 +356,7 @@ SocManNetError  SocManNet::open()
 
 SocManNetError  SocManNet::reopen()
 {
-#if defined(smnESP32) || defined(smnSimLinux)
+#if defined(smnESP32) || defined(smnESP8266) || defined(smnSimLinux)
   byte ipAdrBytes[4];
   byte *macBytes;
 
@@ -374,11 +441,7 @@ SocManNet::open(byte * ptrMacLocal,
   Ethernet.begin(macLocal,ipLocal);
 #endif
 
-#ifdef smnESP8266
-  WiFi.begin(ssid, pass);
-#endif
-
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
 
   // Bedingte Konfiguration des Netzwerkes
   //
@@ -393,7 +456,7 @@ SocManNet::open(byte * ptrMacLocal,
   WiFi.begin(ssid,pass);
 #endif
 
-#if defined (ArduinoShieldEth) || defined (ESP8266)
+#if defined (ArduinoShieldEth)
   Udp.begin(portLocal);
   connected = true;
 #endif
@@ -454,7 +517,7 @@ int SocManNet::closeConnection()
   // Socket schliessen
   //---------------------------------------------------------------------------
 
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
   WiFi.disconnect(true);
 #endif
 
@@ -476,7 +539,7 @@ int SocManNet::closeConnection()
 
 void SocManNet::getIfInfo(SmnIfInfo *memSmnIfInfo)
 {
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
   memSmnIfInfo->ipAddress    = ipAdr;
   sprintf(memSmnIfInfo->ipAdrCStr,"%d.%d.%d.%d",ipAdr[0],ipAdr[1],ipAdr[2],ipAdr[3]);
 
@@ -503,7 +566,7 @@ void SocManNet::getIfInfo(SmnIfInfo *memSmnIfInfo)
 
 void SocManNet::getIfStatus(SmnIfStatus *memSmnIfStatus)
 {
-#ifdef smnESP32
+#if defined(smnESP32) || defined(smnESP8266)
   wl_status_t wifiStatus;
 
   memSmnIfStatus->changed        = false;

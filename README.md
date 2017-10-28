@@ -20,6 +20,7 @@ which may cause criticism when there is an implicit promise to check/improve it
 before it is published in the master repository.
 
 # Current development tools and targets
+## Arduino (C++)
 At present I use the Arduino library environment for targets Arduino Due and development boards 
 for the WiFi-SoCs ESP8266 and [ESP32](https://github.com/espressif/arduino-esp32). 
 For the software development I use [Eclipse/Sloeber](http://eclipse.baeyens.it/) on Ubuntu (and sometimes also on Windows). 
@@ -29,3 +30,6 @@ Applied Sciences and Arts in Hannover/Germany.
 My hope is, that these students will have fun with programming and do that also at home.
 
 For the content (source files) of the projects in my Eclipse workspace I use Linux links (not the source code linking of the Eclipse environment). This is because of having a simple #include structure of the header files, as it is with the Arduino libraries, in different development environments. E.g. the software is also tested with typical console applications in C/C++ with Eclipse on Ubuntu without copying files.
+
+## Android (Java)
+I started APP development also with Eclipse and a plug in for Android, available from Google. But meanwhile the Android Studio from Google is more easy to handle and that ist the main request when students start to develop APPs the first time in their life.

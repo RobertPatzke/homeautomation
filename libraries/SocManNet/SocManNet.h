@@ -43,7 +43,7 @@
 
 #ifdef smnESP8266
   #include <ESP8266WiFi.h>
-  #include <WifiUdp.h>
+  #include <WiFiUdp.h>
 #endif
 
 #ifdef smnESP32

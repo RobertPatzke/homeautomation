@@ -45,6 +45,12 @@
   #define SYSMICSEC    micros()
 #endif
 
+#ifdef smnESP8266
+  #define DIV(x,y)    locDiv(x,y)
+#else
+  #define DIV(x,y)    div(x,y)
+#endif
+
 typedef struct _OpHourMeter
 {
   int   Years;
@@ -193,6 +199,9 @@ private:
   void initStatistics();
   void initClock();
   unsigned long locMicros();
+#ifdef smnESP8266
+  div_t locDiv(int numer, int denom);
+#endif
 
 public:
   // -------------------------------------------------------------------------

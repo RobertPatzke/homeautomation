@@ -3,14 +3,16 @@ Decentral homeautomation deals with autonomous smart devices (agents) for contro
 It is creating a kind of perfect butler, who helps anybody, particularly elder and handicaped people, 
 with their daily tasks at home. 
 
-This repository will contain software for the development of autonomous smart devices. Based on the software concept of [Arduino](https://www.arduino.cc/), we started with tools for a time control of the loop function with [LoopCheck](https://github.com/RobertPatzke/homeautomation/tree/developer/libraries/LoopCheck). This was followed by a software for sending (Twitter) and receiving (Follower) broadcast messages based on an API for the network with [SocManNet](https://github.com/RobertPatzke/homeautomation/tree/developer/libraries/SocManNet). At present, this is tested with Arduino Due (Ethernet shield) and ESP32, ESP8266 is under test. One goal for the future is to provide broadcast capabilities with other networks (e.g. ZigBee) in SocManNet.
+This repository contains software for the development of autonomous smart devices. Software in folder libraries is based on the concept of [Arduino](https://www.arduino.cc/) and we started with tools for a time control of the loop function with [LoopCheck](https://github.com/RobertPatzke/homeautomation/tree/developer/libraries/LoopCheck). This was followed by a software for sending (Twitter) and receiving (Follower) broadcast messages based on an API for the network with [SocManNet](https://github.com/RobertPatzke/homeautomation/tree/developer/libraries/SocManNet). At present, this is tested with Arduino Due (Ethernet shield) and ESP32, ESP8266 is under test. One goal for the future is to provide broadcast capabilities with other networks (e.g. ZigBee) in SocManNet.
+
+Software in folder apps is that for Android devices, written in Java. At present, there is no fixed concept for the structure of that part of the repository. So far, the structure is related to that of folder libraries. Because we want to avoid console applications for Android devices, there is no relation between the examples of Arduino and Android.
 
 Soon will follow the software for finite state machines as the foundation of smart devices.
 
 # Using GitHub
 I decided to use Git and GitHub because of the filter effect on uploaded software. 
 So my students or any other interested programmer may improve (hopefully) the software 
-and I can check the changes before they go to the repository.
+and I can check the changes before they go to the main repository.
 Knowing my own weakness with quick and dirty programming I created at once a second branch and named it {developer} 
 to start with content there. 
 I know, that with Git it would not be necessary, but it is easier for me to publish some code 

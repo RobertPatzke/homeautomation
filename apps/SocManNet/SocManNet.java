@@ -1,4 +1,4 @@
-package hsh.mplab.libnet;
+package hsh.mplab.socmannet;
 
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
@@ -95,7 +95,7 @@ public class SocManNet
       localMAC        = getByteString(macBytes);
 
       // ---------------------------------------------------------------------
-      // Auswerten der verf�gbaren Internetadressen
+      // Auswerten der verfügbaren Internetadressen
       // ---------------------------------------------------------------------
            
       enumInetAdr     = localInterface.getInetAddresses();
@@ -117,7 +117,7 @@ public class SocManNet
         return;
       }
       
-      hostName        = localHost.getHostName();
+      //hostName        = localHost.getHostName();
       
       ipBytes         = localHost.getAddress();
       localIP         = localHost.getHostAddress();

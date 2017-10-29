@@ -1,4 +1,4 @@
-package hsh.mplab.libnet;
+package hsh.mplab.socmannet;
 
 import android.annotation.SuppressLint;
 import java.io.IOException;
@@ -50,7 +50,7 @@ public class Twitter
   public int        deviceState = 33;
   public String     deviceName = "SMminControl";
   
-  // Lokale Variablen f�r die interne Verarbeitung
+  // Lokale Variablen für die interne Verarbeitung
   //
   InetAddress       broadcastAdr;
   DatagramSocket    localSocket;
@@ -145,7 +145,11 @@ public class Twitter
       errorCode = 3;
     }
   }
-  
+
+  public void init(String comObject, int nrInt, int nrFloat, int nrText, Speed speed)
+  {
+    init(defaultPort, comObject, nrInt, nrFloat, nrText, speed);
+  }
   // endregion
 
   // -------------------------------------------------------------------------

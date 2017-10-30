@@ -45,6 +45,18 @@
     #define smnSloeber
     #define smnESP32_DEV
     #define smnESP32
+    #define smnSAM3X
+
+  #endif
+
+  #ifdef smnSLOEDUE
+  // Mit Sloeber auf Ubuntu/Linux für Entwicklungen zum Arduino Due
+  //
+
+    #define smnDebugArduino
+    #define smnSloeber
+    #define smnArduinoDUE
+    #define smnArduinoShieldEth
 
   #endif
 

@@ -366,13 +366,17 @@ SocManNetError  SocManNet::reopen()
   ipAdrBytes[3] = ipAdr[3];
 
   macBytes = macAdr;
-#endif
+
 
   error = open  (
                 macBytes,ipAdrBytes,localPort,broadcastIp,
                 broadcastPort,subNetMask,gatewayIp,primDnsIp,
                 secDnsIp, true
                 );
+
+#else
+  SocManNetError error = smnError_none;
+#endif
 
   return(error);
 }

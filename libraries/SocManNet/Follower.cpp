@@ -79,6 +79,10 @@ Follower::Follower()
   posX                      = 0;
   posY                      = 0;
   posZ                      = 0;
+
+#ifdef smnFOLLOWMULTISRC
+  maxDeviceIdx              = 0;
+#endif
 }
 
 Follower::Follower(SocManNet * inNetHnd)
@@ -140,7 +144,18 @@ void Follower::init(SocManNet * inNetHnd, char * commObject)
   // Die Verbindung mit der Kommunikationsschnittstelle erstellen
   //---------------------------------------------------------------------------
   inNetHnd->attachEvtRecMsg(commObject, this, evtRecMsgDistributor);
+
+#ifdef smnFOLLOWMULTISRC
+  //---------------------------------------------------------------------------
+  // Initialisierung der Geräteschlüsselliste
+  //---------------------------------------------------------------------------
+  //
+  for(int i = 0; i < MAXNRSRC; i++)
+    deviceKey[i] = -1;
+#endif
 }
+
+#ifndef smnFOLLOWMULTISRC
 
 // ----------------------------------------------------------------------------
 // Werte und Status der Werte lesen
@@ -347,6 +362,221 @@ void Follower::getValue(TextValue * textVal)
     textVal->newValue = true;
   }
 }
+
+#else
+
+// ----------------------------------------------------------------------------
+// Werte und Status der Werte lesen
+// ----------------------------------------------------------------------------
+//
+bool Follower::getIntStatus(ReceivedValue * intVal)
+{
+  int   devIdx;
+
+  //---------------------------------------------------------------------------
+  // Falls Daten fuer die Statusabfrage nicht gueltig sind, dann
+  //---------------------------------------------------------------------------
+  if(intCount < 1)
+  {
+    intVal->status = STATUSVAL_BM_NONE;
+    return true;
+  }
+
+  devIdx = intVal->deviceIdx;
+
+  if(intVal->pduCount == pduCount[devIdx])
+  {
+    intVal->status = STATUSVAL_BM_UNBORN;
+    return true;
+  }
+
+  if(intVal->idx < 0 || intVal->idx >= MAXNRINT)
+  {
+    intVal->status = STATUSVAL_BM_NEWPDU;
+    intVal->status |= STATUSVAL_BM_IDX;
+    return true;
+  }
+
+  //---------------------------------------------------------------------------
+  // Status bestimmen und ausgeben
+  //---------------------------------------------------------------------------
+  intVal->status = STATUSVAL_BM_NEWPDU;
+  if((pduCount[devIdx] - intVal->pduCount) > 1)
+  {
+    intVal->status |= STATUSVAL_BM_LOSTPDU;
+  }
+
+  intVal->pduCount = pduCount[devIdx];
+  return false;
+}
+
+bool Follower::getFloatStatus(ReceivedValue * floatVal)
+{
+  //---------------------------------------------------------------------------
+  // Falls Daten fuer die Statusabfrage nicht gueltig sind, dann
+  //---------------------------------------------------------------------------
+  if(floatCount < 1)
+  {
+    floatVal->status = STATUSVAL_BM_NONE;
+    return true;
+  }
+
+  if(floatVal->pduCount == pduCount)
+  {
+    floatVal->status = STATUSVAL_BM_UNBORN;
+    return true;
+  }
+
+  if(floatVal->idx < 0 || floatVal->idx >= MAXNRFLOAT)
+  {
+    floatVal->status = STATUSVAL_BM_NEWPDU;
+    floatVal->status |= STATUSVAL_BM_IDX;
+    return true;
+  }
+
+  //---------------------------------------------------------------------------
+  // Status bestimmen und ausgeben
+  //---------------------------------------------------------------------------
+  floatVal->status = STATUSVAL_BM_NEWPDU;
+  if((pduCount - floatVal->pduCount) > 1)
+  {
+    floatVal->status |= STATUSVAL_BM_LOSTPDU;
+  }
+
+  floatVal->pduCount = pduCount;
+  return false;
+}
+
+bool Follower::getTextStatus(ReceivedValue * textVal)
+{
+  //---------------------------------------------------------------------------
+  // Falls Daten fuer die Statusabfrage nicht gueltig sind, dann
+  //---------------------------------------------------------------------------
+  if(textCount < 1)
+  {
+    textVal->status = STATUSVAL_BM_NONE;
+    return true;
+  }
+
+  if(textVal->pduCount == pduCount)
+  {
+    textVal->status = STATUSVAL_BM_UNBORN;
+    return true;
+  }
+
+  if(textVal->idx < 0 || textVal->idx >= MAXNRTEXT)
+  {
+    textVal->status = STATUSVAL_BM_NEWPDU;
+    textVal->status |= STATUSVAL_BM_IDX;
+
+    return true;
+  }
+
+  //---------------------------------------------------------------------------
+  // Status bestimmen und ausgeben
+  //---------------------------------------------------------------------------
+  textVal->status = STATUSVAL_BM_NEWPDU;
+  if((pduCount - textVal->pduCount) > 1)
+  {
+    textVal->status |= STATUSVAL_BM_LOSTPDU;
+  }
+
+  textVal->pduCount = pduCount;
+  return false;
+}
+
+void Follower::getValue(IntegerValue * intVal)
+{
+  bool  fin;
+  int   idx;
+
+  intVal->newPdu = false;
+  intVal->newValue = false;
+
+  //---------------------------------------------------------------------------
+  // Pruefen, ob es moeglich ist Wert zu lesen
+  //---------------------------------------------------------------------------
+  fin = getIntStatus(&(intVal->recDsc));
+  if(fin) return;
+
+  intVal->newPdu = true;
+
+  //---------------------------------------------------------------------------
+  // Wert lesen
+  //---------------------------------------------------------------------------
+  idx = intVal->recDsc.idx;
+  int value = intArray[idx];
+
+  if(value != intVal->value)
+  {
+    intVal->value = value;
+    intVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
+    intVal->newValue = true;
+  }
+}
+
+void Follower::getValue(FloatValue * floatVal)
+{
+  bool  fin;
+  int   idx;
+
+  floatVal->newPdu = false;
+  floatVal->newValue = false;
+
+  //---------------------------------------------------------------------------
+  // Pruefen, ob es moeglich ist Wert zu lesen
+  //---------------------------------------------------------------------------
+  fin = getFloatStatus(&(floatVal->recDsc));
+  if(fin) return;
+
+  floatVal->newPdu = true;
+
+  //---------------------------------------------------------------------------
+  // Wert lesen
+  //---------------------------------------------------------------------------
+  idx = floatVal->recDsc.idx;
+
+  float value = floatArray[idx];
+
+  if(value != floatVal->value)
+  {
+    floatVal->value = value;
+    floatVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
+    floatVal->newValue = true;
+  }
+}
+
+void Follower::getValue(TextValue * textVal)
+{
+  bool  fin;
+  int   idx;
+
+  textVal->newPdu   = false;
+  textVal->newValue = false;
+
+  //---------------------------------------------------------------------------
+  // Pruefen, ob es moeglich ist Wert zu lesen
+  //---------------------------------------------------------------------------
+  fin = getTextStatus(&(textVal->recDsc));
+  if(fin) return;
+
+  textVal->newPdu = true;
+
+  //---------------------------------------------------------------------------
+  // Wert lesen
+  //---------------------------------------------------------------------------
+  idx = textVal->recDsc.idx;
+
+  if(strcmp(textVal->value, &textArray[idx][0]))
+  {
+    strncpy(textVal->value, &textArray[idx][0], sizeof(textVal->value));
+    textVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
+    textVal->newValue = true;
+  }
+}
+
+
+#endif
 
 // ----------------------------------------------------------------------------
 // Funktionen zur Verarbeitung des eingegangenen Telegramms
@@ -618,7 +848,7 @@ int Follower::parseMsg2(char * msg, unsigned int msgLen)
   cntField    = 0;
 
   pduDataIdxField[pdiPduCount] = 0; // Der Msg-Index des PDU-Counter ist 0
-                                    // Das Telegramm f�ngt hier beim PDU-Counter an
+                                    // Das Telegramm fängt hier beim PDU-Counter an
 
   //---------------------------------------------------------------------------
   // Telegramm parsen
@@ -628,10 +858,10 @@ int Follower::parseMsg2(char * msg, unsigned int msgLen)
     if(msg[idx] == ';')
     {
       // Das Datenfeld ist beendet
-      // und der Feldz�hler wird auf das n�chste Feld gesetzt
+      // und der Feldzähler wird auf das nächste Feld gesetzt
       cntField++;
 
-      // Falls Felder leer sind, m�ssen die Merker auf -1 gesetzt werden
+      // Falls Felder leer sind, müssen die Merker auf -1 gesetzt werden
       if(msg[idx+1] == ';')
         pduDataIdxField[cntField] = -1;
       else
@@ -669,7 +899,7 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
   //---------------------------------------------------------------------------
   // Parser Ergebnis ueberpruefen
   //---------------------------------------------------------------------------
-  if(idxFieldPduCount < 0 || idxFieldPduCount >= msgLen)
+  if(idxFieldPduCount >= msgLen)
   {
     return(-1);
   }
@@ -1110,6 +1340,8 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
   return(0);
 }
 
+#ifndef smnFOLLOWMULTISRC
+
 int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
 {
   int   msgIdx;
@@ -1398,6 +1630,328 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
   }
   return(0);
 }
+
+#else
+
+int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
+{
+  int   msgIdx;
+
+  int       locIntCount;
+  int       locFloatCount;
+  int       locTextCount;
+
+  int       inDeviceKey;
+  int       deviceIdx;
+  int       intValue;
+  double    floatValue;
+
+  unsigned int idxValue;
+  unsigned int idxValueStr;
+  unsigned int idxValueChar;
+
+  char          valueBuf[MAXVALCHRLEN];
+  unsigned int  idxBuf;
+  char chr;
+
+  //---------------------------------------------------------------------------
+  // Einzelne Datenelemente speichern
+  //---------------------------------------------------------------------------
+
+  //-------------------------------------------------------------------------
+  // DeviceKey
+  //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiDeviceKey];
+  if(msgIdx < 0)
+    inDeviceKey = 0;
+  else
+    inDeviceKey = atoi(&msg[msgIdx]);
+
+  // Wenn der Geräteschlüssel neu ist, wird er in die Liste eingetragen
+  // und ein Index zugewiesen. Wenn er bereits in der Liste ist,
+  // wird sein Index ermittelt.
+  //
+  for(deviceIdx = 0; deviceIdx < MAXNRSRC; deviceIdx++)
+  {
+    if(deviceKey[deviceIdx] < 0)
+    {
+      deviceKey[deviceIdx] = inDeviceKey;
+      break;
+    }
+    if(deviceKey[deviceIdx] == inDeviceKey)
+      break;
+  }
+
+  // Geräteschlüssel nicht gefunden und kein Platz mehr in der Liste
+  // führt zum Verwerfen des Telegramms
+  //
+  if(deviceIdx == MAXNRSRC) return(-1);
+
+  // Merker für Anwender setzen, wieviel Geräte das Objekt twittern
+  //
+  if(deviceIdx > maxDeviceIdx)
+    maxDeviceIdx = deviceIdx;
+
+    //-------------------------------------------------------------------------
+    // PduCount
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiPduCount];
+  if(msgIdx < 0)
+    pduCount[deviceIdx] = 0;
+  else
+    pduCount[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // DeviceState
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiDeviceState];
+  if(msgIdx < 0)
+    deviceState[deviceIdx] = 0;
+  else
+    deviceState[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // DeviceName
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiDeviceName];
+  if(msgIdx < 0)
+    strcpy(deviceName[deviceIdx],"empty");
+  else
+    for(int i = 0; i < DATA_OBJ_NAME_LEN; i++)
+    {
+      deviceName[deviceIdx][i] = msg[msgIdx+i];
+      if(deviceName[deviceIdx][i] == ';')
+      {
+        deviceName[deviceIdx][i] = '\0';
+        break;
+      }
+    }
+
+    //-------------------------------------------------------------------------
+    // posX
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiPosX];
+  if(msgIdx < 0)
+    posX[deviceIdx] = 0;
+  else
+    posX[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // posY
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiPosY];
+  if(msgIdx < 0)
+    posY[deviceIdx] = 0;
+  else
+    posY[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // posZ
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiPosZ];
+  if(msgIdx < 0)
+    posZ[deviceIdx] = 0;
+  else
+    posZ[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // baseState
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiBaseState];
+  if(msgIdx < 0)
+    baseState[deviceIdx] = 0;
+  else
+    baseState[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // baseMode
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiBaseMode];
+  if(msgIdx < 0)
+    baseMode[deviceIdx] = 0;
+  else
+    baseMode[deviceIdx] = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // intCount, floatCount, textCount erstmal lokal speichern.
+    // Erst mal werden alle Werte gespeichert,
+    // dann werden Zaehler uebernommen
+    //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiIntCount];
+  intCount    = locIntCount   = atoi(&msg[msgIdx]);
+
+  msgIdx = pduDataIdxField[pdiFloatCount];
+  floatCount  = locFloatCount = atoi(&msg[msgIdx]);
+
+  msgIdx = pduDataIdxField[pdiTextCount];
+  textCount   = locTextCount  = atoi(&msg[msgIdx]);
+
+    //-------------------------------------------------------------------------
+    // Werte intArray, floatArray, textArray
+    //-------------------------------------------------------------------------
+
+      //-----------------------------------------------------------------------
+      // Speichern initialisieren
+      //-----------------------------------------------------------------------
+
+  // Index fuer die Position der Wert-Strings setzen
+  idxValueStr = pduDataIdxField[pdiValueList];
+
+      //-----------------------------------------------------------------------
+      // intArray
+      //-----------------------------------------------------------------------
+  if(locIntCount != 0)
+  {
+    idxValue = 0;
+    idxBuf = 0;
+    //storeReady = false;
+
+    for(idxValueChar = idxValueStr; idxValueChar < msgLen; idxValueChar++)
+    {
+      //-----------------------------------------------------------------------
+      // Einzelne Zeichen auswerten
+      //-----------------------------------------------------------------------
+      chr = msg[idxValueChar];
+
+      if(chr != ';' && chr != ':')
+      {
+          if(idxBuf <= MAXVALCHRLEN - 2)
+          {
+            valueBuf[idxBuf] = chr;
+            idxBuf++;
+          }
+      }
+      else
+      {
+          // String abschliessen
+          valueBuf[idxBuf] = 0;
+
+          // Wert ASCII->INT konvertieren
+          intValue = atoi(valueBuf);
+
+          // Wert speichern
+          if(idxValue < MAXNRINT)
+          {
+            intArray[deviceIdx][idxValue] = intValue;
+            idxValue++;
+          }
+
+          // Das Speichern weiterer Werte initialisieren
+          idxBuf = 0;
+
+          locIntCount--;
+          if(locIntCount == 0)
+            break;
+      }
+
+    } // for
+
+    // idxValueChar zeigt jetzt auf ;
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf n�chstes Wertfeld
+
+  } // if(locIntCount > 0)
+
+      //-----------------------------------------------------------------------
+      // floatArray
+      //-----------------------------------------------------------------------
+  if(locFloatCount != 0)
+  {
+    idxValue = 0;
+    idxBuf = 0;
+    //storeReady = false;
+
+    for(idxValueChar = idxValueStr; idxValueChar < msgLen; idxValueChar++)
+    {
+      //-----------------------------------------------------------------------
+      // Zeichen auswerten
+      //-----------------------------------------------------------------------
+      chr = msg[idxValueChar];
+
+      if(chr != ';' && chr != ':')
+      {
+          if(idxBuf <= MAXVALCHRLEN - 2)
+          {
+            valueBuf[idxBuf] = chr;
+            idxBuf++;
+          }
+      }
+      else
+      {
+          // String abschliessen
+          valueBuf[idxBuf] = 0;
+
+          // Wert ASCII->FLOAT konvertieren
+          floatValue = atof(valueBuf);
+
+          // Wert speichern
+          if(idxValue < MAXNRFLOAT)
+          {
+            floatArray[deviceIdx][idxValue] = floatValue;
+            idxValue++;
+          }
+
+          // Das Speichern weitere Werte initialisieren
+          idxBuf = 0;
+
+          locFloatCount--;
+          if(locFloatCount == 0)
+            break;
+      }
+
+    } // for
+
+    // idxValueChar zeigt jetzt auf ;
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf n�chstes Wertfeld
+  }
+
+      //-----------------------------------------------------------------------
+      // textArray
+      //-----------------------------------------------------------------------
+  if(locTextCount != 0)
+  {
+    idxValue = 0;
+    idxBuf = 0;
+    //storeReady = false;
+
+    for(idxValueChar = idxValueStr; idxValueChar < msgLen; idxValueChar++)
+    {
+      //-----------------------------------------------------------------------
+      // Je nach Zeichen verzweigen
+      //-----------------------------------------------------------------------
+      chr = msg[idxValueChar];
+
+      if(chr != ';' && chr != ':')
+      {
+          if(idxValue < MAXNRTEXT && idxBuf < (TEXTVAL_LEN_MAX - 2))
+          {
+            textArray[deviceIdx][idxValue][idxBuf] = chr;
+            idxBuf++;
+          }
+      }
+      else
+      {
+          if(idxValue < MAXNRTEXT)
+          {
+            // String abschliessen
+            textArray[deviceIdx][idxValue][idxBuf] = '\0';
+            idxValue++;
+          }
+
+          // Das Speichern weitere Werte initialisieren
+          idxBuf = 0;
+
+          locTextCount--;
+          if(locTextCount == 0)
+            break;
+      }
+
+    } // for
+
+  }
+  return(0);
+}
+
+#endif
 
 // ----------------------------------------------------------------------------
 // Debug-Funktionen

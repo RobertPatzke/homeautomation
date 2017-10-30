@@ -26,6 +26,9 @@
   #include "SocManNet.h"
 #endif
 
+//#define smnFOLLOWMULTISRC
+#define MAXNRSRC    8
+
 #define MAXNRINT    4
 #define MAXNRFLOAT  4
 #define MAXNRTEXT   4
@@ -37,11 +40,25 @@
 
 #define TEXTVAL_LEN_MAX 256
 
+typedef struct _DeviceInfo
+{
+  int         deviceKey;
+  int         deviceState;
+  char        deviceName[DATA_OBJ_NAME_LEN];
+  int         posX;
+  int         posY;
+  int         posZ;
+  int         baseState;
+  int         baseMode;
+} DeviceInfo;
+
 typedef struct _ReceivedValue
 {
-  int idx;
-  unsigned int status;
-  int pduCount;
+  int           idx;
+  unsigned int  status;
+  int           pduCount;
+  DeviceInfo    deviceInfo;
+  int           deviceIdx;
 } ReceivedValue;
 
 typedef struct _IntegerValue
@@ -155,6 +172,8 @@ class Follower
   // -------------------------------------------------------------------------
   //
   public:
+#ifndef smnFOLLOWMULTISRC
+
     int         pduCount;
     int         deviceKey;
     int         deviceState;
@@ -172,6 +191,31 @@ class Follower
     int         intArray[MAXNRINT];
     double      floatArray[MAXNRFLOAT];
     char        textArray[MAXNRTEXT][TEXTVAL_LEN_MAX];
+
+#else
+
+    int         deviceKeyList[MAXNRSRC];
+    int         pduCount[MAXNRSRC];
+    int         deviceKey[MAXNRSRC];
+    int         deviceState[MAXNRSRC];
+    char        deviceName[MAXNRSRC][DATA_OBJ_NAME_LEN];
+    int         posX[MAXNRSRC];
+    int         posY[MAXNRSRC];
+    int         posZ[MAXNRSRC];
+    int         baseState[MAXNRSRC];
+    int         baseMode[MAXNRSRC];
+
+    int         intCount;
+    int         floatCount;
+    int         textCount;
+
+    int         intArray[MAXNRSRC][MAXNRINT];
+    double      floatArray[MAXNRSRC][MAXNRFLOAT];
+    char        textArray[MAXNRSRC][MAXNRTEXT][TEXTVAL_LEN_MAX];
+
+    int         maxDeviceIdx;
+
+#endif
 
   // -------------------------------------------------------------------------
   // Verarbeitung des eingegangenen Telegramms

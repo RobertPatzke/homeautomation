@@ -217,8 +217,6 @@ public:
   void begin();     // Diese Funktion muss am Anfang der Schleife aufgerufen
                     // werden.
 
-  void begin(bool resetTime);   // Für lokale Zeitmessungen
-
   void end();       // Diese Funktion muss am Ende der Schleife aufgerufen
                     // werden.
 

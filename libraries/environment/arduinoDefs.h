@@ -29,8 +29,9 @@
 // environment that is needed by Social Manufacturing Network
 //
 
-#define IPAddress   byte *
-
+#ifndef IPAddress
+  #define IPAddress   byte *
+#endif
 
 
 #endif  // _arduinoDefs_h

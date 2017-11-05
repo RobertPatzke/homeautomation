@@ -14,21 +14,22 @@ public class SocManNet
   static final  public int  pduHdObject     = 5;
   static final  public int  pduHdCount      = 7;
   
-  static final  public int  pduElDevKey     = 1;
-  static final  public int  pduElDevState   = 2;
-  static final  public int  pduElDevName    = 3;
-  static final  public int  pduElTime       = 4;
-  static final  public int  pduElPosX       = 5;
-  static final  public int  pduElPosY       = 6;
-  static final  public int  pduElPosZ       = 7;
-  static final  public int  pduElState      = 8;
-  static final  public int  pduElMode       = 9;
+  static final  public int  pduElAppKey     = 1;
+  static final  public int  pduElDevKey     = 2;
+  static final  public int  pduElDevState   = 3;
+  static final  public int  pduElDevName    = 4;
+  static final  public int  pduElTime       = 5;
+  static final  public int  pduElPosX       = 6;
+  static final  public int  pduElPosY       = 7;
+  static final  public int  pduElPosZ       = 8;
+  static final  public int  pduElState      = 9;
+  static final  public int  pduElMode       = 10;
   
-  static final  public int  pduElTwNrInt    = 10;
-  static final  public int  pduElTwNrFloat  = 11;
-  static final  public int  pduElTwNrText   = 12;
+  static final  public int  pduElTwNrInt    = 11;
+  static final  public int  pduElTwNrFloat  = 12;
+  static final  public int  pduElTwNrText   = 13;
   
-  static final  public int  pduElTwValue    = 13;
+  static final  public int  pduElTwValue    = 14;
   
   static public int        errorCode;
   static public String     errorMsg;

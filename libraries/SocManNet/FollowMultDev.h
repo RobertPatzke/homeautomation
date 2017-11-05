@@ -44,6 +44,7 @@
 
 typedef struct _DeviceInfo
 {
+  int         applicationKey;
   int         deviceKey;
   int         deviceState;
   char        *deviceName;
@@ -98,6 +99,7 @@ typedef struct _TextValueMD
 enum pduDataIdx
 {
   pdiPduCount,
+  pdiApplicationKey,
   pdiDeviceKey,
   pdiDeviceState,
   pdiDeviceName,
@@ -177,6 +179,7 @@ class FollowMultDev
 
     int         deviceKeyList[MAXNRSRC];
     int         pduCount[MAXNRSRC];
+    int         applicationKey[MAXNRSRC];
     int         deviceKey[MAXNRSRC];
     int         deviceState[MAXNRSRC];
     char        deviceName[MAXNRSRC][DATA_OBJ_NAME_LEN];
@@ -242,9 +245,7 @@ class FollowMultDev
   //
   public:
     void evtRecMsg(char * msg, unsigned int msgLen);
-    int parseMsg(char * msg, unsigned int msgLen);
     int parseMsg2(char * msg, unsigned int msgLen);
-    int storeDataMsg(char * msg, unsigned int msgLen);
     int storeDataMsg2(char * msg, unsigned int msgLen);
 
   // --------------------------------------------------------------------------

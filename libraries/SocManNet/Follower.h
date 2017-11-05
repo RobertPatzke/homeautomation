@@ -80,6 +80,7 @@ typedef struct _TextValue
 enum pduDataIdx
 {
   pdiPduCount,
+  pdiApplicationKey,
   pdiDeviceKey,
   pdiDeviceState,
   pdiDeviceName,
@@ -158,6 +159,7 @@ class Follower
   public:
 
     int         pduCount;
+    int         applicationKey;
     int         deviceKey;
     int         deviceState;
     char        deviceName[DATA_OBJ_NAME_LEN];
@@ -180,6 +182,7 @@ class Follower
   // -------------------------------------------------------------------------
   //
   unsigned int idxFieldPduCount;
+  unsigned int idxFieldApplicationKey;
   unsigned int idxFieldDeviceKey;
   unsigned int idxFieldDeviceState;
   unsigned int idxFieldDeviceName;

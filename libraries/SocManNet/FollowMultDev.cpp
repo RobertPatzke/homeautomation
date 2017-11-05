@@ -307,11 +307,13 @@ void FollowMultDev::getValue(IntegerValueMD * intVal)
     intVal->newValue = true;
   }
 
-  intVal->recDsc.deviceInfo.baseMode = baseMode[devIdx];
-  intVal->recDsc.deviceInfo.baseState = baseState[devIdx];
-  intVal->recDsc.deviceInfo.deviceKey = deviceKey[devIdx];
-  intVal->recDsc.deviceInfo.deviceName = deviceName[devIdx];
-  intVal->recDsc.deviceInfo.deviceState = deviceState[devIdx];
+  intVal->recDsc.deviceInfo.baseMode        = baseMode[devIdx];
+  intVal->recDsc.deviceInfo.baseState       = baseState[devIdx];
+  intVal->recDsc.deviceInfo.applicationKey  = applicationKey[devIdx];
+  intVal->recDsc.deviceInfo.deviceKey       = deviceKey[devIdx];
+  intVal->recDsc.deviceInfo.deviceName      = deviceName[devIdx];
+  intVal->recDsc.deviceInfo.deviceState     = deviceState[devIdx];
+
   intVal->recDsc.deviceInfo.posX = posX[devIdx];
   intVal->recDsc.deviceInfo.posY = posY[devIdx];
   intVal->recDsc.deviceInfo.posZ = posZ[devIdx];
@@ -348,11 +350,13 @@ void FollowMultDev::getValue(FloatValueMD * floatVal)
     floatVal->newValue = true;
   }
 
-  floatVal->recDsc.deviceInfo.baseMode = baseMode[devIdx];
-  floatVal->recDsc.deviceInfo.baseState = baseState[devIdx];
-  floatVal->recDsc.deviceInfo.deviceKey = deviceKey[devIdx];
-  floatVal->recDsc.deviceInfo.deviceName = deviceName[devIdx];
-  floatVal->recDsc.deviceInfo.deviceState = deviceState[devIdx];
+  floatVal->recDsc.deviceInfo.baseMode          = baseMode[devIdx];
+  floatVal->recDsc.deviceInfo.baseState         = baseState[devIdx];
+  floatVal->recDsc.deviceInfo.applicationKey    = applicationKey[devIdx];
+  floatVal->recDsc.deviceInfo.deviceKey         = deviceKey[devIdx];
+  floatVal->recDsc.deviceInfo.deviceName        = deviceName[devIdx];
+  floatVal->recDsc.deviceInfo.deviceState       = deviceState[devIdx];
+
   floatVal->recDsc.deviceInfo.posX = posX[devIdx];
   floatVal->recDsc.deviceInfo.posY = posY[devIdx];
   floatVal->recDsc.deviceInfo.posZ = posZ[devIdx];
@@ -387,11 +391,13 @@ void FollowMultDev::getValue(TextValueMD * textVal)
     textVal->newValue = true;
   }
 
-  textVal->recDsc.deviceInfo.baseMode = baseMode[devIdx];
-  textVal->recDsc.deviceInfo.baseState = baseState[devIdx];
-  textVal->recDsc.deviceInfo.deviceKey = deviceKey[devIdx];
-  textVal->recDsc.deviceInfo.deviceName = deviceName[devIdx];
-  textVal->recDsc.deviceInfo.deviceState = deviceState[devIdx];
+  textVal->recDsc.deviceInfo.baseMode       = baseMode[devIdx];
+  textVal->recDsc.deviceInfo.baseState      = baseState[devIdx];
+  textVal->recDsc.deviceInfo.applicationKey = deviceKey[devIdx];
+  textVal->recDsc.deviceInfo.deviceKey      = deviceKey[devIdx];
+  textVal->recDsc.deviceInfo.deviceName     = deviceName[devIdx];
+  textVal->recDsc.deviceInfo.deviceState    = deviceState[devIdx];
+
   textVal->recDsc.deviceInfo.posX = posX[devIdx];
   textVal->recDsc.deviceInfo.posY = posY[devIdx];
   textVal->recDsc.deviceInfo.posZ = posZ[devIdx];
@@ -459,197 +465,6 @@ void FollowMultDev::evtRecMsg(char * msg, unsigned int msgLen)
   // Auswertung des Telegramms freigeben
   //---------------------------------------------------------------------------
   busyMsgAnalysis = false;
-}
-
-int FollowMultDev::parseMsg(char * msg, unsigned int msgLen)
-{
-  unsigned int cntField;
-  unsigned int idx;
-  PARSER_MSG_STATE parserState;
-  bool parserReady;
-  bool parserError;
-
-  recParseCounter++;
-
-  //---------------------------------------------------------------------------
-  // Parser initialisieren
-  //---------------------------------------------------------------------------
-  // Ergebnisdaten zuruecksetzen
-  idxFieldPduCount        = 0;
-  idxFieldDeviceKey       = 0;
-  idxFieldDeviceState     = 0;
-  idxFieldDeviceName      = 0;
-  idxFieldDeviceTime      = 0;
-  idxFieldDevicePosX      = 0;
-  idxFieldDevicePosY      = 0;
-  idxFieldDevicePosZ      = 0;
-  idxFieldDeviceAppState  = 0;
-  idxFieldDeviceAppMode   = 0;
-
-  idxFieldIntCount 		    = 0;
-  idxFieldFloatCount 	    = 0;
-  idxFieldTextCount       = 0;
-  idxFieldValue           = 0;
-
-  // Zustandsmaschine zuruecksetzen
-  cntField    = 0;
-  parserState = p_msg_st_FieldPduCount;
-  parserReady = false;
-  parserError = false;
-
-  //---------------------------------------------------------------------------
-  // Telegramm parsen
-  //---------------------------------------------------------------------------
-  for(idx = 0; idx < msgLen; idx++)
-  {
-    //-------------------------------------------------------------------------
-    // Je nach Zustand verzweigen
-    //-------------------------------------------------------------------------
-    switch(parserState)
-    {
-      // ------------------------------------------------------------------- //
-      case p_msg_st_waitFieldSeparator:
-      // ------------------------------------------------------------------- //
-        if(msg[idx] == ';')
-        {
-          cntField++;
-
-
-          if(cntField == 10)
-          {
-            // Naechsten Zustand setzen
-            parserState = p_msg_st_FieldNumInt;
-
-            break;
-          }
-          else if(cntField == 11)
-          {
-            // Naechsten Zustand setzen
-            parserState = p_msg_st_FieldNumFloat;
-
-            break;
-          }
-          else if(cntField == 12)
-          {
-            // Naechsten Zustand setzen
-            parserState = p_msg_st_FieldNumText;
-
-            break;
-          }
-          else if(cntField == 13)
-          {
-            // Naechsten Zustand setzen
-            parserState = p_msg_st_FieldValue;
-
-            break;
-          }
-
-          // Sonst im Zustand bleiben
-        }
-
-        break;
-
-      // ------------------------------------------------------------------- //
-      case p_msg_st_FieldPduCount:
-      // ------------------------------------------------------------------- //
-        idxFieldPduCount = idx;
-
-        // Naechsten Zustand setzen
-        parserState = p_msg_st_waitFieldSeparator;
-
-        break;
-
-      // ------------------------------------------------------------------- //
-      case p_msg_st_FieldNumInt:
-      // ------------------------------------------------------------------- //
-        idxFieldIntCount = idx;
-
-        // Naechsten Zustand setzen
-        parserState = p_msg_st_waitFieldSeparator;
-
-        break;
-
-      // ------------------------------------------------------------------- //
-      case p_msg_st_FieldNumFloat:
-      // ------------------------------------------------------------------- //
-        idxFieldFloatCount = idx;
-
-        // Naechsten Zustand setzen
-        parserState = p_msg_st_waitFieldSeparator;
-
-        break;
-
-      // ------------------------------------------------------------------- //
-      case p_msg_st_FieldNumText:
-      // ------------------------------------------------------------------- //
-        idxFieldTextCount = idx;
-
-        // Naechsten Zustand setzen
-        parserState = p_msg_st_waitFieldSeparator;
-
-        break;
-
-      // ------------------------------------------------------------------- //
-      case p_msg_st_FieldValue:
-      // ------------------------------------------------------------------- //
-        idxFieldValue = idx;
-
-        // Merker 'Parser ist fertig' setzen
-        parserReady = true;
-
-        // Naechsten Zustand setzen
-        parserState = p_msg_st_Ready;
-
-        break;
-
-      // ------------------------------------------------------------------- //
-      case p_msg_st_Ready:
-      // ------------------------------------------------------------------- //
-        // Im  Zustand bleiben
-
-      break;
-
-      // ------------------------------------------------------------------- //
-      default:
-      // ------------------------------------------------------------------- //
-        parserError = true;
-
-        break;
-    }
-
-    //-------------------------------------------------------------------------
-    // Eventuell das Parsen beenden
-    //-------------------------------------------------------------------------
-    if(parserReady == true)
-    {
-      break;
-    }
-
-    if(parserError == true)
-    {
-      break;
-    }
-  }
-
-  //---------------------------------------------------------------------------
-  // Ergebnis definieren
-  //---------------------------------------------------------------------------
-  if(parserReady != true)
-  {
-    return(-1);
-  }
-
-  /*
-  writeDebug("->");
-  writeDebug(&msg[idxFieldPduCount]);
-  writeDebug(&msg[idxFieldIntCount]);
-  writeDebug(&msg[idxFieldFloatCount]);
-  writeDebug(&msg[idxFieldTextCount]);
-  writeDebug(&msg[idxFieldValue]);
-  writeDebug("<-");
-  */
-
-  return(0);
 }
 
 int FollowMultDev::parseMsg2(char * msg, unsigned int msgLen)
@@ -766,8 +581,17 @@ int FollowMultDev::storeDataMsg2(char * msg, unsigned int msgLen)
     pduCount[deviceIdx] = atoi(&msg[msgIdx]);
 
     //-------------------------------------------------------------------------
-    // DeviceState
+    // ApplicationKey
     //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiApplicationKey];
+  if(msgIdx < 0)
+    applicationKey[deviceIdx] = 0;
+  else
+    applicationKey[deviceIdx] = atoi(&msg[msgIdx]);
+
+  //-------------------------------------------------------------------------
+  // DeviceState
+  //-------------------------------------------------------------------------
   msgIdx = pduDataIdxField[pdiDeviceState];
   if(msgIdx < 0)
     deviceState[deviceIdx] = 0;

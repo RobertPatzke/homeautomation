@@ -1,6 +1,6 @@
-package hsh.mplab.libnet;
+package hsh.mplab.socmannet;
 
-import hsh.mplab.libnet.Follower.PortFollow.FollowElement;
+import hsh.mplab.socmannet.Follower.PortFollow.FollowElement;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -113,6 +113,7 @@ public class Follower
   public int  floatCount;
   public int  textCount;
 
+  public int        applicationKey;
   public int        deviceKey;
   public int        deviceState;
   public String     deviceName;
@@ -136,9 +137,10 @@ public class Follower
     floatCount  = Integer.parseInt(elements[SocManNet.pduElTwNrFloat]);
     textCount   = Integer.parseInt(elements[SocManNet.pduElTwNrText]);
 
-    deviceKey   = Integer.parseInt(elements[SocManNet.pduElDevKey]);
-    deviceState = Integer.parseInt(elements[SocManNet.pduElDevState]);
-    deviceName  = elements[SocManNet.pduElDevName];
+    applicationKey  = Integer.parseInt(elements[SocManNet.pduElAppKey]);
+    deviceKey       = Integer.parseInt(elements[SocManNet.pduElDevKey]);
+    deviceState     = Integer.parseInt(elements[SocManNet.pduElDevState]);
+    deviceName      = elements[SocManNet.pduElDevName];
 
     posX        = Integer.parseInt(elements[SocManNet.pduElPosX]);
     posY        = Integer.parseInt(elements[SocManNet.pduElPosY]);

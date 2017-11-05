@@ -332,6 +332,18 @@ int Twitter::createPDU()
         pduMsg[pduIdx++] = *srcPtr++;
       pduMsg[pduIdx++] = ';';
 
+      crPDUStatus = cpsApplicationKey;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsApplicationKey:
+    // ------------------------------------------------------------------- //
+      srcPtr = pduApplicationKeyStr;
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
       crPDUStatus = cpsDeviceKey;
       break;
 
@@ -670,6 +682,7 @@ void Twitter::createMsgHeader()
          );
 
   itoa(deviceKey, pduDeviceKeyStr, 10);  // wird bei createDeviceHeader verwendet
+  itoa(applicationKey, pduApplicationKeyStr, 10);
 
   //writeDebug(msgHeader);
 
@@ -684,6 +697,8 @@ void Twitter::createDeviceHeader(void)
   itoa(deviceState, pduDeviceStateStr, 10);
 
   strcpy(pduHeader,pduCounterStr);
+  strcat(pduHeader,";");
+  strcat(pduHeader,pduApplicationKeyStr);
   strcat(pduHeader,";");
   strcat(pduHeader,pduDeviceKeyStr);
   strcat(pduHeader,";");

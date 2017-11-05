@@ -46,6 +46,7 @@ public class Twitter
   public int        broadcastPort;
   public int        defaultPort = 4100;
   public String     defaultObject = "AMES_MinControl";
+  public int        applicationKey = 0;
   public int        deviceKey = 1234;
   public int        deviceState = 33;
   public String     deviceName = "SMminControl";
@@ -435,7 +436,7 @@ public class Twitter
   String createDeviceHeader()
   {
     pduCounter++;
-    String headerStr = pduCounter + ";" + deviceKey + ";" + deviceState + ";" + deviceName + ";";
+    String headerStr = pduCounter + ";" + applicationKey + ";" + deviceKey + ";" + deviceState + ";" + deviceName + ";";
     return(headerStr);
   }
   

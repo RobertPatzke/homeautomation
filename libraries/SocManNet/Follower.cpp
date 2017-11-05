@@ -57,6 +57,7 @@ Follower::Follower()
 	textCount 				= 0;
 
   idxFieldPduCount          = 0;
+  idxFieldApplicationKey    = 0;
   idxFieldDeviceKey         = 0;
   idxFieldDeviceState       = 0;
   idxFieldDeviceName        = 0;
@@ -74,6 +75,7 @@ Follower::Follower()
 
   baseMode                  = 0;
   baseState                 = 0;
+  applicationKey            = 0;
   deviceKey                 = 0;
   deviceState               = 0;
   posX                      = 0;
@@ -428,6 +430,7 @@ int Follower::parseMsg(char * msg, unsigned int msgLen)
   //---------------------------------------------------------------------------
   // Ergebnisdaten zuruecksetzen
   idxFieldPduCount        = 0;
+  idxFieldApplicationKey  = 0;
   idxFieldDeviceKey       = 0;
   idxFieldDeviceState     = 0;
   idxFieldDeviceName      = 0;
@@ -438,8 +441,8 @@ int Follower::parseMsg(char * msg, unsigned int msgLen)
   idxFieldDeviceAppState  = 0;
   idxFieldDeviceAppMode   = 0;
 
-  idxFieldIntCount 		    = 0;
-  idxFieldFloatCount 	    = 0;
+  idxFieldIntCount 		  = 0;
+  idxFieldFloatCount 	  = 0;
   idxFieldTextCount       = 0;
   idxFieldValue           = 0;
 
@@ -1146,8 +1149,17 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
     pduCount = atoi(&msg[msgIdx]);
 
     //-------------------------------------------------------------------------
-    // DeviceKey
+    // ApplicationKey
     //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiApplicationKey];
+  if(msgIdx < 0)
+    applicationKey = 0;
+  else
+    applicationKey = atoi(&msg[msgIdx]);
+
+  //-------------------------------------------------------------------------
+  // DeviceKey
+  //-------------------------------------------------------------------------
   msgIdx = pduDataIdxField[pdiDeviceKey];
   if(msgIdx < 0)
     deviceKey = 0;

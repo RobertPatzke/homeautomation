@@ -34,6 +34,29 @@ public class MainActivity extends AppCompatActivity
   // *
 
   // -------------------------------------------------------------------------
+  // Killing the whole Activity when Back-Key (Enter-Key) is pressed
+  // -------------------------------------------------------------------------
+  // The problem is, that if you close the APP by pressing Back-Key and
+  // start it again, You have 2 twitters running.
+  // And many more, if you repeat that scenary.
+  // Ok, the correct solution would be to implement software for all Activity
+  // states (onStart, onResume, etc.) and close sockets, cancel timers, etc.
+  // whenever it is necessary.
+  // But we thought, that this is to much effort and makes the handling of
+  // problems bigger than the application itself.
+  // Therefore we kill the whole Activity here with closing all contained
+  // resources. A new start gives a new twitter and only one instance of our
+  // application is running.
+  //
+  @Override
+  public void onBackPressed()
+  {
+    super.onBackPressed();
+    android.os.Process.killProcess(android.os.Process.myPid());
+  }
+
+
+  // -------------------------------------------------------------------------
   // Initialisation to use graphical elements in code
   // -------------------------------------------------------------------------
   //

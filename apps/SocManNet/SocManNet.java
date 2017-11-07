@@ -9,6 +9,17 @@ import java.util.List;
 
 public class SocManNet
 {
+  public enum DeviceState
+  {
+    Init,
+    Config,
+    Run,
+    Prog,
+    Maintaining,
+    NeedMaint,
+    Defect
+  }
+
   static final  public int  pduHdMac        = 1;
   static final  public int  pduHdIp         = 2;
   static final  public int  pduHdObject     = 5;

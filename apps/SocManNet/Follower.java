@@ -22,7 +22,7 @@ public class Follower
   // Globale Variablen für die Anwendung
   //
   public int        defaultPort = 4100;
-  public String     defaultObject = "AMES_StatusDsp";
+  public String     defaultObject = "TestTwitter";
   public String     errorMsg;
   public String     resultMsg;
   public int        errorCode;

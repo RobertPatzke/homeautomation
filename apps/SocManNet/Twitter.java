@@ -26,6 +26,7 @@ public class Twitter
   
   // Globale Variablen für die Anwendung
   //
+  public int        pduCounterLimit = 100;
   public int        errorCode;
   public String     errorMsg;
   public String     resultMsg;
@@ -45,11 +46,11 @@ public class Twitter
   
   public int        broadcastPort;
   public int        defaultPort = 4100;
-  public String     defaultObject = "AMES_MinControl";
+  public String     defaultObject = "TestTwitter";
   public int        applicationKey = 0;
   public int        deviceKey = 1234;
   public int        deviceState = 33;
-  public String     deviceName = "SMminControl";
+  public String     deviceName = "SP001";
   
   // Lokale Variablen für die interne Verarbeitung
   //
@@ -436,6 +437,9 @@ public class Twitter
   String createDeviceHeader()
   {
     pduCounter++;
+    if(pduCounter >= pduCounterLimit)
+      pduCounter = 1;
+
     String headerStr = pduCounter + ";" + applicationKey + ";" + deviceKey + ";" + deviceState + ";" + deviceName + ";";
     return(headerStr);
   }

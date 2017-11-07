@@ -301,7 +301,7 @@ public class MainActivity extends AppCompatActivity
         // application e.g. regulation circuit with several inkluded devices
         // (0 = not used)
 
-        twitter.deviceKey = 10;
+        twitter.deviceKey = SocManNet.getSmallDeviceId();
         // the device key ist the individualisation of the device and could be
         // something like the serial number
 

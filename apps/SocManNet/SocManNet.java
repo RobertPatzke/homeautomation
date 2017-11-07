@@ -150,7 +150,21 @@ public class SocManNet
     }
 
   }
-  
+
+  // -------------------------------------------------------------------------
+  // Anwenderfunktionen
+  // -------------------------------------------------------------------------
+
+  static public int getTinyDeviceId()
+  {
+    return(macBytes[0]);
+  }
+
+  static public int getSmallDeviceId()
+  {
+    return(macBytes[1] << 8 + macBytes[0]);
+  }
+
   // -------------------------------------------------------------------------
   // region Einfache Hilfsfunktionen
   // -------------------------------------------------------------------------

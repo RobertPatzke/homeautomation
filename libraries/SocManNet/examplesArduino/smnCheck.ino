@@ -53,7 +53,7 @@ void setup()
 
   SN("Check of network connection");
 
-  smnError = socManNet.init(true);
+  smnError = socManNet.init(false);
   // The broadcast environment will be established.
   // Parameters are used as defined in socManNetUser.h
   // Argument <false> means, that DHCP is NOT used and the IP-Address

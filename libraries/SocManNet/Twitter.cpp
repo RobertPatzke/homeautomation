@@ -23,6 +23,8 @@ Twitter::Twitter()
 	debugOn 		= false;
 	delayCounter 	= 0;
 	deviceKey 		= 0;
+	applicationKey  = 0;
+	keySetByApp     = false;
 	deviceState 	= 0;
 	enabled 		= false;
 	errorCode 		= 0;
@@ -681,6 +683,9 @@ void Twitter::createMsgHeader()
           0                   // Kommunikationsvariable, Index
          );
 
+  if(keySetByApp == false)
+    deviceKey = ((ifInfo.macAddress[4] << 8) + ifInfo.macAddress[5]) & 0xFFFF;
+
   itoa(deviceKey, pduDeviceKeyStr, 10);  // wird bei createDeviceHeader verwendet
   itoa(applicationKey, pduApplicationKeyStr, 10);
 
@@ -736,6 +741,17 @@ void Twitter::setDeviceName(char * name)
 void Twitter::setDeviceKey(int key)
 {
 	deviceKey = key;
+	keySetByApp = true;
+}
+
+void Twitter::setApplicationKey(int key)
+{
+  applicationKey = key;
+}
+
+void Twitter::setDeviceKey()
+{
+    keySetByApp = false;
 }
 
 void Twitter::setDeviceState(int state)

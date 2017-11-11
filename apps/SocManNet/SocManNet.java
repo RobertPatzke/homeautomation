@@ -157,12 +157,15 @@ public class SocManNet
 
   static public int getTinyDeviceId()
   {
-    return(macBytes[0]);
+    int val = macBytes[0] & 0xFF;
+    return(val);
   }
 
   static public int getSmallDeviceId()
   {
-    return(macBytes[1] << 8 + macBytes[0]);
+    int high  = (macBytes[1] & 0xFF) << 8;
+    int low   = macBytes[0] & 0xFF;
+    return(high + low);
   }
 
   // -------------------------------------------------------------------------

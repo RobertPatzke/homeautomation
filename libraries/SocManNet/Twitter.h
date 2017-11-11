@@ -109,6 +109,8 @@ class Twitter
     //
     void      setDeviceName(char * name);
     void      setDeviceKey(int key);
+    void      setDeviceKey();
+    void      setApplicationKey(int key);
     void      setDeviceState(int state);
 
     // Setzen von Werten
@@ -186,6 +188,7 @@ class Twitter
     int       delayCounter;
     int       speedCounter;
 
+    bool      keySetByApp;
     int       applicationKey;
     int       deviceKey;
     int       deviceState;

@@ -57,12 +57,12 @@ SmnIfStatus   smnStatus;
 // not occur.
 //
 
-bool waitForConnection()
-{
+bool checkConnection()          // This function will be called in a loop
+{                               // at Setup(). So it is cyclic repeated.
   OpHourMeter   timeMeasure;
   SmnIfInfo     smnInfo;
 
-  localLoopCheck.begin(true);       // true: reset time measurement
+  localLoopCheck.begin();
   // -------------------------------------------------------------------------
 
   // Whenever status changes, we will display ist
@@ -95,6 +95,20 @@ bool waitForConnection()
 
 void initTwitter()
 {
+  // There are some parameters, which have to be set befor the basic
+  // initialisation of twitter is done. Because these values are used there.
+  //
+  testTwitter.setDeviceKey();   // The device key is used by FollowMultDev
+                                // to distinguish different twitter with
+                                // the same object name
+  // Calling setDeviceKey without parameter (= device key) or omitting the call
+  // creates a device key from the lower 2 bytes of MAC address.
+
+  testTwitter.setApplicationKey(0); // The application key defines a relation
+                                    // (or connection) between different devices
+  // with respect to their tasks in a common application.
+  // The value 0 stands for "do not care".
+
   testTwitter.init
   (
     &socManNet,                 // Twitter needs a reference to the network
@@ -108,7 +122,6 @@ void initTwitter()
 
   // There are more parameters with Twitter, which will be send
   //
-  testTwitter.setDeviceKey(4711);   // Any number used as key
 
   testTwitter.setDeviceName((char *) "MyDeviceName");
   // Tell the world, who you are
@@ -176,10 +189,17 @@ void setup()
   // network should be established. If using DHCP, it is mandatory to wait.
   // Twitter needs the IP-Address of the network as part of the message
   //
-  lokalLoopBusy = true;         // We'll take the chance to demonstrate
-                                // another use of LoopCheck in <waitForConnection>
-  while(lokalLoopBusy == true)
-    lokalLoopBusy = waitForConnection();
+  lokalLoopBusy = true;         // For this example we take a loop,
+                                // which (endlessly) waits until the connection
+  while(lokalLoopBusy == true)  // to the network is established.
+  {
+    lokalLoopBusy = checkConnection();    // Check the connection
+
+    delay(1);       // normally, this delay would not be necessary,
+                    // but e.g. ESP8266 activates a watchdog timer
+    // which has to be served at least every second.
+    // Calling delay retriggers the watchdog timer.
+  }
 
   initTwitter();    // Initialisation of your Twitter (see above)
                     // Twitter could be started now, but we will do that
@@ -234,13 +254,15 @@ void loop()
   if(loopCheck.timerMicro(2, 10, 0))
     socManNet.run();        // giving the CPU to socManNet for its tasks
   //
-  // This should happen every 10 microseconds. But we expected,
-  // that the loop cycle time is longer than 10 microseconds.
-  // So run() is called with every loop, if no other timer finishes before.
+  // This may happen every 10 microseconds. But we should expect,
+  // that the loop cycle time (Arduino background loop() calling distance)
+  // is longer than 10 microseconds.
+  // So run() will be called with every loop(), if no other LoopCheck timer
+  // finishes before in loop().
   // Thus, such a usage of timerMicro can only work, if it is the last
   // timer in loop, as timers behind this too short timer will not
   // come to be finished, because we have allowed only one timer finishing
-  // in the same loop cycle (to avoid CPU load peeks).
+  // in the same loop cycle (to avoid CPU load peaks).
 
   // -------------------------------------------------------------------------
   loopCheck.end();          // always leave the loop with this function

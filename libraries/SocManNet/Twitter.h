@@ -41,6 +41,7 @@ typedef enum _CrPDUStatus
 {
   cpsHeader,
   cpsCounter,
+  cpsApplicationKey,
   cpsDeviceKey,
   cpsDeviceState,
   cpsDeviceName,
@@ -108,6 +109,8 @@ class Twitter
     //
     void      setDeviceName(char * name);
     void      setDeviceKey(int key);
+    void      setDeviceKey();
+    void      setApplicationKey(int key);
     void      setDeviceState(int state);
 
     // Setzen von Werten
@@ -176,6 +179,7 @@ class Twitter
     char      msgHeader[MSG_HEADER_LEN];
     char      pduHeader[DEV_NAME_LEN + 16 + 16 + 16 + 8];
     char      pduCounterStr[16];
+    char      pduApplicationKeyStr[16];
     char      pduDeviceKeyStr[16];
     char      pduDeviceStateStr[16];
     char      pduTime[PDU_TIME_LEN];
@@ -184,6 +188,8 @@ class Twitter
     int       delayCounter;
     int       speedCounter;
 
+    bool      keySetByApp;
+    int       applicationKey;
     int       deviceKey;
     int       deviceState;
     char      deviceName[DEV_NAME_LEN];

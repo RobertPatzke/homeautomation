@@ -12,9 +12,12 @@
 
 #ifdef  smnDEFBYBUILD
 // Alternative Festlegungen durch Settings in der Build-Umgebung der IDE
+// Das erspart die Verwaltung mehrerer/unterschiedlicher environment.h Dateien
+// in den Projekten
 //
   #ifdef smnUBUNTU_ECLIPSE
   // Meine Entwicklungs- und Testumgebung auf dem Notebook unter UBUNTU
+  // für Sketche, die auf dem PC laufen (u.a. zum Debuggen)
 
     #define smnSimLinux
     #define smnNotebook
@@ -25,11 +28,35 @@
 
   #ifdef smnWIN32_VS
   // Meine Entwicklungs- und Testumgebung auf dem Notebook unter Windows
+  // für Sketche, die auf dem PC laufen (u.a. zum Debuggen)
 
     #define smnSimWindows
     #define smnNotebook
     #define smnWIN32
     #define smnDebugWindowsConsole
+
+  #endif
+
+  #ifdef smnSLOELIN
+  // Mit Sloeber auf Ubuntu/Linux für Entwicklungen zum ESP32
+  //
+
+    #define smnDebugArduino
+    #define smnSloeber
+    #define smnESP32_DEV
+    #define smnESP32
+
+  #endif
+
+  #ifdef smnSLOEDUE
+  // Mit Sloeber auf Ubuntu/Linux für Entwicklungen zum Arduino Due
+  //
+
+    #define smnDebugArduino
+    #define smnSloeber
+    #define smnArduinoDUE
+    #define smnArduinoShieldEth
+    #define smnSAM3X
 
   #endif
 
@@ -61,8 +88,8 @@
 // ---------------------------------------------------------------------------
 //
 //#define smnNotebook
-#define smnESP32_DEV
-//#define smnNodeMCU10
+//#define smnESP32_DEV
+#define smnNodeMCU10
 //#define smnArduinoDUE
 //#define smnArduinoShieldEth
 //#define smnArduinoShieldWiFi
@@ -71,8 +98,8 @@
 // ---------------------------------------------------------------------------
 //
 //#define smnLINUX
-#define smnESP32
-//#define smnESP8266
+//#define smnESP32
+#define smnESP8266
 //#define smnSAM3X
 
 #endif  // smnDEFBYBUILD

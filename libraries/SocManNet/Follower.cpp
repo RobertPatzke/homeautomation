@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 // Statische Variablen, Initialisierungen
 // ----------------------------------------------------------------------------
-char strDbg[100];
+//char strDbg[100];
 char * Follower::defaultObject = (char *) "TestTwitter";
 
 // ----------------------------------------------------------------------------
@@ -57,6 +57,7 @@ Follower::Follower()
 	textCount 				= 0;
 
   idxFieldPduCount          = 0;
+  idxFieldApplicationKey    = 0;
   idxFieldDeviceKey         = 0;
   idxFieldDeviceState       = 0;
   idxFieldDeviceName        = 0;
@@ -74,11 +75,13 @@ Follower::Follower()
 
   baseMode                  = 0;
   baseState                 = 0;
+  applicationKey            = 0;
   deviceKey                 = 0;
   deviceState               = 0;
   posX                      = 0;
   posY                      = 0;
   posZ                      = 0;
+
 }
 
 Follower::Follower(SocManNet * inNetHnd)
@@ -94,7 +97,7 @@ Follower::Follower(SocManNet * inNetHnd, char * commObject)
 void Follower::init(SocManNet * inNetHnd, char * commObject)
 {
   //---------------------------------------------------------------------------
-  // Globale Variablen f�r die Anwendung initialisieren
+  // Globale Variablen für die Anwendung initialisieren
   //---------------------------------------------------------------------------
   enabled = false;
 
@@ -140,6 +143,7 @@ void Follower::init(SocManNet * inNetHnd, char * commObject)
   // Die Verbindung mit der Kommunikationsschnittstelle erstellen
   //---------------------------------------------------------------------------
   inNetHnd->attachEvtRecMsg(commObject, this, evtRecMsgDistributor);
+
 }
 
 // ----------------------------------------------------------------------------
@@ -426,6 +430,7 @@ int Follower::parseMsg(char * msg, unsigned int msgLen)
   //---------------------------------------------------------------------------
   // Ergebnisdaten zuruecksetzen
   idxFieldPduCount        = 0;
+  idxFieldApplicationKey  = 0;
   idxFieldDeviceKey       = 0;
   idxFieldDeviceState     = 0;
   idxFieldDeviceName      = 0;
@@ -436,8 +441,8 @@ int Follower::parseMsg(char * msg, unsigned int msgLen)
   idxFieldDeviceAppState  = 0;
   idxFieldDeviceAppMode   = 0;
 
-  idxFieldIntCount 		    = 0;
-  idxFieldFloatCount 	    = 0;
+  idxFieldIntCount 		  = 0;
+  idxFieldFloatCount 	  = 0;
   idxFieldTextCount       = 0;
   idxFieldValue           = 0;
 
@@ -618,7 +623,7 @@ int Follower::parseMsg2(char * msg, unsigned int msgLen)
   cntField    = 0;
 
   pduDataIdxField[pdiPduCount] = 0; // Der Msg-Index des PDU-Counter ist 0
-                                    // Das Telegramm f�ngt hier beim PDU-Counter an
+                                    // Das Telegramm fängt hier beim PDU-Counter an
 
   //---------------------------------------------------------------------------
   // Telegramm parsen
@@ -628,10 +633,10 @@ int Follower::parseMsg2(char * msg, unsigned int msgLen)
     if(msg[idx] == ';')
     {
       // Das Datenfeld ist beendet
-      // und der Feldz�hler wird auf das n�chste Feld gesetzt
+      // und der Feldzähler wird auf das nächste Feld gesetzt
       cntField++;
 
-      // Falls Felder leer sind, m�ssen die Merker auf -1 gesetzt werden
+      // Falls Felder leer sind, müssen die Merker auf -1 gesetzt werden
       if(msg[idx+1] == ';')
         pduDataIdxField[cntField] = -1;
       else
@@ -669,7 +674,7 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
   //---------------------------------------------------------------------------
   // Parser Ergebnis ueberpruefen
   //---------------------------------------------------------------------------
-  if(idxFieldPduCount < 0 || idxFieldPduCount >= msgLen)
+  if(idxFieldPduCount >= msgLen)
   {
     return(-1);
   }
@@ -1110,6 +1115,7 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
   return(0);
 }
 
+
 int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
 {
   int   msgIdx;
@@ -1143,8 +1149,17 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
     pduCount = atoi(&msg[msgIdx]);
 
     //-------------------------------------------------------------------------
-    // DeviceKey
+    // ApplicationKey
     //-------------------------------------------------------------------------
+  msgIdx = pduDataIdxField[pdiApplicationKey];
+  if(msgIdx < 0)
+    applicationKey = 0;
+  else
+    applicationKey = atoi(&msg[msgIdx]);
+
+  //-------------------------------------------------------------------------
+  // DeviceKey
+  //-------------------------------------------------------------------------
   msgIdx = pduDataIdxField[pdiDeviceKey];
   if(msgIdx < 0)
     deviceKey = 0;

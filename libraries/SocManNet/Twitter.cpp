@@ -23,6 +23,8 @@ Twitter::Twitter()
 	debugOn 		= false;
 	delayCounter 	= 0;
 	deviceKey 		= 0;
+	applicationKey  = 0;
+	keySetByApp     = false;
 	deviceState 	= 0;
 	enabled 		= false;
 	errorCode 		= 0;
@@ -327,6 +329,18 @@ int Twitter::createPDU()
     // ------------------------------------------------------------------- //
       pduCounter++;
       srcPtr = itoa(pduCounter,tmpStr,10);
+
+      while(*srcPtr != '\0')
+        pduMsg[pduIdx++] = *srcPtr++;
+      pduMsg[pduIdx++] = ';';
+
+      crPDUStatus = cpsApplicationKey;
+      break;
+
+    // ------------------------------------------------------------------- //
+    case cpsApplicationKey:
+    // ------------------------------------------------------------------- //
+      srcPtr = pduApplicationKeyStr;
 
       while(*srcPtr != '\0')
         pduMsg[pduIdx++] = *srcPtr++;
@@ -669,7 +683,11 @@ void Twitter::createMsgHeader()
           0                   // Kommunikationsvariable, Index
          );
 
+  if(keySetByApp == false)
+    deviceKey = ((ifInfo.macAddress[4] << 8) + ifInfo.macAddress[5]) & 0xFFFF;
+
   itoa(deviceKey, pduDeviceKeyStr, 10);  // wird bei createDeviceHeader verwendet
+  itoa(applicationKey, pduApplicationKeyStr, 10);
 
   //writeDebug(msgHeader);
 
@@ -684,6 +702,8 @@ void Twitter::createDeviceHeader(void)
   itoa(deviceState, pduDeviceStateStr, 10);
 
   strcpy(pduHeader,pduCounterStr);
+  strcat(pduHeader,";");
+  strcat(pduHeader,pduApplicationKeyStr);
   strcat(pduHeader,";");
   strcat(pduHeader,pduDeviceKeyStr);
   strcat(pduHeader,";");
@@ -721,6 +741,17 @@ void Twitter::setDeviceName(char * name)
 void Twitter::setDeviceKey(int key)
 {
 	deviceKey = key;
+	keySetByApp = true;
+}
+
+void Twitter::setApplicationKey(int key)
+{
+  applicationKey = key;
+}
+
+void Twitter::setDeviceKey()
+{
+    keySetByApp = false;
 }
 
 void Twitter::setDeviceState(int state)

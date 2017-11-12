@@ -1,11 +1,14 @@
-/*
-  Follower.h
-  Lauschen  Twitter-Telegramme f�r Arduino Due
-  I.Farber, 07.04.2015
-*/
+//-----------------------------------------------------------------------------
+// Thema:   Social Manufacturing Network / Follower for multiple devices
+// Datei:   FollowMultDev.h
+// Editor:  Igor Farber, Robert Patzke
+// URI/URL: www.mfp-portal.de
+//-----------------------------------------------------------------------------
+// Lizenz:  CC-BY-SA  (siehe Wikipedia: Creative Commons)
+//
 
-#ifndef Follower_h
-#define Follower_h
+#ifndef FollowMultDev_h
+#define FollowMultDev_h
 
 #ifndef _environment_h
   #include "environment.h"
@@ -26,6 +29,8 @@
   #include "SocManNet.h"
 #endif
 
+#define MAXNRSRC    8
+
 #define MAXNRINT    4
 #define MAXNRFLOAT  4
 #define MAXNRTEXT   4
@@ -37,37 +42,51 @@
 
 #define TEXTVAL_LEN_MAX 256
 
-typedef struct _ReceivedValue
+typedef struct _DeviceInfo
+{
+  int         applicationKey;
+  int         deviceKey;
+  int         deviceState;
+  char        *deviceName;
+  int         posX;
+  int         posY;
+  int         posZ;
+  int         baseState;
+  int         baseMode;
+} DeviceInfo;
+
+typedef struct _ReceivedValueM
 {
   int           idx;
   unsigned int  status;
   int           pduCount;
+  DeviceInfo    deviceInfo;
   int           deviceIdx;
-} ReceivedValue;
+} ReceivedValueM;
 
-typedef struct _IntegerValue
+typedef struct _IntegerValueMD
 {
-  int           value;
-  ReceivedValue recDsc;
-  bool          newValue;
-  bool          newPdu;
-} IntegerValue;
+  int               value;
+  ReceivedValueM    recDsc;
+  bool              newValue;
+  bool              newPdu;
+} IntegerValueMD;
 
-typedef struct _FloatValue
+typedef struct _FloatValueMD
 {
-  double        value;
-  ReceivedValue recDsc;
-  bool          newValue;
-  bool          newPdu;
-} FloatValue;
+  double            value;
+  ReceivedValueM    recDsc;
+  bool              newValue;
+  bool              newPdu;
+} FloatValueMD;
 
-typedef struct _TextValue
+typedef struct _TextValueMD
 {
-  char          value[TEXTVAL_LEN_MAX];
-  ReceivedValue recDsc;
-  bool          newValue;
-  bool          newPdu;
-} TextValue;
+  char              value[TEXTVAL_LEN_MAX];
+  ReceivedValueM    recDsc;
+  bool              newValue;
+  bool              newPdu;
+} TextValueMD;
 
 #define STATUSVAL_BM_UNBORN  0x00000000
 #define STATUSVAL_BM_NEWVAL  0x00000001 // Es liegt ein neuer Wert vor
@@ -97,7 +116,7 @@ enum pduDataIdx
   pdiCount
 };
 
-class Follower
+class FollowMultDev
 {
   // --------------------------------------------------------------------------
   // Interne Festlegungen
@@ -121,24 +140,24 @@ class Follower
   //
   public:
     // Konstruktoren
-    Follower();
-    Follower(SocManNet * inNetHnd);
-    Follower(SocManNet * inNetHnd, char * commObject);
+    FollowMultDev();
+    FollowMultDev(SocManNet * inNetHnd);
+    FollowMultDev(SocManNet * inNetHnd, char * commObject);
 
     void init(SocManNet * inNetHnd, char * commObject);
 
-    bool getIntStatus(ReceivedValue * intVal);
-    bool getFloatStatus(ReceivedValue * floatVal);
-    bool getTextStatus(ReceivedValue * textVal);
+    bool getIntStatus(ReceivedValueM * intVal);
+    bool getFloatStatus(ReceivedValueM * floatVal);
+    bool getTextStatus(ReceivedValueM * textVal);
 
-    void getValue(IntegerValue * intVal);
-    void getValue(FloatValue * floatVal);
-    void getValue(TextValue * textVal);
+    void getValue(IntegerValueMD * intVal);
+    void getValue(FloatValueMD * floatVal);
+    void getValue(TextValueMD * textVal);
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
   // --------------------------------------------------------------------------
-    unsigned int getStatistic(char * strPtr);
+    unsigned int getStatistic(char * strPtr, int devIdx);
 
   // -------------------------------------------------------------------------
   // Globale Variablen f�r die Anwendung
@@ -147,7 +166,10 @@ class Follower
   public:
     static char * defaultObject;
     bool          enabled;
-    unsigned int  recParseCounter;
+    int           recParseCounter;
+    //char          testBuf1[256];
+    //char          testBuf2[256];
+    //char          testBuf3[256];
 
   // -------------------------------------------------------------------------
   // Inhalt des eingegangenen Telegramms
@@ -155,31 +177,33 @@ class Follower
   //
   public:
 
-    int         pduCount;
-    int         applicationKey;
-    int         deviceKey;
-    int         deviceState;
-    char        deviceName[DATA_OBJ_NAME_LEN];
-    int         posX;
-    int         posY;
-    int         posZ;
-    int         baseState;
-    int         baseMode;
+    int         deviceKeyList[MAXNRSRC];
+    int         pduCount[MAXNRSRC];
+    int         applicationKey[MAXNRSRC];
+    int         deviceKey[MAXNRSRC];
+    int         deviceState[MAXNRSRC];
+    char        deviceName[MAXNRSRC][DATA_OBJ_NAME_LEN];
+    int         posX[MAXNRSRC];
+    int         posY[MAXNRSRC];
+    int         posZ[MAXNRSRC];
+    int         baseState[MAXNRSRC];
+    int         baseMode[MAXNRSRC];
 
     int         intCount;
     int         floatCount;
     int         textCount;
 
-    int         intArray[MAXNRINT];
-    double      floatArray[MAXNRFLOAT];
-    char        textArray[MAXNRTEXT][TEXTVAL_LEN_MAX];
+    int         intArray[MAXNRSRC][MAXNRINT];
+    double      floatArray[MAXNRSRC][MAXNRFLOAT];
+    char        textArray[MAXNRSRC][MAXNRTEXT][TEXTVAL_LEN_MAX];
+
+    int         maxDeviceIdx;
 
   // -------------------------------------------------------------------------
   // Verarbeitung des eingegangenen Telegramms
   // -------------------------------------------------------------------------
   //
   unsigned int idxFieldPduCount;
-  unsigned int idxFieldApplicationKey;
   unsigned int idxFieldDeviceKey;
   unsigned int idxFieldDeviceState;
   unsigned int idxFieldDeviceName;
@@ -221,9 +245,7 @@ class Follower
   //
   public:
     void evtRecMsg(char * msg, unsigned int msgLen);
-    int parseMsg(char * msg, unsigned int msgLen);
     int parseMsg2(char * msg, unsigned int msgLen);
-    int storeDataMsg(char * msg, unsigned int msgLen);
     int storeDataMsg2(char * msg, unsigned int msgLen);
 
   // --------------------------------------------------------------------------
@@ -243,4 +265,4 @@ class Follower
     void writeDebug(char * str);
 };
 
-#endif
+#endif // FollowMultiDev_h

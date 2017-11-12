@@ -89,7 +89,7 @@ typedef struct  _SmnIfStatus
   bool          changed;
   bool          connected;
   bool          initPending;
-  int           connectCount;
+  unsigned int  connectCount;
   int           ifStatus;
 } SmnIfStatus;
 

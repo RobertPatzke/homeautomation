@@ -88,16 +88,8 @@
   // Anwenderfunktionen
   // -------------------------------------------------------------------------
   //
-  void LoopCheck::begin()
-  {
-#if defined(smnSimWindows) || defined(smnSimLinux)
-    begin(true);
-#else
-    begin(false);
-#endif
-  }
 
-  void LoopCheck::begin(bool resetTime)
+  void LoopCheck::begin()
   {
     unsigned int    cycleMillis;
     unsigned int    restMicros;

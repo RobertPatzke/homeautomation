@@ -53,15 +53,15 @@ void setup()
 
   SN("Check of network connection");
 
-  smnError = socManNet.init(true);
-  // The broadcast environment will be establisched.
+  smnError = socManNet.init(false);
+  // The broadcast environment will be established.
   // Parameters are used as defined in socManNetUser.h
   // Argument <false> means, that DHCP is NOT used and the IP-Address
   // comes from socManNetUser.h
 
   if(smnError == smnError_none)
   {
-    // The initialisation was started without error
+    // The initialization was started without error
     // Let us measure the time it takes, until the connection is established
     // We will present the result in loop()
     //
@@ -106,11 +106,11 @@ void loop()
     {
       // Printing only one time, what error information we can get
       //
-      SP("Error with start of initialisation: ");
+      SP("Error with start of initialization: ");
       SF3("%s [%d]",socManNet.getErrorMsg(smnError), (int) smnError);
     }
 
-    // In case of error with start of initialisation, it makes no sense
+    // In case of error with start of initialization, it makes no sense
     // to run the rest of the loop function.
     // So we will leave it here via return.
     // But we use this as an example, how to deal with such errors,
@@ -133,7 +133,7 @@ void loop()
 
       SF2("Connection established after %d microseconds\r\n",
          (int) (micros()-smnConnStartMicros));
-      // the time elapsed since start of initialisation in microseconds
+      // the time elapsed since start of initialization in microseconds
       // But !!!!
       // Be careful when using Serial.print to make some debug messages
       // after starting e.g. WiFi.begin. Connection time may increase.

@@ -147,10 +147,7 @@ class Follower
   public:
     static char * defaultObject;
     bool          enabled;
-    int           recParseCounter;
-    //char          testBuf1[256];
-    //char          testBuf2[256];
-    //char          testBuf3[256];
+    unsigned int  recParseCounter;
 
   // -------------------------------------------------------------------------
   // Inhalt des eingegangenen Telegramms

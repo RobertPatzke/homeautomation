@@ -76,10 +76,11 @@ WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
       //
       case SYSTEM_EVENT_STA_GOT_IP:             // 7
         *wifiPendingPtr = false;
-        *connectedPtr = true;
         ipAdr = WiFi.localIP();
         WiFi.macAddress(macAdr);
         wifiUdpPtr->begin(*locUdpPortPtr);
+        *connectedPtr = true;
+        (*connectCountPtr)++;
         break;
 
       case SYSTEM_EVENT_STA_LOST_IP:             // 8
@@ -129,10 +130,11 @@ WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
       //
       case WIFI_EVENT_STAMODE_GOT_IP:                                           // SYSTEM_EVENT_STA_GOT_IP:             // 7
         *wifiPendingPtr = false;
-        *connectedPtr = true;
         ipAdr = WiFi.localIP();
         WiFi.macAddress(macAdr);
         wifiUdpPtr->begin(*locUdpPortPtr);
+        *connectedPtr = true;
+        (*connectCountPtr)++;
         break;
 
       case WIFI_EVENT_STAMODE_DHCP_TIMEOUT:                                     // SYSTEM_EVENT_STA_LOST_IP:             // 8
@@ -458,6 +460,7 @@ SocManNet::open(byte * ptrMacLocal,
 
   initPending = true;
   WiFi.begin(ssid,pass);
+  //Udp.begin(portLocal);
 #endif
 
 #if defined (ArduinoShieldEth)

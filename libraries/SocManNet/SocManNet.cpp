@@ -466,6 +466,7 @@ SocManNet::open(byte * ptrMacLocal,
 #if defined (ArduinoShieldEth)
   Udp.begin(portLocal);
   connected = true;
+  connectCount = 1;
 #endif
 
 #ifdef smnSimLinux
@@ -496,6 +497,7 @@ SocManNet::open(byte * ptrMacLocal,
     return(smnError_bind);
 
   connected = true;
+  connectCount = 1;
 
 #endif
 

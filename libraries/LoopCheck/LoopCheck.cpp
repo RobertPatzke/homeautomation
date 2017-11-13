@@ -560,10 +560,9 @@
   {
 #ifdef smnSimLinux
     struct timespec clockTime;
-    int error;
     unsigned long retv;
 
-    error = clock_gettime(CLOCK_MONOTONIC, &clockTime);
+    clock_gettime(CLOCK_MONOTONIC, &clockTime);
     retv = clockTime.tv_nsec / 1000;
     return(retv);
 #endif

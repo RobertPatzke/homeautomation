@@ -83,9 +83,9 @@ int main()
       printf("Connection established\n");
   }
 
-  // Preparing the Follower to receive all "MyFirstCommObj" objects
+  // Preparing the Follower to receive all "TestTwitter" objects
   //
-  follower.init(&socManNet,"MyFirstCommObj");
+  follower.init(&socManNet,"TestTwitter");
 
   // Preparing the variable management structures to work with the follower
   //
@@ -115,7 +115,7 @@ int main()
 	// handle 1000 normal speed Twitters with the same communication object
 	// (e.g. the temperature at different positions in a room)
 	// BUT !!!!
-	// At present, Followers are not bufferd (though it is worked on).
+	// The used Follower is not buffered. (Use FollowMultDev instead.)
 	// A new incoming message overwrites the content of the older one and if
 	// the communication objects are different by position (posX, posY, posZ)
 	// we may loose information about temperature at the one or the other
@@ -125,7 +125,8 @@ int main()
 	if(loopCheck.timerMilli(0, 1, 0))
 	{
 	  // Update variable management structures with content from Follower
-	  // follower.getValue(&intMan1);
+	  //
+	  follower.getValue(&intMan1);
       follower.getValue(&intMan2);
       follower.getValue(&intMan3);
       follower.getValue(&floatMan1);

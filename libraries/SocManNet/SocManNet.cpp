@@ -463,7 +463,7 @@ SocManNet::open(byte * ptrMacLocal,
   //Udp.begin(portLocal);
 #endif
 
-#if defined (ArduinoShieldEth)
+#if defined (smnArduinoShieldEth)
   Udp.begin(portLocal);
   connected = true;
   connectCount = 1;
@@ -568,6 +568,18 @@ void SocManNet::getIfInfo(SmnIfInfo *memSmnIfInfo)
     for(int i = 0; i < wifiEventIdx; i++)
       memSmnIfInfo->evtList[i] = (int) wifiEventList[i];
   }
+#endif
+
+#if defined (smnArduinoShieldEth)
+  memSmnIfInfo->ipAddress    = ipLocal;
+  sprintf(memSmnIfInfo->ipAdrCStr,"%d.%d.%d.%d",ipLocal[0],ipLocal[1],ipLocal[2],ipLocal[3]);
+
+  memSmnIfInfo->macAddress   = macLocal;
+  sprintf(memSmnIfInfo->macAdrCStr,"%02X-%02X-%02X-%02X-%02X-%02X",
+          macLocal[0],macLocal[1],macLocal[2],macLocal[3],macLocal[4],macLocal[5]);
+
+  memSmnIfInfo->evtCounter   = 0;
+  memSmnIfInfo->evtIdx       = 0;
 #endif
 
   return;
@@ -678,7 +690,7 @@ int SocManNet::send(uint8_t * msg, unsigned int msgLen)
   // Telegramm versenden
   //---------------------------------------------------------------------------
 
-#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
+#if defined(smnESP32) || defined(smnESP8266) || defined(smnArduinoShieldEth)
   Udp.beginPacket(ipBroadcast, portBroadcast);
 
   Udp.write(msg, msgLen);
@@ -713,7 +725,7 @@ int SocManNet::receive(unsigned char * buf, int bufSize)
   //---------------------------------------------------------------------------
   // Pruefen, ob Telegramm empfangen wurde
   //---------------------------------------------------------------------------
-#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
+#if defined(smnESP32) || defined(smnESP8266) || defined(smnArduinoShieldEth)
   packetSize = Udp.parsePacket();
 #endif
 
@@ -731,7 +743,7 @@ int SocManNet::receive(unsigned char * buf, int bufSize)
   // Telegramm holen (bei besonderen Treibern)
   //---------------------------------------------------------------------------
 
-#if defined(smnESP32) || defined(smnESP8266) || defined(ArduinoShieldEth)
+#if defined(smnESP32) || defined(smnESP8266) || defined(smnArduinoShieldEth)
   Udp.read(buf, bufSize-1);
 #endif
 

@@ -18,6 +18,8 @@
 #include "Arduino.h"
 #include "baseDevice.h"
 
+//#define	smnDebug
+
 #include "LoopCheck.h"
 // We will use LoopCheck to control the timing of the device independent from
 // the resources (timers) of the microcontroller.
@@ -38,8 +40,11 @@
 // our needs.
 // ---------------------------------------------------------------------------
 //
+#define SMN_DEVICE_NAME     "BaseDeviceDHA"
+#define SMN_TWITTER_NAME    "MyFirstCommObj"
+#define SMN_FOLLOWER_NAME   "TestTwitter"
 
-#define SM_CYCLE    5
+#define SM_CYCLE        5
 // The cycle time (clock) of the state machine in milliseconds
 
 #define SM_FREQUENCY    (1000 / SM_CYCLE)
@@ -69,6 +74,11 @@ IntegerValue    intMan1, intMan2, intMan3;
 FloatValue      floatMan1, floatMan2;
 TextValue       textMan1;
 
+// Variables for debugging and error handling
+//
+SocManNetError	smnError;
+SmnIfInfo       smnInfo;
+
 // ---------------------------------------------------------------------------
 // SETUP
 // The setup function is called once at startup of the sketch
@@ -80,7 +90,8 @@ void setup()
 
   nextState = smInit;           // state machine will start at smInit
 
-  socManNet.init(false);        // Start connecting to the network with the
+  smnError =
+    socManNet.init(false);      // Start connecting to the network with the
                                 // IP-Address from socManNetUser.h
 }
 
@@ -157,7 +168,21 @@ int     smDelay;        // Counter for delay control
 //
 void smInit()
 {
-  // Reserve for special initialisations
+  // Inform user about init parameters
+  //
+  if(smnError != smnError_none)
+  {
+    Serial.print(socManNet.getErrorMsg(smnError));
+    nextState = smStartWithoutSMN;
+    return;
+  }
+
+  // Tell user network parameters (for check)
+  //
+  socManNet.getIfInfo(&smnInfo);
+  Serial.print(smnInfo.macAdrCStr);
+  Serial.print(" / ");
+  Serial.println(smnInfo.ipAdrCStr);
 
   // Set parameters for the next state
   //
@@ -177,7 +202,10 @@ void smWaitForSMN()
     nextState = smInitTwitter;      // continue there when connected
 
   if(smTimeOut <= 0)
+  {
+    Serial.println("Time-Out with network connection");
     nextState = smStartWithoutSMN;  // continue there when time out
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -204,7 +232,7 @@ void smInitTwitter()
   (
     &socManNet,                 // Twitter needs a reference to the network
     loopCheck.refDateTime(),    // and a reference to a time string (RTC)
-    (char *)"MyFirstCommObj",   // and the name of the communication object
+    (char *)SMN_TWITTER_NAME,   // and the name of the communication object
     3,                          // the number of Integer to send (<= 4)
     2,                          // the number of Floats to send (<= 4)
     1,                          // the number of Text strings to send (<= 4)
@@ -214,7 +242,7 @@ void smInitTwitter()
   // There are more parameters with Twitter, which will be send
   //
 
-  devTwitter.setDeviceName((char *) "BaseDeviceDHA");
+  devTwitter.setDeviceName((char *) SMN_DEVICE_NAME);
   // Tell the world, who you are
 
   devTwitter.setDeviceState(12);    // status of your device (handbook)
@@ -267,7 +295,7 @@ void smInitTwitter()
 //
 void smInitFollower()
 {
-  devFollower.init(&socManNet, (char *) "TestTwitter");
+  devFollower.init(&socManNet, (char *) SMN_FOLLOWER_NAME);
   // with this example we follow "TestTwitter", which is the simple example
   // for Android smartphones on Github
 
@@ -306,6 +334,8 @@ void smWaitForTestTwitter()
     return;
   }
 
+  Serial.println("TestTwitter not detected");
+  smDelay = 10 * SM_FREQUENCY;
   nextState = smStartWithoutTTW;        // Time-out, start without TestTwitter
 }
 
@@ -353,7 +383,18 @@ void smDisplayValues()
 //
 void smStartWithoutTTW()
 {
+  // With this simple example, the device has nothing to do if TestTwitter
+  // is not present in the network. So here is another loop implemented
+  // to wait until TestTwitter is online.
+  //
+  if(smDelay > 0)
+  {
+    smDelay--;
+    return;
+  }
 
+  smTimeOut = 5 * SM_FREQUENCY;
+  nextState = smWaitForTestTwitter;
 }
 
 // ---------------------------------------------------------------------------

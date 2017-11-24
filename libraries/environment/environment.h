@@ -11,6 +11,7 @@
 #define _environment_h
 
 #ifdef  smnDEFBYBUILD
+
 // Alternative Festlegungen durch Settings in der Build-Umgebung der IDE
 // Das erspart die Verwaltung mehrerer/unterschiedlicher environment.h Dateien
 // in den Projekten

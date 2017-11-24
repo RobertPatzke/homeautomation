@@ -431,6 +431,12 @@ public class Follower
     return (retVal);
   }
 
+  public TextValue getTextValueInst(int idx)
+  {
+    TextValue retVal = new TextValue(idx);
+    return (retVal);
+  }
+
   public boolean getTextStatus(ReceivedValue textVal)
   {
     if(stringArray == null || stringArray.length < textCount)

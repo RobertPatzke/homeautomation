@@ -67,8 +67,9 @@ public class MainActivity extends AppCompatActivity
 
   private void graphInit()
   {
-    tvInfo = findViewById(R.id.tvInfo);   // textview had to be named in
-  }                                       // activity_main.xml (id)
+    tvInfo =
+      (TextView) findViewById(R.id.tvInfo);   // TextView has to be named in
+  }                                           // activity_main.xml (id)
 
   // -------------------------------------------------------------------------
   // Using graphical elements invoked by other threads (state machine)
@@ -188,9 +189,11 @@ public class MainActivity extends AppCompatActivity
     InitTwitter,        // Our internal process is initialising
     ConfigTwitter,      // Configuration of Twitter will be done here
     InitFollower,       // next initialisation
-    Error,      // Error state if initialisation fails
-    Wait,       // Some Waiting time as part of the process
-    Simulate    // Simulating value changes (for this example)
+    DelayMsg,           // Delay an display Follower init result
+    Error,              // Error state if initialisation fails
+    Wait,               // Some Waiting time as part of the process
+    Simulate,           // Simulating value changes (for this example)
+    Evaluate            // Do something with other Twitters values
   }
 
   // Variables used for the state machine
@@ -388,14 +391,25 @@ public class MainActivity extends AppCompatActivity
 
         textMan1  = devFollower.getTextValueInst(0);
 
-        smState = SmState.Wait;       // Next state is Waiting (delay)
+        // If there is an error with initialisation of follower
+        // we will go to error state with the next timer tick
+        //
+        if(devFollower.errorCode != 0)
+        {
+          infoMsg = devFollower.errorMsg;   // to be displayed
+          oneShot = true;
+          smState = SmState.Error;          // next in error state
+          break;
+        }
+
+        smState = SmState.DelayMsg;   // Next state is Waiting and Display
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
 
       // ---------------------------------------------------------------------
-      case Wait:                          // Waiting
+      case DelayMsg:                      // Wait and display
       // ---------------------------------------------------------------------
-        // In this example, the state Wait is part of a loop and the delay
+        // In this example, this is part of a loop and the delay
         // time has to be set in waitCounter in the state passed before
         //
         if(waitCounter > 0)
@@ -404,8 +418,29 @@ public class MainActivity extends AppCompatActivity
           break;                // decremented down to 0
         }
 
-        smState = SmState.Simulate;     // next state is simulating values
-        smBaseState = SmBaseState.Run;  // tell the world we are running
+        info(devFollower.resultMsg);  // Follower init result
+
+        smState = SmState.Wait;       // Next state is Waiting (again)
+        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
+        break;
+
+      // ---------------------------------------------------------------------
+      case Wait:                          // Waiting
+      // ---------------------------------------------------------------------
+        // In this example, this is part of a loop and the delay
+        // time has to be set in waitCounter in the state passed before
+        //
+        waitCounter--;
+        if(waitCounter <= 0)              // if waitCounter finished
+        {                                 // change state
+          smState = SmState.Simulate;     // next state is simulating values
+          smBaseState = SmBaseState.Run;  // tell the world we are running
+          break;
+        }
+
+        devFollower.getValue(intMan1);
+        if(intMan1.newPdu)
+          smState = SmState.Evaluate;
         break;
 
       // ---------------------------------------------------------------------
@@ -454,6 +489,25 @@ public class MainActivity extends AppCompatActivity
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
+
+      // ---------------------------------------------------------------------
+      case Evaluate:                  // Evaluate Follower
+      // ---------------------------------------------------------------------
+        // Get all management data for the external Twitter
+        // followed by devFollower
+        devFollower.getValue(intMan2);
+        devFollower.getValue(intMan3);
+        devFollower.getValue(floatMan1);
+        devFollower.getValue(floatMan2);
+        devFollower.getValue(textMan1);
+
+        if(textMan1.newValue)
+          info(textMan1.value);
+
+        smState = SmState.Wait;       // Next state is Waiting (delay)
+        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
+        break;
+
 
       // ---------------------------------------------------------------------
       case Error:                         // Error (severe)

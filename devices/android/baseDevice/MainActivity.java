@@ -419,6 +419,7 @@ public class MainActivity extends AppCompatActivity
         }
 
         info(devFollower.resultMsg);  // Follower init result
+        devFollower.enabled = true;
 
         smState = SmState.Wait;       // Next state is Waiting (again)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds

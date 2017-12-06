@@ -529,13 +529,52 @@
 
   bool LoopCheck::setDateTime(lcDateTime dt)
   {
+    div_t   divResult;
+
     dtYear    = dt.Year;
+
+    divResult = DIV(dtYear,1000);
+    dateTimeStr[0] = (char) (0x30 + divResult.quot);
+
+    divResult = DIV(divResult.rem,100);
+    dateTimeStr[1] = (char) (0x30 + divResult.quot);
+
+    divResult = DIV(divResult.rem,10);
+    dateTimeStr[2] = (char) (0x30 + divResult.quot);
+    dateTimeStr[3] = (char) (0x30 + divResult.rem);
+
     dtMonth   = dt.Month;
+    divResult = DIV(dtMonth,10);
+    dateTimeStr[5] = (char) (0x30 + divResult.quot);
+    dateTimeStr[6] = (char) (0x30 + divResult.rem);
+
     dtDay     = dt.Day;
+    divResult = DIV(dtDay,10);
+    dateTimeStr[8] = (char) (0x30 + divResult.quot);
+    dateTimeStr[9] = (char) (0x30 + divResult.rem);
+
     dtHour    = dt.Hour;
+    divResult = DIV(dtHour,10);
+    dateTimeStr[11] = (char) (0x30 + divResult.quot);
+    dateTimeStr[12] = (char) (0x30 + divResult.rem);
+
     dtMin     = dt.Minute;
+    divResult = DIV(dtMin,10);
+    dateTimeStr[14] = (char) (0x30 + divResult.quot);
+    dateTimeStr[15] = (char) (0x30 + divResult.rem);
+
     dtSec     = dt.Second;
+    divResult = DIV(dtSec,10);
+    dateTimeStr[17] = (char) (0x30 + divResult.quot);
+    dateTimeStr[18] = (char) (0x30 + divResult.rem);
+
     dtmSec    = dt.Millisecond;
+    divResult = DIV(dtmSec, 100);
+    dateTimeStr[20] = (char) (0x30 + divResult.quot);
+    divResult = DIV(divResult.rem, 10);
+    dateTimeStr[21] = (char) (0x30 + divResult.quot);
+    dateTimeStr[22] = (char) (0x30 + divResult.rem);
+
     return(true);
   }
 

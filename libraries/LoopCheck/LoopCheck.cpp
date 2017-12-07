@@ -74,10 +74,10 @@
 
   void LoopCheck::initClock()
   {
-    strcpy(dateTimeStr,"2017-10-09T17:11:35.456+00:00");
+    strcpy(dateTimeStr,"2017-12-07T17:11:35.456+00:00");
     dtYear      = 2017;
-    dtMonth     = 10;
-    dtDay       = 9;
+    dtMonth     = 12;
+    dtDay       = 7;
     dtHour      = 17;
     dtMin       = 11;
     dtSec       = 35;
@@ -186,12 +186,12 @@
               dateTimeStr[12] = '0';
 
               if  (
-                       (dtDay == febLen && dtMonth == 2)
-                    || (dtDay == 30 && (dtMonth == 4 ||
+                       (dtDay == (febLen + 1) && dtMonth == 2)
+                    || (dtDay == 31 && (dtMonth == 4 ||
                                         dtMonth == 6 ||
                                         dtMonth == 9 ||
                                         dtMonth == 11))
-                    || dtDay == 31
+                    || dtDay == 32
                   )
               {
                 dtDay = 1;
@@ -498,12 +498,21 @@
 
   bool LoopCheck::setDateTime(const char *dtStr)
   {
+    int tmpInt;
+
      if(strlen(dtStr) < 23) return(false);
      strcpy(dateTimeStr,dtStr);
      dtYear   = (dateTimeStr[0]  & 0x0F) * 1000 +
                 (dateTimeStr[1]  & 0x0F) * 100  +
                 (dateTimeStr[2]  & 0x0F) * 10   +
                 (dateTimeStr[3]  & 0x0F);
+
+     tmpInt = dtYear - 2000;
+     if((tmpInt % 4) == 0)
+       febLen = 29;
+     else
+       febLen = 28;
+
 
      dtMonth  = (dateTimeStr[5]  & 0x0F) * 10   +
                 (dateTimeStr[6]  & 0x0F);
@@ -529,13 +538,60 @@
 
   bool LoopCheck::setDateTime(lcDateTime dt)
   {
+    div_t   divResult;
+    int     tmpInt;
+
     dtYear    = dt.Year;
+
+    tmpInt = dtYear - 2000;
+    if((tmpInt % 4) == 0)
+      febLen = 29;
+    else
+      febLen = 28;
+
+
+    divResult = DIV(dtYear,1000);
+    dateTimeStr[0] = (char) (0x30 + divResult.quot);
+
+    divResult = DIV(divResult.rem,100);
+    dateTimeStr[1] = (char) (0x30 + divResult.quot);
+
+    divResult = DIV(divResult.rem,10);
+    dateTimeStr[2] = (char) (0x30 + divResult.quot);
+    dateTimeStr[3] = (char) (0x30 + divResult.rem);
+
     dtMonth   = dt.Month;
+    divResult = DIV(dtMonth,10);
+    dateTimeStr[5] = (char) (0x30 + divResult.quot);
+    dateTimeStr[6] = (char) (0x30 + divResult.rem);
+
     dtDay     = dt.Day;
+    divResult = DIV(dtDay,10);
+    dateTimeStr[8] = (char) (0x30 + divResult.quot);
+    dateTimeStr[9] = (char) (0x30 + divResult.rem);
+
     dtHour    = dt.Hour;
+    divResult = DIV(dtHour,10);
+    dateTimeStr[11] = (char) (0x30 + divResult.quot);
+    dateTimeStr[12] = (char) (0x30 + divResult.rem);
+
     dtMin     = dt.Minute;
+    divResult = DIV(dtMin,10);
+    dateTimeStr[14] = (char) (0x30 + divResult.quot);
+    dateTimeStr[15] = (char) (0x30 + divResult.rem);
+
     dtSec     = dt.Second;
+    divResult = DIV(dtSec,10);
+    dateTimeStr[17] = (char) (0x30 + divResult.quot);
+    dateTimeStr[18] = (char) (0x30 + divResult.rem);
+
     dtmSec    = dt.Millisecond;
+    divResult = DIV(dtmSec, 100);
+    dateTimeStr[20] = (char) (0x30 + divResult.quot);
+    divResult = DIV(divResult.rem, 10);
+    dateTimeStr[21] = (char) (0x30 + divResult.quot);
+    dateTimeStr[22] = (char) (0x30 + divResult.rem);
+
     return(true);
   }
 

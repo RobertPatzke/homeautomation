@@ -114,7 +114,7 @@ public class FollowMultDev
   //
   public class DeviceList
   {
-    class Device
+    public class Device
     {
       int idx;
 
@@ -123,16 +123,16 @@ public class FollowMultDev
       int         floatCount;
       int         textCount;
 
-      int         applicationKey;
-      int         deviceKey;
-      int         deviceState;
-      String      deviceName;
+      public int    applicationKey;
+      public int    deviceKey;
+      public int    deviceState;
+      public String deviceName;
 
-      int         posX;
-      int         posY;
-      int         posZ;
-      int         baseState;
-      int         baseMode;
+      public int    posX;
+      public int    posY;
+      public int    posZ;
+      public int    baseState;
+      public int    baseMode;
 
       int[]       intArray;
       float[]     floatArray;
@@ -143,7 +143,7 @@ public class FollowMultDev
 
     public DeviceList()
     {
-      itemList = new ArrayList<Device>();
+      itemList = new ArrayList<>();
     }
 
     public Device getDevice(int devKey)
@@ -179,6 +179,16 @@ public class FollowMultDev
         return(null);
       return(itemList.get(idx));
     }
+
+    public int count()
+    {
+      return itemList.size();
+    }
+  }
+
+  public int deviceCount()
+  {
+    return deviceList.count();
   }
 
   // -------------------------------------------------------------------------
@@ -286,26 +296,15 @@ public class FollowMultDev
   //
   public class IntegerValue extends ReceivedValue
   {
-    public int          value;
-    public int          oldValue = Integer.MAX_VALUE;
-    
+    public int                value;
+    public int                oldValue = Integer.MAX_VALUE;
+    public DeviceList.Device  device;
+
     public IntegerValue(int inValIdx, int inDevIdx)
     {
       valIdx = inValIdx;
       devIdx = inDevIdx;
       status = new BitSet(ValueStatus.length);
-    }
-  }
-
-  public class IntegerValueList
-  {
-    int   intIdx;
-    List<IntegerValue>  itemList;
-
-    public IntegerValueList(int inIdx)
-    {
-      itemList = new ArrayList<IntegerValue>();
-      intIdx = inIdx;
     }
   }
 
@@ -315,10 +314,8 @@ public class FollowMultDev
     return(integerValue);
   }
 
-  public boolean getIntStatus(ReceivedValue intVal, int devIdx)
+  public boolean getIntStatus(ReceivedValue intVal, DeviceList.Device dev)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
-
     if(dev == null) return true;
 
     if(dev.intArray == null || dev.intArray.length < dev.intCount)
@@ -366,13 +363,19 @@ public class FollowMultDev
     return false;
   }
 
-  public void getValue(IntegerValue intVal, int devIdx)
+  public boolean getIntStatus(ReceivedValue intVal, int devIdx)
+  {
+    DeviceList.Device dev = deviceList.item(devIdx);
+
+    return getIntStatus(intVal, dev);
+  }
+
+
+  public void getValue(IntegerValue intVal, DeviceList.Device dev)
   {
     boolean fin;
 
-    DeviceList.Device dev = deviceList.item(devIdx);
-
-    fin = getIntStatus(intVal, devIdx);
+    fin = getIntStatus(intVal, dev);
     if(fin) return;
 
     int value = dev.intArray[intVal.valIdx];
@@ -384,15 +387,75 @@ public class FollowMultDev
     }
   }
 
+  public void getValue(IntegerValue intVal, int devIdx)
+  {
+    DeviceList.Device dev = deviceList.item(devIdx);
+    getValue(intVal, dev);
+  }
+
+  public class IntegerValueList
+  {
+    public boolean      anyNewVal;
+    public boolean      anyNewPdu;
+    int                 intIdx;
+    List<IntegerValue>  itemList;
+
+    public IntegerValueList(int inIdx)
+    {
+      itemList = new ArrayList<IntegerValue>();
+      intIdx = inIdx;
+    }
+
+    public IntegerValue item(int devIdx)
+    {
+      if(devIdx < itemList.size())
+        return itemList.get(devIdx);
+
+      if(devIdx > itemList.size())
+        return(null);
+
+      IntegerValue iVal = new IntegerValue(intIdx, devIdx);
+      iVal.device = deviceList.item(devIdx);
+      itemList.add(iVal);
+      return iVal;
+    }
+  }
+
+  public IntegerValueList getIntegerValueList(int idx)
+  {
+    IntegerValueList intValueList = new IntegerValueList(idx);
+    return(intValueList);
+  }
+
+  public void getValue(IntegerValueList intValList)
+  {
+    intValList.anyNewPdu = false;
+    intValList.anyNewVal = false;
+
+    int nrOfDev = deviceList.count();
+
+    for(int i = 0; i < nrOfDev; i++)
+    {
+      IntegerValue iVal = intValList.item(i);
+      if(iVal == null) break;
+
+      DeviceList.Device dev = iVal.device;
+      getValue(iVal, dev);
+      if(iVal.newPdu) intValList.anyNewPdu = true;
+      if(iVal.newValue) intValList.anyNewVal = true;
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Float
   // -------------------------------------------------------------------------
   //
   public class FloatValue extends ReceivedValue
   {
-    public float        value;
-    public float        oldValue = Float.MAX_VALUE;
-    
+    public float              value;
+    public float              oldValue = Float.MAX_VALUE;
+    public DeviceList.Device  device;
+
     public FloatValue(int inValIdx, int inDevIdx)
     {
       valIdx = inValIdx;
@@ -407,10 +470,8 @@ public class FollowMultDev
     return(floatValue);
   }
 
-  public boolean getFloatStatus(ReceivedValue floatVal, int devIdx)
+  public boolean getFloatStatus(ReceivedValue floatVal, DeviceList.Device dev)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
-
     if(dev.floatArray == null || dev.floatArray.length < dev.floatCount)
     {
       floatVal.status.clear();
@@ -456,13 +517,17 @@ public class FollowMultDev
     return false;
   }
 
-  public void getValue(FloatValue floatVal, int devIdx)
+  public boolean getFloatStatus(ReceivedValue floatVal, int devIdx)
+  {
+    DeviceList.Device dev = deviceList.item(devIdx);
+    return getFloatStatus(floatVal, dev);
+  }
+
+  public void getValue(FloatValue floatVal, DeviceList.Device dev)
   {
     boolean fin;
 
-    DeviceList.Device dev = deviceList.item(devIdx);
-
-    fin = getFloatStatus(floatVal, devIdx);
+    fin = getFloatStatus(floatVal, dev);
     if(fin) return;
 
     float value = dev.floatArray[floatVal.valIdx];
@@ -474,14 +539,76 @@ public class FollowMultDev
     }
   }
 
+  public void getValue(FloatValue floatVal, int devIdx)
+  {
+    DeviceList.Device dev = deviceList.item(devIdx);
+    getValue(floatVal, dev);
+  }
+
+  public class FloatValueList
+  {
+    public boolean    anyNewVal;
+    public boolean    anyNewPdu;
+    int               intIdx;
+    List<FloatValue>  itemList;
+
+    public FloatValueList(int inIdx)
+    {
+      itemList = new ArrayList<>();
+      intIdx = inIdx;
+    }
+
+    public FloatValue item(int devIdx)
+    {
+      if(devIdx < itemList.size())
+        return itemList.get(devIdx);
+
+      if(devIdx > itemList.size())
+        return(null);
+
+      FloatValue fVal = new FloatValue(intIdx, devIdx);
+      fVal.device = deviceList.item(devIdx);
+      itemList.add(fVal);
+      return fVal;
+    }
+
+  }
+
+  public FloatValueList getFloatValueList(int idx)
+  {
+    FloatValueList floatValueList = new FloatValueList(idx);
+    return(floatValueList);
+  }
+
+  public void getValue(FloatValueList fltValList)
+  {
+    fltValList.anyNewPdu = false;
+    fltValList.anyNewVal = false;
+
+    int nrOfDev = deviceList.count();
+
+    for(int i = 0; i < nrOfDev; i++)
+    {
+      FloatValue fVal = fltValList.item(i);
+      if(fVal == null) break;
+
+      DeviceList.Device dev = fVal.device;
+      getValue(fVal, dev);
+      if(fVal.newPdu) fltValList.anyNewPdu = true;
+      if(fVal.newValue) fltValList.anyNewVal = true;
+    }
+  }
+
+
   // -------------------------------------------------------------------------
   // Text
   // -------------------------------------------------------------------------
   //
   public class TextValue extends ReceivedValue
   {
-    public String       value;
-    
+    public String             value;
+    public DeviceList.Device  device;
+
     public TextValue(int inValIdx, int inDevIdx)
     {
       valIdx = inValIdx;
@@ -496,10 +623,8 @@ public class FollowMultDev
     return (retVal);
   }
 
-  public boolean getTextStatus(ReceivedValue textVal, int devIdx)
+  public boolean getTextStatus(ReceivedValue textVal, DeviceList.Device dev)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
-
     if(dev.stringArray == null || dev.stringArray.length < dev.textCount)
     {
       textVal.status.clear();
@@ -544,14 +669,18 @@ public class FollowMultDev
       textVal.status.set(ValueStatus.lostPdu);
     return false;    
   }
-  
-  public void getValue(TextValue textVal, int devIdx)
+
+  public boolean getTextStatus(ReceivedValue textVal, int devIdx)
+  {
+    DeviceList.Device dev = deviceList.item(devIdx);
+    return getTextStatus(textVal, dev);
+  }
+
+  public void getValue(TextValue textVal, DeviceList.Device dev)
   {
     boolean fin;
 
-    DeviceList.Device dev = deviceList.item(devIdx);
-
-    fin = getTextStatus(textVal, devIdx);
+    fin = getTextStatus(textVal, dev);
     if(fin) return;
     
     String value = dev.stringArray[textVal.valIdx];
@@ -563,10 +692,75 @@ public class FollowMultDev
     }
   }
 
+  public void getValue(TextValue textVal, int devIdx)
+  {
+    DeviceList.Device dev = deviceList.item(devIdx);
+    getValue(textVal, dev);
+  }
+
+  public class TextValueList
+  {
+    public boolean    anyNewVal;
+    public boolean    anyNewPdu;
+    int               intIdx;
+    List<TextValue>   itemList;
+
+    public TextValueList(int inIdx)
+    {
+      itemList = new ArrayList<>();
+      intIdx = inIdx;
+    }
+
+    public TextValue item(int devIdx)
+    {
+      if(devIdx < itemList.size())
+        return itemList.get(devIdx);
+
+      if(devIdx > itemList.size())
+        return(null);
+
+      TextValue tVal = new TextValue(intIdx, devIdx);
+      tVal.device = deviceList.item(devIdx);
+      itemList.add(tVal);
+      return tVal;
+    }
+
+  }
+
+  public TextValueList getTextValueList(int idx)
+  {
+    TextValueList txtValueList = new TextValueList(idx);
+    return(txtValueList);
+  }
+
+  public void getValue(TextValueList txtValList)
+  {
+    txtValList.anyNewPdu = false;
+    txtValList.anyNewVal = false;
+
+    int nrOfDev = deviceList.count();
+
+    for(int i = 0; i < nrOfDev; i++)
+    {
+      TextValue tVal = txtValList.item(i);
+      if(tVal == null) break;
+
+      DeviceList.Device dev = tVal.device;
+      getValue(tVal, dev);
+      if(tVal.newPdu) txtValList.anyNewPdu = true;
+      if(tVal.newValue) txtValList.anyNewVal = true;
+    }
+  }
+
+
   // -------------------------------------------------------------------------
   // Empfänger für die Rundruftelegramme
   // -------------------------------------------------------------------------
   //
+  public int  receiveCounter = 0;
+  public int  pduParseCounter = 0;
+
+
   public class LocalReceiver extends Thread
   {
     byte[]          ipMask;
@@ -617,6 +811,8 @@ public class FollowMultDev
             break;
           }
         }
+
+        receiveCounter++;
         
         // Prüfen der Adresse
         //
@@ -628,6 +824,8 @@ public class FollowMultDev
 
     private void parsePdu(ByteBuffer recBuf)
     {
+      pduParseCounter++;
+
       if(portFollowList == null) return;
       
       int nrIn = recBuf.position();

@@ -367,7 +367,7 @@ public class MainActivity extends AppCompatActivity
 
         devTwitter.setTextValue(0, simText01);
 
-        devTwitter.enabled = true;       // Twitter may be started after
+        devTwitter.enabled = true;    // Twitter may be started after
                                       // configuration
 
         smState = SmState.InitFollower;

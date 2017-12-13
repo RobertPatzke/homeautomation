@@ -557,6 +557,7 @@ int FollowMultDev::storeDataMsg2(char * msg, unsigned int msgLen)
       deviceKey[deviceIdx] = inDeviceKey;
       break;
     }
+
     if(deviceKey[deviceIdx] == inDeviceKey)
       break;
   }

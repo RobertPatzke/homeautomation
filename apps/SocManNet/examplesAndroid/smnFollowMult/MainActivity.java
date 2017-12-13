@@ -1,4 +1,4 @@
-package hsh.mplab.smntwitter;
+package hsh.mplab.smnfollowmult;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -8,7 +8,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import hsh.mplab.socmannet.*;
-import hsh.mplab.systemtools.ScreenTool;
+import hsh.mplab.socmannet.FollowMultDev.IntegerValueList;
+import hsh.mplab.socmannet.FollowMultDev.FloatValueList;
+import hsh.mplab.socmannet.FollowMultDev.TextValueList;
 
 public class MainActivity extends AppCompatActivity
 {
@@ -61,13 +63,16 @@ public class MainActivity extends AppCompatActivity
   // Initialisation to use graphical elements in code
   // -------------------------------------------------------------------------
   //
-  TextView tvInfo;         // Reference to the text box
+  TextView tvInfo1, tvInfo2;         // Reference to the text boxes
 
   private void graphInit()
   {
-    tvInfo = findViewById(R.id.tvInfo);   // textview had to be named in
-  }                                       // activity_main.xml (id)
-
+    tvInfo1 =
+            (TextView) findViewById(R.id.tvInfo1);  // TextView has to be named in
+                                                    // activity_main.xml (id)
+    tvInfo2 =
+            (TextView) findViewById(R.id.tvInfo2);   // TextView has to be named in
+  }
   // -------------------------------------------------------------------------
   // Using graphical elements invoked by other threads (state machine)
   // -------------------------------------------------------------------------
@@ -75,12 +80,12 @@ public class MainActivity extends AppCompatActivity
   // Therefore it is necessary to provide a shell for other threads, which
   // puts the request of threads onto the queue of the main thread.
   //
-  String msgForTvInfo;    // A global variable, not to use a stack variable of
+  String msgForTvInfo1;   // A global variable, not to use a stack variable of
                           // a method to store information for another thread
 
-  void info(String msg)
+  void info1(String msg)
   {
-    msgForTvInfo = msg;   // use global reference for the message
+    msgForTvInfo1 = msg;  // use global reference for the message
 
     runOnUiThread
     (
@@ -89,8 +94,29 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void run()   // will be called by UI-Thread
         {
-          if(tvInfo == null) return;
-          tvInfo.setText(msgForTvInfo);
+          if(tvInfo1 == null) return;
+          tvInfo1.setText(msgForTvInfo1);
+        }
+      }
+    );
+  }
+
+  String msgForTvInfo2;   // A global variable, not to use a stack variable of
+                          // a method to store information for another thread
+
+  void info2(String msg)
+  {
+    msgForTvInfo2 = msg;  // use global reference for the message
+
+    runOnUiThread
+    (
+      new Runnable()
+      {
+        @Override
+        public void run()   // will be called by UI-Thread
+        {
+          if(tvInfo2 == null) return;
+          tvInfo2.setText(msgForTvInfo2);
         }
       }
     );
@@ -106,12 +132,12 @@ public class MainActivity extends AppCompatActivity
   // (we are in onCreate() here, which is the main thread)
   // The rest of initialisation is done with the state machine.
   //
-  Twitter twitter;
+  Twitter debugTwitter;
   // This is the reference to the twitter which is cyclic sending
 
   private void smnInit()
   {
-    twitter = new Twitter();  // Create instance (object) of the Twitter
+    debugTwitter = new Twitter();  // Create instance (object) of the Twitter
   }
 
   // -------------------------------------------------------------------------
@@ -138,7 +164,7 @@ public class MainActivity extends AppCompatActivity
       @Override                       // creating a timer task and overriding
       public void run()               // its run method with ower own run method
       {
-        twitter.run(frequency);       // cyclic calling run method of twitter
+        debugTwitter.run(frequency);  // cyclic calling run method of twitter
 
         stateMachine(frequency);      // cyclic calling our state machine
       }
@@ -183,27 +209,41 @@ public class MainActivity extends AppCompatActivity
 
   enum SmState          // Definition of possible internal states
   {
-    Init,       // Our internal process is initialising
-    Config,     // Configuration will be done here
-    Error,      // Error state if initialisation fails
-    Wait,       // Some Waiting time as part of the process
-    Simulate    // Simulating value changes (for this example)
+    InitTwitter,        // Our internal process is initialising
+    ConfigTwitter,      // Configuration of Twitter will be done here
+    InitFollower,       // next initialisation
+    DelayMsg,           // Delay an display Follower init result
+    Error,              // Error state if initialisation fails
+    Wait,               // Some Waiting time as part of the process
+    Simulate,           // Simulating value changes (for this example)
+    Evaluate            // Do something with other Twitters values
   }
 
   // Variables used for the state machine
   //
-  SmState   smState = SmState.Init;       // Initialising state machine
-  int       globSeqCounter = 0;           // Counter for second interval
+  SmState   smState = SmState.InitTwitter;  // Initialising state machine
+  int       globSeqCounter = 0;             // Counter for second interval
   int       waitCounter = 0;              // Counter for delays
   String    infoMsg;                      // Holding Messages
   boolean   oneShot;                      // Control single actions in loops
   int       stateLoopCounter = 0;         // Counting the ticks in state
 
-  // Variables used for the application
+  // Variables used for the Twitter application
   //
   int       simInt01,simInt02,simInt03;   // Application variables
   float     simFloat01,simFloat02;        // For this example, the application
   String    simText01;                    // is a simulation of values
+
+  // Referenz to a Follower instance
+  //
+  FollowMultDev multFollower;
+
+  // Variables (management structures) used for the Follower application
+  //
+  IntegerValueList  intMan1, intMan2, intMan3;  // Management structures for
+  FloatValueList    floatMan1, floatMan2;       // receiving 3 Integer variables,
+  TextValueList     textMan1;                   // 2 Float and 1 Text
+
 
   // Variables used for some calculations
   //
@@ -230,7 +270,10 @@ public class MainActivity extends AppCompatActivity
     {
       globSeqCounter = 0;
 
-      twitter.baseState = smBaseState.ordinal();
+      if(multFollower != null)
+        info1("Rec: " + multFollower.receiveCounter + "  Pdu: " + multFollower.pduParseCounter);
+
+      debugTwitter.baseState = smBaseState.ordinal();
       // With the next automatic twitter message, this baseState is transferred
     }
 
@@ -242,7 +285,7 @@ public class MainActivity extends AppCompatActivity
     switch(smState)
     {
       // ---------------------------------------------------------------------
-      case Init:                          // Initialisation
+      case InitTwitter:                          // Initialisation
       // ---------------------------------------------------------------------
         // Initialising our application variables
         // that is 3 Integer values, 2 Float values and 1 text string
@@ -260,16 +303,16 @@ public class MainActivity extends AppCompatActivity
         // 1 text string with normal speed (every second a message)
         // and the object name "TestTwitter"
         //
-        twitter.init("TestTwitter", 3, 2, 1, Twitter.Speed.normal);
+        debugTwitter.init("Debug", 3, 2, 1, Twitter.Speed.normal);
 
         // If there is an error with initialisation of twitter
         // we will go to error state with the next timer tick
         //
-        if(twitter.errorCode != 0)
+        if(debugTwitter.errorCode != 0)
         {
-          infoMsg = twitter.errorMsg;     // to be displayed
+          infoMsg = debugTwitter.errorMsg;  // to be displayed
           oneShot = true;
-          smState = SmState.Error;        // next in error state
+          smState = SmState.Error;          // next in error state
           break;
         }
 
@@ -277,19 +320,19 @@ public class MainActivity extends AppCompatActivity
         // and start configuration of twitter
         //
         smBaseState = SmBaseState.Init;   // This is for the world outside
-        infoMsg = twitter.resultMsg;      // This for the display
+        infoMsg = debugTwitter.resultMsg; // This for the display
         oneShot = true;
-        smState = SmState.Config;         // next in configuration state
+        smState = SmState.ConfigTwitter;  // next in configuration state
         break;
 
 
       // ---------------------------------------------------------------------
-      case Config:                        // Configuration of Twitter
+      case ConfigTwitter:                        // Configuration of Twitter
       // ---------------------------------------------------------------------
         //
         if(oneShot)
         {
-          info(infoMsg);      // Display initialisation result message
+          info1(infoMsg);      // Display initialisation result message
           oneShot = false;    // But only once (if we come again here)
         }
 
@@ -297,41 +340,41 @@ public class MainActivity extends AppCompatActivity
         // Setting meta data (or static data), which will change not so often
         //
 
-        twitter.applicationKey = 0;
+        debugTwitter.applicationKey = 0;
         // application key marks the usage of a device in a device overlapping
         // application e.g. regulation circuit with several inkluded devices
         // (0 = not used)
 
-        twitter.deviceKey = SocManNet.getSmallDeviceId();
+        debugTwitter.deviceKey = SocManNet.getSmallDeviceId();
         // the device key ist the individualisation of the device and could be
         // something like the serial number
 
-        twitter.deviceState = SocManNet.DeviceState.Run.ordinal();
+        debugTwitter.deviceState = SocManNet.DeviceState.Run.ordinal();
         // device state describes a kind of physical status
         // (operable, defect, need maintenance, etc.)
 
-        twitter.deviceName = "Android SP1";
+        debugTwitter.deviceName = "Android SP1";
         // device Name may also used for a kind of individualisation
         // but it cannot replace device key, because device key is used
         // by special class FollowMultDev when receiving messages
 
-        twitter.posX = 1111;
-        twitter.posY = 2345;
-        twitter.posZ = 22;
+        debugTwitter.posX = 1111;
+        debugTwitter.posY = 2345;
+        debugTwitter.posZ = 22;
         // Position of device in local coordinates, resolution is centimeter
         // there will be tools in future to configure devices and setting the
         // local position is a matter of configuration.
         // Mobile devices will have to change the content of these variables
         // when beeing moved.
 
-        twitter.baseState = SmBaseState.Init.ordinal();
+        debugTwitter.baseState = SmBaseState.Init.ordinal();
         // This is the status of the state machine presented to the world
         // it will be changed by the state machine
         // the base state is used to synchronise the behaviour of many devices
         // of the same kind to achieve group activities for commonly working
         // on the same task
 
-        twitter.baseMode = 34;
+        debugTwitter.baseMode = 34;
         // In the base mode variable, a device tells the environment, what its
         // plan is for the next step. The combination of base state and base mode
         // tells the environment the process movement of a device.
@@ -343,27 +386,56 @@ public class MainActivity extends AppCompatActivity
         // The real content depends on the application and will be set
         // whenever the application creates a new value (see state Simulation).
 
-        twitter.setIntValue(0, simInt01);
-        twitter.setIntValue(1, simInt02);
-        twitter.setIntValue(2, simInt03);
+        debugTwitter.setIntValue(0, simInt01);
+        debugTwitter.setIntValue(1, simInt02);
+        debugTwitter.setIntValue(2, simInt03);
 
-        twitter.setFloatValue(0, simFloat01);
-        twitter.setFloatValue(1, simFloat02);
+        debugTwitter.setFloatValue(0, simFloat01);
+        debugTwitter.setFloatValue(1, simFloat02);
 
-        twitter.setTextValue(0, simText01);
+        debugTwitter.setTextValue(0, simText01);
 
-        twitter.enabled = true;       // Twitter may be started after
-                                      // configuration
+        debugTwitter.enabled = true;        // Twitter may be started after
+                                            // configuration
 
-        smState = SmState.Wait;       // Next state is Waiting (delay)
-        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        ScreenTool.setBrightness(0F,this);
+        smState = SmState.InitFollower;
         break;
 
       // ---------------------------------------------------------------------
-      case Wait:                          // Waiting
+      case InitFollower:              // Initialisation of Follower
       // ---------------------------------------------------------------------
-        // In this example, the state Wait is part of a loop and the delay
+
+        multFollower = new FollowMultDev("TestTwitter");
+        // Following TestTwitter of example smnTwitter
+
+        intMan1 = multFollower.getIntegerValueList(0);
+        intMan2 = multFollower.getIntegerValueList(1);
+        intMan3 = multFollower.getIntegerValueList(2);
+
+        floatMan1 = multFollower.getFloatValueList(0);
+        floatMan2 = multFollower.getFloatValueList(1);
+
+        textMan1  = multFollower.getTextValueList(0);
+
+        // If there is an error with initialisation of follower
+        // we will go to error state with the next timer tick
+        //
+        if(multFollower.errorCode != 0)
+        {
+          infoMsg = multFollower.errorMsg;  // to be displayed
+          oneShot = true;
+          smState = SmState.Error;          // next in error state
+          break;
+        }
+
+        smState = SmState.DelayMsg;   // Next state is Waiting and Display
+        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
+        break;
+
+      // ---------------------------------------------------------------------
+      case DelayMsg:                      // Wait and display
+      // ---------------------------------------------------------------------
+        // In this example, this is part of a loop and the delay
         // time has to be set in waitCounter in the state passed before
         //
         if(waitCounter > 0)
@@ -372,8 +444,30 @@ public class MainActivity extends AppCompatActivity
           break;                // decremented down to 0
         }
 
-        smState = SmState.Simulate;     // next state is simulating values
-        smBaseState = SmBaseState.Run;  // tell the world we are running
+        info1(multFollower.resultMsg); // Follower init result
+        multFollower.enabled = true;
+
+        smState = SmState.Wait;       // Next state is Waiting (again)
+        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
+        break;
+
+      // ---------------------------------------------------------------------
+      case Wait:                          // Waiting
+      // ---------------------------------------------------------------------
+        // In this example, this is part of a loop and the delay
+        // time has to be set in waitCounter in the state passed before
+        //
+        waitCounter--;
+        if(waitCounter <= 0)              // if waitCounter finished
+        {                                 // change state
+          smState = SmState.Simulate;     // next state is simulating values
+          smBaseState = SmBaseState.Run;  // tell the world we are running
+          break;
+        }
+
+        multFollower.getValue(intMan1);
+        if(intMan1.anyNewPdu)
+          smState = SmState.Evaluate;
         break;
 
       // ---------------------------------------------------------------------
@@ -410,18 +504,45 @@ public class MainActivity extends AppCompatActivity
         else
           simText01 = "Again. _" + tmpInt;
 
-        twitter.setIntValue(0, simInt01);
-        twitter.setIntValue(1, simInt02);
-        twitter.setIntValue(2, simInt03);
+        debugTwitter.setIntValue(0, simInt01);
+        debugTwitter.setIntValue(1, simInt02);
+        debugTwitter.setIntValue(2, simInt03);
 
-        twitter.setFloatValue(0, simFloat01);
-        twitter.setFloatValue(1, simFloat02);
+        debugTwitter.setFloatValue(0, simFloat01);
+        debugTwitter.setFloatValue(1, simFloat02);
 
-        twitter.setTextValue(0, simText01);
+        debugTwitter.setTextValue(0, simText01);
 
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
+
+      // ---------------------------------------------------------------------
+      case Evaluate:                  // Evaluate Follower
+      // ---------------------------------------------------------------------
+        // Get all management data for the external Twitter
+        // followed by multFollower
+        //multFollower.getValue(intMan2);
+        //multFollower.getValue(intMan3);
+        //multFollower.getValue(floatMan1);
+        //multFollower.getValue(floatMan2);
+        //multFollower.getValue(textMan1);
+
+        int nrOfDevices = multFollower.deviceCount();
+        String viewResult = "In:";
+
+        for(int i = 0; i < nrOfDevices; i++)
+        {
+          viewResult += " Key=" + intMan1.item(i).device.deviceKey +
+                        " Value=" + intMan1.item(i).value;
+        }
+
+        info2(viewResult);
+
+        smState = SmState.Wait;       // Next state is Waiting (delay)
+        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
+        break;
+
 
       // ---------------------------------------------------------------------
       case Error:                         // Error (severe)
@@ -431,7 +552,7 @@ public class MainActivity extends AppCompatActivity
         //
         if(oneShot)
         {
-          info(infoMsg);      // Display error message
+          info1(infoMsg);      // Display error message
           oneShot = false;    // But only once
         }
         break;

@@ -6,18 +6,30 @@ import android.provider.Settings.System;
 import android.view.Window;
 import android.view.WindowManager;
 
-/**
- * Created by Robert Patzke on 11.12.17.
- */
+// This screen tools are foreseen only for the main activity.
+// Therefore methods and variables are static
+// and resources only prepared once with method init()
 
-public class ScreenTool
+public final class ScreenTool
 {
-  public static boolean setBrightness(float brightness, Activity activity)
+  static ContentResolver  cr;
+  static Window           win;
+  static Activity         act;
+  static boolean          isInit;
+
+  public static void init(Activity activity)
+  {
+    act     = activity;
+    cr      = activity.getContentResolver();
+    win     = activity.getWindow();
+    isInit  = true;
+  }
+
+  public static boolean setBrightness(float brightness)
   {
     boolean retv;
 
-    ContentResolver cr = activity.getContentResolver();
-    Window win = activity.getWindow();
+    if(isInit == false) return false;
 
     try
     {
@@ -41,5 +53,17 @@ public class ScreenTool
     }
 
     return retv;
+  }
+
+  public static boolean keepScreenOn(boolean onOff)
+  {
+    if(isInit == false) return false;
+
+    if(onOff == true)
+      win.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    else
+      win.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+    return true;
   }
 }

@@ -8,7 +8,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import hsh.mplab.socmannet.*;
-import hsh.mplab.systemtools.ScreenTool;
 
 public class MainActivity extends AppCompatActivity
 {
@@ -357,7 +356,6 @@ public class MainActivity extends AppCompatActivity
 
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        ScreenTool.setBrightness(0F,this);
         break;
 
       // ---------------------------------------------------------------------

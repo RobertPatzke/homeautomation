@@ -1,4 +1,4 @@
-package hsh.mplab.smntwitter;
+package hsh.mplab.smntwittertool;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -34,7 +34,7 @@ public class MainActivity extends AppCompatActivity
                                     // defined in settings and thus continue
                                     // running until the battery is empty
 
-    BatteryTool.init(this); // Same conditions as with ScreenTool above
+    //BatteryTool.init(this); // Same conditions as with ScreenTool above
     // ***********************************************************************
 
   }
@@ -72,12 +72,13 @@ public class MainActivity extends AppCompatActivity
   // Initialisation to use graphical elements in code
   // -------------------------------------------------------------------------
   //
-  TextView tvInfo;         // Reference to the text box
+  TextView tvInfo1, tvInfo2;         // Reference to the text box
 
   private void graphInit()
   {
-    tvInfo = findViewById(R.id.tvInfo);   // textview had to be named in
-  }                                       // activity_main.xml (id)
+    tvInfo1 = findViewById(R.id.tvInfo1);   // textview had to be named in
+    tvInfo2 = findViewById(R.id.tvInfo2);   // activity_main.xml (id)
+  }
 
   // -------------------------------------------------------------------------
   // Using graphical elements invoked by other threads (state machine)
@@ -86,12 +87,13 @@ public class MainActivity extends AppCompatActivity
   // Therefore it is necessary to provide a shell for other threads, which
   // puts the request of threads onto the queue of the main thread.
   //
-  String msgForTvInfo;    // A global variable, not to use a stack variable of
-                          // a method to store information for another thread
+  String msgForTvInfo1, msgForTvInfo2;    // A global variable, not to use a
+                                          // stack variable of a method to
+                                          // store information for another thread
 
-  void info(String msg)
+  void info1(String msg)
   {
-    msgForTvInfo = msg;   // use global reference for the message
+    msgForTvInfo1 = msg;   // use global reference for the message
 
     runOnUiThread
     (
@@ -100,8 +102,26 @@ public class MainActivity extends AppCompatActivity
         @Override
         public void run()   // will be called by UI-Thread
         {
-          if(tvInfo == null) return;
-          tvInfo.setText(msgForTvInfo);
+          if(tvInfo1 == null) return;
+          tvInfo1.setText(msgForTvInfo1);
+        }
+      }
+    );
+  }
+
+  void info2(String msg)
+  {
+    msgForTvInfo2 = msg;   // use global reference for the message
+
+    runOnUiThread
+    (
+      new Runnable()
+      {
+        @Override
+        public void run()   // will be called by UI-Thread
+        {
+          if(tvInfo2 == null) return;
+          tvInfo2.setText(msgForTvInfo2);
         }
       }
     );
@@ -300,7 +320,7 @@ public class MainActivity extends AppCompatActivity
         //
         if(oneShot)
         {
-          info(infoMsg);      // Display initialisation result message
+          info1(infoMsg);     // Display initialisation result message
           oneShot = false;    // But only once (if we come again here)
         }
 
@@ -442,7 +462,7 @@ public class MainActivity extends AppCompatActivity
         //
         if(oneShot)
         {
-          info(infoMsg);      // Display error message
+          info1(infoMsg);     // Display error message
           oneShot = false;    // But only once
         }
         break;

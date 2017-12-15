@@ -20,7 +20,8 @@ public final class BatteryTool
   public static int   level;
   public static int   updCounter;
 
-  static BroadcastReceiver batteryReceiver = new BroadcastReceiver()
+
+  static class BatteryReceiver extends BroadcastReceiver
   {
     int batteryLevel;
 
@@ -32,12 +33,14 @@ public final class BatteryTool
       oldLevel = level;
       level = batteryLevel;
     }
-  };
+
+  }
 
   static public void init(Activity parent)
   {
     act = parent;
-    parent.registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+    BatteryReceiver batReceiver = new BatteryReceiver();
+    parent.registerReceiver(batReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     isInit = true;
   }
 

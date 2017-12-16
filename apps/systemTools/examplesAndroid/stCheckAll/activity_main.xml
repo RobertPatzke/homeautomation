@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="hsh.mplab.stcheckall.MainActivity">
+
+    <Button
+        android:id="@+id/butScreen"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/isFading"
+        android:textAllCaps="false"
+        android:onClick="onClickButScreen"/>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Min"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="Set Screen Brightness"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:text="Max"/>
+
+    </FrameLayout>
+
+    <SeekBar
+        android:id="@+id/sbScreen"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="1000"
+        android:progress="500" />
+
+    <Button
+        android:id="@+id/butBattery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Check Battery"
+        android:textAllCaps="false"
+        android:onClick="onClickButBattery"/>
+
+    <TextView
+        android:id="@+id/tvBattery"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/aliceblue"
+        android:text="" />
+
+    <TextView
+        android:id="@+id/tvOptime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/gainsboro"/>
+
+</LinearLayout>

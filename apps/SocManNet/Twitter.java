@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------
+// This module is for sending broadcast messages (Twitter) with a predefined
+// telegram format as described at
+// http://homeautomation.x-api.de/wikidha/index.php?title=Telegramm
+// It will work only in connection with module SocManNet.java
+// ---------------------------------------------------------------------------
+// Author:    Prof. Dr.-Ing. Robert Patzke (HS Hannover / MFP GmbH)
+// Date:      15.12.2017
+// Licence:   CC-BY-SA
+// ---------------------------------------------------------------------------
+// Editors:   (Please add name and date)
+//
+
 package hsh.mplab.socmannet;
 
 import android.annotation.SuppressLint;

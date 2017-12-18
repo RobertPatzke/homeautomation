@@ -1,3 +1,13 @@
+// ---------------------------------------------------------------------------
+// This App is for testing system tools from
+// homeautomation/apps/systemTools
+// ---------------------------------------------------------------------------
+// Author:    Prof. Dr.-Ing. Robert Patzke (HS Hannover / MFP GmbH)
+// Date:      15.12.2017
+// Licence:   CC-BY-SA
+// ---------------------------------------------------------------------------
+// Editors:   (Please add name and date)
+//
 package hsh.mplab.stcheckall;
 
 import android.support.v7.app.AppCompatActivity;
@@ -23,8 +33,13 @@ public class MainActivity extends AppCompatActivity
     initTvBattery();
     initTvOptime();
 
-    ScreenTool.init(this);
-    BatteryTool.init(this);
+    ScreenTool.init(this);  // For using ScreenTool, there has to be another
+                            // package (folder app/java/hsh/mplab/systemtools)
+                            // containing ScreenTool.java from repository
+                            // homeautomation/apps/systemTools
+
+    BatteryTool.init(this); // Same conditions as with ScreenTool above
+                            // use BatteryTool.java from .../systemTools
   }
 
   // -------------------------------------------------------------------------
@@ -114,6 +129,11 @@ public class MainActivity extends AppCompatActivity
     note = "Operation Time = " + BatteryTool.timeCountHour   + "h " +
                                  BatteryTool.timeCountMinute + "m " +
                                  BatteryTool.timeCountSecond + "s";
+    if(BatteryTool.restTimeMinutes < 0)
+      note += "  no rest time calculation";
+    else
+      note += " Rest Time = " + BatteryTool.restTimeHours + "h " +
+                                BatteryTool.restTimeMinutes + "m";
     tvOptime.setText(note);
   }
 
@@ -138,7 +158,5 @@ public class MainActivity extends AppCompatActivity
   {
     tvOptime = findViewById(R.id.tvOptime);
   }
-
-
 
 }

@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------
+// This App is for checking the battery rest time of an Android based device
+// sending a typical Twitter message every second via WiFi (WLAN).
+// The transmission of messages will not stop, because screen is kept alive
+// but with minimum brightness.
+// ---------------------------------------------------------------------------
+// Author:    Prof. Dr.-Ing. Robert Patzke (HS Hannover / MFP GmbH)
+// Date:      15.12.2017
+// Licence:   CC-BY-SA
+// ---------------------------------------------------------------------------
+// Editors:   (Please add name and date)
+//
+
 package hsh.mplab.smntwittertool;
 
 import android.support.v7.app.AppCompatActivity;
@@ -34,7 +47,9 @@ public class MainActivity extends AppCompatActivity
                                     // defined in settings and thus continue
                                     // running until the battery is empty
 
-    //BatteryTool.init(this); // Same conditions as with ScreenTool above
+    ScreenTool.setBrightness(0F);   // Dim display to save battery
+
+    BatteryTool.init(this); // Same conditions as with ScreenTool above
     // ***********************************************************************
 
   }
@@ -218,6 +233,7 @@ public class MainActivity extends AppCompatActivity
     Config,     // Configuration will be done here
     Error,      // Error state if initialisation fails
     Wait,       // Some Waiting time as part of the process
+    ShowBatt,   // Show battery status (level and rest time)
     Simulate    // Simulating value changes (for this example)
   }
 
@@ -226,6 +242,7 @@ public class MainActivity extends AppCompatActivity
   SmState   smState = SmState.Init;       // Initialising state machine
   int       globSeqCounter = 0;           // Counter for second interval
   int       waitCounter = 0;              // Counter for delays
+  int       waitShowBatt = 0;             // Counter for showing battery delay
   String    infoMsg;                      // Holding Messages
   boolean   oneShot;                      // Control single actions in loops
   int       stateLoopCounter = 0;         // Counting the ticks in state
@@ -388,7 +405,7 @@ public class MainActivity extends AppCompatActivity
 
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        ScreenTool.setBrightness(0F); // Dim display to save battery
+        waitShowBatt = 60 * inFreq;   // Delay time is 1 minute
         break;
 
       // ---------------------------------------------------------------------
@@ -399,6 +416,12 @@ public class MainActivity extends AppCompatActivity
         //
         if(waitCounter > 0)
         {
+          waitShowBatt--;
+          if(waitShowBatt < 1)
+          {
+            smState = SmState.ShowBatt;
+            break;
+          }
           waitCounter--;        // staying here until waitCounter is
           break;                // decremented down to 0
         }
@@ -452,6 +475,20 @@ public class MainActivity extends AppCompatActivity
 
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
+        break;
+
+      // ---------------------------------------------------------------------
+      case ShowBatt:
+      // ---------------------------------------------------------------------
+        infoMsg = "Battery Level = " + BatteryTool.level;
+        if(BatteryTool.restTimeMinutes < 0)
+          infoMsg += "  no rest time calculation";
+        else
+          infoMsg += "  Rest Time = " + BatteryTool.restTimeHours + "h "
+                                      + BatteryTool.restTimeMinutes + "m";
+        info2(infoMsg);
+        waitShowBatt = 60 * inFreq;
+        smState = SmState.Wait;
         break;
 
       // ---------------------------------------------------------------------

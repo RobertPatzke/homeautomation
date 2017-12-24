@@ -15,6 +15,9 @@ package hsh.mplab.smntwittertool;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Editable;
+import android.view.KeyEvent;
+import android.view.View;
 import android.widget.TextView;
 
 import java.util.Timer;
@@ -50,6 +53,7 @@ public class MainActivity extends AppCompatActivity
     ScreenTool.setBrightness(0F);   // Dim display to save battery
 
     BatteryTool.init(this); // Same conditions as with ScreenTool above
+
     // ***********************************************************************
 
   }
@@ -75,6 +79,7 @@ public class MainActivity extends AppCompatActivity
   // resources. A new start gives a new twitter and only one instance of our
   // application is running.
   //
+
   @Override
   public void onBackPressed()
   {
@@ -83,16 +88,19 @@ public class MainActivity extends AppCompatActivity
   }
 
 
+
   // -------------------------------------------------------------------------
   // Initialisation to use graphical elements in code
   // -------------------------------------------------------------------------
   //
-  TextView tvInfo1, tvInfo2;         // Reference to the text box
+  TextView  tvInfo1, tvInfo2,         // Reference to the text box
+            tvInfo3;
 
   private void graphInit()
   {
     tvInfo1 = findViewById(R.id.tvInfo1);   // textview had to be named in
     tvInfo2 = findViewById(R.id.tvInfo2);   // activity_main.xml (id)
+    tvInfo3 = findViewById(R.id.tvInfo3);
   }
 
   // -------------------------------------------------------------------------
@@ -102,8 +110,8 @@ public class MainActivity extends AppCompatActivity
   // Therefore it is necessary to provide a shell for other threads, which
   // puts the request of threads onto the queue of the main thread.
   //
-  String msgForTvInfo1, msgForTvInfo2;    // A global variable, not to use a
-                                          // stack variable of a method to
+  String msgForTvInfo1, msgForTvInfo2,    // A global variable, not to use a
+         msgForTvInfo3;                   // stack variable of a method to
                                           // store information for another thread
 
   void info1(String msg)
@@ -137,6 +145,24 @@ public class MainActivity extends AppCompatActivity
         {
           if(tvInfo2 == null) return;
           tvInfo2.setText(msgForTvInfo2);
+        }
+      }
+    );
+  }
+
+  void info3(String msg)
+  {
+    msgForTvInfo3 = msg;   // use global reference for the message
+
+    runOnUiThread
+    (
+      new Runnable()
+      {
+        @Override
+        public void run()   // will be called by UI-Thread
+        {
+          if(tvInfo3 == null) return;
+          tvInfo3.setText(msgForTvInfo3);
         }
       }
     );
@@ -249,9 +275,9 @@ public class MainActivity extends AppCompatActivity
 
   // Variables used for the application
   //
-  int       simInt01,simInt02,simInt03;   // Application variables
-  float     simFloat01,simFloat02;        // For this example, the application
-  String    simText01;                    // is a simulation of values
+  int       battLevel,battTemp;           // Application variables
+  float     battVolt;                     // For this example, the application
+  String    battOpTime,battRestTime;      // is battery measurement
 
   // Variables used for some calculations
   //
@@ -295,20 +321,19 @@ public class MainActivity extends AppCompatActivity
         // Initialising our application variables
         // that is 3 Integer values, 2 Float values and 1 text string
         //
-        simInt01   = 100;
-        simInt02   = -200;
-        simInt03   = 0x555;
+        battLevel  = 100;
+        battTemp   = 20;
 
-        simFloat01 = 1000f;
-        simFloat02 = 0.001f;
+        battVolt   = 4.2F;
 
-        simText01  = "Hello world";
+        battOpTime    = "10h 10m";
+        battRestTime  = "5h 13m";
 
         // Initialising Twitter to send 3 Integer values, 2 Float values and
         // 1 text string with normal speed (every second a message)
         // and the object name "TestTwitter"
         //
-        twitter.init("TestTwitter", 3, 2, 1, Twitter.Speed.normal);
+        twitter.init("Battery", 2, 1, 2, Twitter.Speed.high);
 
         // If there is an error with initialisation of twitter
         // we will go to error state with the next timer tick
@@ -391,14 +416,13 @@ public class MainActivity extends AppCompatActivity
         // The real content depends on the application and will be set
         // whenever the application creates a new value (see state Simulation).
 
-        twitter.setIntValue(0, simInt01);
-        twitter.setIntValue(1, simInt02);
-        twitter.setIntValue(2, simInt03);
+        twitter.setIntValue(0, battLevel);
+        twitter.setIntValue(1, battTemp);
 
-        twitter.setFloatValue(0, simFloat01);
-        twitter.setFloatValue(1, simFloat02);
+        twitter.setFloatValue(0, battVolt);
 
-        twitter.setTextValue(0, simText01);
+        twitter.setTextValue(0, battOpTime);
+        twitter.setTextValue(1, battRestTime);
 
         twitter.enabled = true;       // Twitter may be started after
                                       // configuration
@@ -431,47 +455,29 @@ public class MainActivity extends AppCompatActivity
         break;
 
       // ---------------------------------------------------------------------
-      case Simulate:                      // Simulating values
+      case Simulate:                      // Evaluating (former simulation)
       // ---------------------------------------------------------------------
-        // In this example, values are simply changed and Twitter is updated
+        // In this example, values are fetched from BatteryTool
         //
 
-        simInt01++;
-        if(simInt01 > 200)
-          simInt01 = 0;
+        battLevel = BatteryTool.level;
+        battTemp  = BatteryTool.temperature;
 
-        simInt02++;
-        if(simInt02 > 0)
-          simInt02 = -200;
+        battVolt  = BatteryTool.voltage;
 
-        simInt03 <<= 1;
-        simInt03 &= 0xFFF;
-        if(simInt03 == 0)
-          simInt03 = 0x555;
+        battOpTime    = BatteryTool.timeCountHour + "h "
+                      + BatteryTool.timeCountMinute + "m";
 
-        simFloat01 -= 0.1f;
-        if(simFloat01 <= 0)
-          simFloat01 = 1000f;
+        battRestTime  = BatteryTool.restTimeHours + "h "
+                      + BatteryTool.restTimeMinutes + "m";
 
-        simFloat02 += 0.77;
-        if(simFloat02 >= 500)
-          simFloat02 = 0.01f;
+        twitter.setIntValue(0, battLevel);
+        twitter.setIntValue(1, battTemp);
 
-        tmpInt = stateLoopCounter % 9;
+        twitter.setFloatValue(0, battVolt);
 
-        if((stateLoopCounter % 3) == 0)
-          simText01 = "Here I am. _" + tmpInt;
-        else
-          simText01 = "Again. _" + tmpInt;
-
-        twitter.setIntValue(0, simInt01);
-        twitter.setIntValue(1, simInt02);
-        twitter.setIntValue(2, simInt03);
-
-        twitter.setFloatValue(0, simFloat01);
-        twitter.setFloatValue(1, simFloat02);
-
-        twitter.setTextValue(0, simText01);
+        twitter.setTextValue(0, battOpTime);
+        twitter.setTextValue(1, battRestTime);
 
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
@@ -480,13 +486,20 @@ public class MainActivity extends AppCompatActivity
       // ---------------------------------------------------------------------
       case ShowBatt:
       // ---------------------------------------------------------------------
-        infoMsg = "Battery Level = " + BatteryTool.level;
+        infoMsg = "Operation Time = " + BatteryTool.timeCountHour + "h " +
+                                        BatteryTool.timeCountMinute +
+                  "m  Level = " + BatteryTool.level;
+        info2(infoMsg);
+
+        infoMsg = "Voltage = " + BatteryTool.voltage;
+
         if(BatteryTool.restTimeMinutes < 0)
           infoMsg += "  no rest time calculation";
         else
           infoMsg += "  Rest Time = " + BatteryTool.restTimeHours + "h "
                                       + BatteryTool.restTimeMinutes + "m";
-        info2(infoMsg);
+        info3(infoMsg);
+
         waitShowBatt = 60 * inFreq;
         smState = SmState.Wait;
         break;

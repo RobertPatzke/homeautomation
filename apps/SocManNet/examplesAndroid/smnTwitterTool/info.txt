@@ -1,0 +1,18 @@
+Needed content for AndroidManifest.xml
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+
+
+source folder / package name:  smntwitter
+
+library folder (parallel):     socmannet
+librarieds (java files):       SocManNet.java, Twitter.java
+
+library folder (parallel):     systemtools
+librarieds (java files):       BatteryTool.java, ScreenTool.java
+
+
+Extra resources:
+in ...res/values:              colors.xml   from ../../resources
+

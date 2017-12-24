@@ -13,13 +13,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/gainsboro"
-        android:text="Hello World!" />
+        android:text="" />
 
     <TextView
         android:id="@+id/tvInfo2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/lightsteelblue"
-        android:text="Hello World!" />
+        android:text="" />
+
+    <TextView
+        android:id="@+id/tvInfo3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/gainsboro"
+        android:text="" />
 
 </android.widget.LinearLayout>

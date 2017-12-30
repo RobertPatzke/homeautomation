@@ -32,6 +32,14 @@ LoopStatistics  statistics;
 bool    useDelay;
 // A marker to show the influence of delay function on LoopCheck operation time
 
+#ifndef smnESP32
+
+char sprintMem[64];
+// with ESP32 there is the function Serial.printf defined, but not with DUE
+// so we need some memory for preperation of text for using print with DUE
+
+#endif
+
 // The loop function is called in an endless loop
 //
 void loop()
@@ -57,8 +65,15 @@ void loop()
     // The example <lcBlink.ino> for more details
 
     loopCheck.operationTime(&cpuRunTime);
+
+#ifdef smnESP32
     Serial.printf("%02dH,%02dm,%02ds\r\n",
                   cpuRunTime.Hours,cpuRunTime.Minutes,cpuRunTime.Seconds);
+#else
+    sprintf(sprintMem, "%02dH,%02dm,%02ds\r\n",
+                      cpuRunTime.Hours,cpuRunTime.Minutes,cpuRunTime.Seconds);
+    Serial.print(sprintMem);
+#endif
   }
 
   if(useDelay == true) delay(33);
@@ -70,10 +85,24 @@ void loop()
     // Do the following every 2 seconds but only 10 times
 
     loopCheck.getStatistics(&statistics);
+
+#ifdef smnESP32
     Serial.printf("AvgInLoopTime: %05d[us], AvgOutLoopTime: %05d[us]\r\n",
                   statistics.loopAvgTime,statistics.bgAvgTime);
+#else
+    sprintf(sprintMem, "AvgInLoopTime: %05d[us], AvgOutLoopTime: %05d[us]\r\n",
+                  statistics.loopAvgTime,statistics.bgAvgTime);
+    Serial.print(sprintMem);
+#endif
+
+#ifdef smnESP32
     Serial.printf("LoopPeriodAlarm: %d, AlarmCounter: %d\r\n",
                   statistics.periodAlarm,statistics.alarmCount);
+#else
+    sprintf(sprintMem,"LoopPeriodAlarm: %d, AlarmCounter: %d\r\n",
+                  statistics.periodAlarm,statistics.alarmCount);
+    Serial.print(sprintMem);
+#endif
   }
 
   if(loopCheck.timerMilli(2, 10000, 1))

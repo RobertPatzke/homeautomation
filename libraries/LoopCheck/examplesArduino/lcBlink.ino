@@ -3,7 +3,7 @@
 
 #include "LoopCheck.h"
 
-#define TestLed 23
+#define TestLed 13
 // The built in LED of some Arduino boards (and similar development boards like
 // ESP32 Dev) seem to be connected to a pin (most 13), which is also used for the
 // serial transmit (TxD) or other purposes.

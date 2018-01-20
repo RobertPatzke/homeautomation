@@ -33,6 +33,8 @@ unsigned int    *connectCountPtr;
 int             wifiEventCounter = 0;
 int             wifiEventIdx = 0;
 WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
+WiFiServer      server(CONFIG_PORT);
+smnServPtr      nextSrv;
 
 #endif
 
@@ -282,6 +284,7 @@ enum SocManNetError SocManNet::init(bool dhcp)
   connectCount      = 0;
   connectCountPtr   = &connectCount;
   wifiPendingPtr    = &initPending;
+  nextSrv           = srvInit;
 
   WiFi.onEvent(smnWiFiEventHandler);
 
@@ -1012,6 +1015,9 @@ void SocManNet::run(void)
   msgLen = receive((unsigned char *)commBufRec, (sizeof(commBufRec)-1));
   if(msgLen <= 0)
   {
+    // Wenn kein Telegramm empfangen wird, dann den Server bedienen
+    //
+    nextSrv();
     return;
   }
 
@@ -1108,6 +1114,96 @@ int SocManNet::attachEvtRecMsg(char * commObjName, void * evtHnd, BROADCAST_EVT 
   // Ergebnis definieren
   //---------------------------------------------------------------------------
   return(0);
+}
+
+// ---------------------------------------------------------------------------
+// Steuerbarer Server
+// ---------------------------------------------------------------------------
+
+// Variables to control server task
+//
+bool    confServerOn;
+
+void srvInit()
+{
+  if(confServerOn == false) return;
+
+  server.begin();
+  nextSrv = waitClient;
+}
+
+WiFiClient extClient;
+
+void waitClient()
+{
+  extClient = server.available();
+  if(!extClient) return;
+  nextSrv = waitClientMsg;
+}
+
+int     extClientMsgLen;
+int     extClientMsgIdx;
+bool    srvRecFin;
+
+void waitClientMsg()
+{
+  if(!extClient.connected())
+  {
+    nextSrv = waitClient;
+    return;
+  }
+
+  extClientMsgLen = extClient.available();
+  if(extClientMsgLen == 0) return;
+
+  extClientMsgIdx = 0;
+  srvRecFin = false;
+  nextSrv = readBlockClient;
+}
+
+byte    srvReceiveBuffer[SRV_BUF_REC_SIZE];
+bool    srvRecBufFilled;
+
+void readBlockClient()
+{
+  int   readVal;
+
+  for(int i = 0; i < SMNreadExtClientBlockSize; i++)
+  {
+    readVal = extClient.read();
+    if(readVal < 0)
+    {
+      srvRecFin = true;
+      break;
+    }
+
+    srvReceiveBuffer[extClientMsgIdx] = (byte) readVal;
+    extClientMsgIdx++;
+    if(extClientMsgIdx == extClientMsgLen)
+    {
+      srvRecFin = true;
+      break;
+    }
+  }
+
+  if(srvRecFin)
+  {
+    srvRecBufFilled = true;
+    nextSrv = finClientMsg;
+  }
+}
+
+
+void finClientMsg()
+{
+
+}
+
+
+void SocManNet::startServer()
+{
+  confServerOn = true;
+  srvRecBufFilled = false;
 }
 
         //---------------------------------------------------------------------

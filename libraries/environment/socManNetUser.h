@@ -126,11 +126,13 @@
   // MAC-Adresse als String
 #endif
 
-#define LOCAL_PORT 4100
+#define LOCAL_PORT      4100
 // Portnummer lokal
 
-#define BROADCAST_PORT 4100
+#define BROADCAST_PORT  4100
 // Portnummer Rundruf
+
+#define CONFIG_PORT     4110
 
 //-------------------------------------------------------------------------
 // Sub-Netz-Maske

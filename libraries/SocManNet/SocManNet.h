@@ -54,13 +54,15 @@
     //-------------------------------------------------------------------------
     // Festlegungen für den Betrieb
     //-------------------------------------------------------------------------
-#define MAC_ADR_SIZE 6
-#define COMM_BUF_MSG_SEND_SIZE 3000
-#define COMM_BUF_MSG_REC_SIZE 2048
-#define COMM_OBJ_NAME_LEN 32
-#define COMM_EVT_DST_NUM 4
-#define COMM_MSG_MAX_NUM_DATA_FIELDS 30
-#define SMNmaxNrIFEvt  32
+#define MAC_ADR_SIZE                    6
+#define COMM_BUF_MSG_SEND_SIZE          3000
+#define COMM_BUF_MSG_REC_SIZE           2048
+#define COMM_OBJ_NAME_LEN               32
+#define COMM_EVT_DST_NUM                4
+#define COMM_MSG_MAX_NUM_DATA_FIELDS    30
+#define SMNmaxNrIFEvt                   32
+#define SMNreadExtClientBlockSize       32
+#define SRV_BUF_REC_SIZE                1024
 
 typedef void (*BROADCAST_EVT)(void * evtHnd, char * msg, unsigned int msgLen);
 
@@ -107,6 +109,19 @@ enum SocManNetError
   smnError_notConnected,
   smnError_unexpected
 };
+
+// Type of server function pointer
+//
+typedef void (*smnServPtr)(void);
+
+// Prototypes of service functions
+//
+void srvInit();         // Server Initialisation
+void waitClient();      // Waiting for Client
+void waitClientMsg();   // Waiting for Client Message
+void readBlockClient(); // Reading a block of data
+void finClientMsg();    // Finished reading from Client
+
 
     //-------------------------------------------------------------------------
     // class SocManNet
@@ -222,10 +237,11 @@ private:
   // Interne Funktionen fuer Broadcast-Interface
   // --------------------------------------------------------------------------
 private:
-  int receive(unsigned char * buf, int bufSize);
-  int checkSocManNetMsg(char * msgBuf, unsigned int msgLen);
-  int parseMsg(char * msg, unsigned int msgLen);
-  int parseMsg2(char * msg, unsigned int msgLen);
+  int   receive(unsigned char * buf, int bufSize);
+  int   checkSocManNetMsg(char * msgBuf, unsigned int msgLen);
+  int   parseMsg(char * msg, unsigned int msgLen);
+  int   parseMsg2(char * msg, unsigned int msgLen);
+
 
 #ifdef smnESP32
   //void WiFiEventHandler(WiFiEvent_t wifiEvent);
@@ -296,6 +312,10 @@ public:
   int send(uint8_t * msg, unsigned int msgLen);
   void run(void);
   int attachEvtRecMsg(char * commObjName, void * evtHnd, BROADCAST_EVT evtFu);
+
+  // Server
+  //
+  void startServer();
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke und Fehlerauswertung

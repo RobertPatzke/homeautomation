@@ -110,6 +110,28 @@ enum SocManNetError
   smnError_unexpected
 };
 
+// ---------------------------------------------------------------------------
+// Types for controllable server
+// ---------------------------------------------------------------------------
+//
+
+enum CtlServerStatus
+{
+  cssOff,
+  cssInit,
+  cssWaitClient,
+  cssWaitClientMsg,
+  cssReadBlockClient,
+  cssFinClientMsg
+};
+
+typedef struct _CtlServerResult
+{
+  bool  recFinished;
+  int   nrOfBytes;
+  byte  *byteMem;
+} CtlServerResult, *CtlServerResPtr;
+
 // Type of server function pointer
 //
 typedef void (*smnServPtr)(void);
@@ -316,6 +338,8 @@ public:
   // Server
   //
   void startServer();
+  void getCtlSrvResult(CtlServerResPtr srvResPtr);
+  void quitCtlSrvRead();
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke und Fehlerauswertung

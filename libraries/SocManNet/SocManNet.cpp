@@ -1122,13 +1122,16 @@ int SocManNet::attachEvtRecMsg(char * commObjName, void * evtHnd, BROADCAST_EVT 
 
 // Variables to control server task
 //
-bool    confServerOn;
+bool            ctlServerOn;
+CtlServerStatus ctlServerStatus;
 
 void srvInit()
 {
-  if(confServerOn == false) return;
+  if(ctlServerOn == false) return;
 
+  ctlServerStatus = cssInit;
   server.begin();
+  ctlServerStatus = cssWaitClient;
   nextSrv = waitClient;
 }
 
@@ -1138,6 +1141,7 @@ void waitClient()
 {
   extClient = server.available();
   if(!extClient) return;
+  ctlServerStatus = cssWaitClientMsg;
   nextSrv = waitClientMsg;
 }
 
@@ -1159,6 +1163,7 @@ void waitClientMsg()
   extClientMsgIdx = 0;
   srvRecFin = false;
   nextSrv = readBlockClient;
+  ctlServerStatus = cssReadBlockClient;
 }
 
 byte    srvReceiveBuffer[SRV_BUF_REC_SIZE];
@@ -1189,6 +1194,7 @@ void readBlockClient()
   if(srvRecFin)
   {
     srvRecBufFilled = true;
+    ctlServerStatus = cssFinClientMsg;
     nextSrv = finClientMsg;
   }
 }
@@ -1196,14 +1202,29 @@ void readBlockClient()
 
 void finClientMsg()
 {
-
+  if(srvRecFin) return;
+  ctlServerStatus = cssWaitClientMsg;
+  nextSrv = waitClientMsg;
 }
 
 
 void SocManNet::startServer()
 {
-  confServerOn = true;
+  ctlServerOn = true;
   srvRecBufFilled = false;
+}
+
+void SocManNet::getCtlSrvResult(CtlServerResPtr srvResPtr)
+{
+  srvResPtr->recFinished = srvRecFin;
+  srvResPtr->nrOfBytes = extClientMsgIdx;
+  srvResPtr->byteMem = srvReceiveBuffer;
+}
+
+void SocManNet::quitCtlSrvRead()
+{
+  extClientMsgIdx = 0;
+  srvRecFin = false;
 }
 
         //---------------------------------------------------------------------

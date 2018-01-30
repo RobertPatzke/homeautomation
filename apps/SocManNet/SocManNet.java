@@ -1,9 +1,12 @@
 package hsh.mplab.socmannet;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -191,6 +194,37 @@ public class SocManNet
   }
   
   // endregion
-  
 
-}
+  static public class SmnClient
+  {
+    Socket socket;
+
+    public SmnClient(InetAddress IpAddress, int port)
+    {
+      try
+      {
+        socket = new Socket(IpAddress, port);
+      }
+      catch (UnknownHostException exc)
+      {
+        socket = null;
+      }
+      catch (IOException exc)
+      {
+        socket = null;
+      }
+    }
+  }
+
+  static public SmnClient connectServer(InetAddress ipAdr, int port)
+  {
+    SmnClient client = new SmnClient(ipAdr, port);
+    if(client.socket == null)
+      client = null;
+    return client;
+  }
+
+} // end class SocManNet
+
+
+

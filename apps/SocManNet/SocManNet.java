@@ -197,30 +197,69 @@ public class SocManNet
 
   static public class SmnClient
   {
-    Socket socket;
+    public enum ConnStatus
+    {
+      TestConnection,
+      ComServer,
+      WaitForAvailability,
+      WaitOnIOException
+    }
+
+    private class WatchServer extends Thread
+    {
+      Socket      socket;
+      InetAddress ipAdr;
+      int         port;
+      boolean     threadRuns;
+      ConnStatus  connStatus;
+
+      WatchServer(InetAddress ipAdr, int port)
+      {
+        this.ipAdr  = ipAdr;
+        this.port   = port;
+        connStatus  = ConnStatus.TestConnection;
+      }
+
+      public void run()
+      {
+        while (threadRuns)
+        {
+          switch(connStatus)
+          {
+            case TestConnection:
+              try
+              {
+                socket = new Socket(ipAdr, port);
+              }
+              catch (UnknownHostException exc)
+              {
+                socket = null;
+              }
+              catch (IOException exc)
+              {
+                socket = null;
+              }
+
+              break;
+          }
+        }
+      }
+    }
 
     public SmnClient(InetAddress IpAddress, int port)
     {
-      try
-      {
-        socket = new Socket(IpAddress, port);
-      }
-      catch (UnknownHostException exc)
-      {
-        socket = null;
-      }
-      catch (IOException exc)
-      {
-        socket = null;
-      }
+      WatchServer watchServer = new WatchServer(IpAddress, port);
+      watchServer.threadRuns = true;
+      watchServer.start();
     }
+
+
+
   }
 
   static public SmnClient connectServer(InetAddress ipAdr, int port)
   {
     SmnClient client = new SmnClient(ipAdr, port);
-    if(client.socket == null)
-      client = null;
     return client;
   }
 

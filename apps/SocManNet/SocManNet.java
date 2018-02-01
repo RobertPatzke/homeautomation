@@ -1,6 +1,11 @@
 package hsh.mplab.socmannet;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
@@ -200,10 +205,18 @@ public class SocManNet
     public enum ConnStatus
     {
       TestConnection,
-      ComServer,
-      WaitForAvailability,
-      WaitOnIOException
+      ComServerInit,
+      ComServerReady,
+      ComServerBusy,
+      WaitBeforeNextTry,
+      ThreadClosed
     }
+
+    // -----------------------------------------------------------------------
+    // Subclass WatchServer is the thread for controlling the connection
+    // -----------------------------------------------------------------------
+
+    WatchServer watchServer;
 
     private class WatchServer extends Thread
     {
@@ -212,50 +225,275 @@ public class SocManNet
       int         port;
       boolean     threadRuns;
       ConnStatus  connStatus;
+      int         stopLatencyTime;        // Min time to stop thread
+      int         waitAvailabilityTime;   // Wait time after no availability
+      int         waitIoErrorTime;        // Wait time after IO error
+      int         ioErrorCount;
+      int         waitAvailCount;
+      int         repCounter;
+      boolean     textMode;
+      boolean     writeError;
+
+      BufferedReader        inputText;
+      BufferedInputStream   inputBin;
+      PrintWriter           outputText;
+      PrintStream           outputBin;
+
+      char[]      outMessage, inMessage;
+      byte[]      outData, inData;
+      boolean     doSend;
 
       WatchServer(InetAddress ipAdr, int port)
       {
         this.ipAdr  = ipAdr;
         this.port   = port;
         connStatus  = ConnStatus.TestConnection;
+
+        stopLatencyTime       = 20;
+        waitAvailabilityTime  = 200;
+        waitIoErrorTime       = 500;
+
+        ioErrorCount    = 0;
+        waitAvailCount  = 0;
+        repCounter      = 3;
+
+        textMode  = true;
       }
 
       public void run()
       {
-        while (threadRuns)
-        {
-          switch(connStatus)
-          {
-            case TestConnection:
-              try
-              {
-                socket = new Socket(ipAdr, port);
-              }
-              catch (UnknownHostException exc)
-              {
-                socket = null;
-              }
-              catch (IOException exc)
-              {
-                socket = null;
-              }
+        int   waitCounter = 10;
+        int   nrRec;
 
-              break;
-          }
+        try
+        {
+          while (threadRuns)
+          {
+            // -----------------------------------------------------------------
+            // State machine for handling connection to server
+            // -----------------------------------------------------------------
+            //
+            switch (connStatus)
+            {
+              // ---------------------------------------------------------------
+              case TestConnection:              // Test server availability
+              // ---------------------------------------------------------------
+                try
+                {
+                  socket = new Socket(ipAdr, port);
+                }
+                catch (UnknownHostException exc)
+                {
+                  // Server is not available
+                  //
+                  socket = null;
+                  connStatus = ConnStatus.WaitBeforeNextTry;
+                  waitCounter = waitAvailabilityTime / stopLatencyTime;
+                  waitAvailCount++;
+                  break;
+                }
+                catch (IOException exc)
+                {
+                  // Something wrong, handling will follow if exception occurs
+                  //
+                  socket = null;
+                  connStatus = ConnStatus.WaitBeforeNextTry;
+                  waitCounter = waitIoErrorTime / stopLatencyTime;
+                  ioErrorCount++;
+                  break;
+                }
+
+                connStatus = ConnStatus.ComServerInit;
+                break;
+
+              // ---------------------------------------------------------------
+              case WaitBeforeNextTry:
+              // ---------------------------------------------------------------
+                Thread.sleep(stopLatencyTime);
+                waitCounter--;
+                if(waitCounter <= 0)
+                  connStatus = ConnStatus.TestConnection;
+                break;
+
+              // ---------------------------------------------------------------
+              case ComServerInit:
+              // ---------------------------------------------------------------
+                if(textMode == true)
+                {
+                  inputText   = new BufferedReader
+                              (
+                                new InputStreamReader(socket.getInputStream())
+                              );
+                  outputText  = new PrintWriter(socket.getOutputStream());
+                }
+                else
+                {
+                  inputBin    = new BufferedInputStream(socket.getInputStream());
+                  outputBin   = new PrintStream(socket.getOutputStream());
+                }
+                connStatus = ConnStatus.ComServerReady;
+                break;
+
+
+              // ---------------------------------------------------------------
+              case ComServerReady:
+              // ---------------------------------------------------------------
+                if((doSend == true) && (writeError == false))
+                {
+                  connStatus = ConnStatus.ComServerBusy;
+                  repCounter = 3;
+                  break;
+                }
+
+                if(textMode == true)
+                {
+                  if(inputText.ready())
+                  {
+                    try
+                    {
+                      nrRec = inputText.read(inMessage);
+                    }
+                    catch (IOException exc)
+                    {
+                      // Do not know, what to do here till now
+                      //
+                      Thread.sleep(stopLatencyTime);
+                      break;
+                    }
+                  }
+                  else
+                  {
+                    Thread.sleep(0);
+                  }
+                }
+                else
+                {
+                  nrRec = inputBin.available();
+                  if(nrRec > 0)
+                  {
+                    try
+                    {
+                      nrRec = inputBin.read(inData);
+                    }
+                    catch (IOException exc)
+                    {
+                      // Do not know, what to do here till now
+                      //
+                      Thread.sleep(stopLatencyTime);
+                      break;
+                    }
+                  }
+                  else
+                  {
+                    Thread.sleep(0);
+                  }
+                }
+                break;
+
+              // ---------------------------------------------------------------
+              case ComServerBusy:
+              // ---------------------------------------------------------------
+                if(textMode == true)
+                {
+                  outputText.print(outMessage);
+                  if(outputText.checkError() == true)
+                  {
+                    repCounter--;
+                    if(repCounter > 0)
+                    {
+                      Thread.sleep(stopLatencyTime);
+                      break;
+                    }
+                    else
+                    {
+                      writeError = true;
+                      connStatus = ConnStatus.ComServerReady;
+                      break;
+                    }
+                  }
+                }
+                else
+                {
+                  outputBin.write(outData);
+                  if(outputBin.checkError() == true)
+                  {
+                    repCounter--;
+                    if(repCounter > 0)
+                    {
+                      Thread.sleep(stopLatencyTime);
+                      break;
+                    }
+                    else
+                    {
+                      writeError = true;
+                      connStatus = ConnStatus.ComServerReady;
+                      break;
+                    }
+                  }
+                }
+                break;
+
+              case ThreadClosed:
+                // This status will never be reached, because ist is set with
+                // returning from run(). It is implemented to avoid warnings.
+                break;
+            }
+          } // end of while()
+          connStatus = ConnStatus.ThreadClosed;
+        }
+        catch (InterruptedException exc)
+        {
+          // May be later we use the possibility to interrupt the thread directly
+          //
+          connStatus = ConnStatus.ThreadClosed;
+          return;
+        }
+        catch (IOException exc)
+        {
+          // At the moment I do not know what to do if this happens
+          // I will check the context if it happens to get more information
+          //
+          connStatus = ConnStatus.ThreadClosed;
+          return;
         }
       }
     }
 
+    // -----------------------------------------------------------------------
+    // Constructors and initialisations
+    // -----------------------------------------------------------------------
+    //
+
     public SmnClient(InetAddress IpAddress, int port)
     {
-      WatchServer watchServer = new WatchServer(IpAddress, port);
+      watchServer = new WatchServer(IpAddress, port);
       watchServer.threadRuns = true;
       watchServer.start();
     }
 
+    // -----------------------------------------------------------------------
+    // User functions (methods)
+    // -----------------------------------------------------------------------
+    //
+
+    public void setWaitParameters
+            (int waitAvail, int waitIoError, int stopLatency)
+    {
+      watchServer.stopLatencyTime       = stopLatency;
+      watchServer.waitAvailabilityTime  = waitAvail;
+      watchServer.waitIoErrorTime       = waitIoError;
+    }
+
+    public int write(String text)
+    {
+      int retv = 0;
 
 
-  }
+
+      return(retv);
+    }
+
+  } // end class smnClient
 
   static public SmnClient connectServer(InetAddress ipAdr, int port)
   {

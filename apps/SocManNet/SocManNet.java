@@ -233,6 +233,7 @@ public class SocManNet
       int         repCounter;
       boolean     textMode;
       boolean     writeError;
+      boolean     writeCheckError;
 
       BufferedReader        inputText;
       BufferedInputStream   inputBin;
@@ -263,16 +264,16 @@ public class SocManNet
       public void run()
       {
         int   waitCounter = 10;
-        int   nrRec;
+        int   nrRec = 0;
 
         try
         {
+          // -----------------------------------------------------------------
+          // State machine for handling connection to server
+          // -----------------------------------------------------------------
+          //
           while (threadRuns)
           {
-            // -----------------------------------------------------------------
-            // State machine for handling connection to server
-            // -----------------------------------------------------------------
-            //
             switch (connStatus)
             {
               // ---------------------------------------------------------------
@@ -311,126 +312,132 @@ public class SocManNet
               // ---------------------------------------------------------------
                 Thread.sleep(stopLatencyTime);
                 waitCounter--;
-                if(waitCounter <= 0)
+                if (waitCounter <= 0)
                   connStatus = ConnStatus.TestConnection;
                 break;
 
               // ---------------------------------------------------------------
               case ComServerInit:
               // ---------------------------------------------------------------
-                if(textMode == true)
+                if (textMode)
                 {
-                  inputText   = new BufferedReader
-                              (
-                                new InputStreamReader(socket.getInputStream())
-                              );
-                  outputText  = new PrintWriter(socket.getOutputStream());
-                }
-                else
+                  inputText = new BufferedReader
+                          (
+                                  new InputStreamReader(socket.getInputStream())
+                          );
+                  outputText = new PrintWriter(socket.getOutputStream());
+                } else
                 {
-                  inputBin    = new BufferedInputStream(socket.getInputStream());
-                  outputBin   = new PrintStream(socket.getOutputStream());
+                  inputBin = new BufferedInputStream(socket.getInputStream());
+                  outputBin = new PrintStream(socket.getOutputStream());
                 }
                 connStatus = ConnStatus.ComServerReady;
+                writeError = false;
+                writeCheckError = false;
+                doSend = false;
                 break;
 
 
               // ---------------------------------------------------------------
               case ComServerReady:
               // ---------------------------------------------------------------
-                if((doSend == true) && (writeError == false))
-                {
-                  connStatus = ConnStatus.ComServerBusy;
-                  repCounter = 3;
-                  break;
-                }
-
-                if(textMode == true)
-                {
-                  if(inputText.ready())
+                if (doSend && !writeError)
                   {
-                    try
+                    connStatus = ConnStatus.ComServerBusy;
+                    repCounter = 3;
+                    break;
+                  }
+
+                try
+                {
+                  if (textMode)
+                  {
+                    if (inputText.ready())
                     {
                       nrRec = inputText.read(inMessage);
                     }
-                    catch (IOException exc)
+                    else
                     {
-                      // Do not know, what to do here till now
-                      //
-                      Thread.sleep(stopLatencyTime);
-                      break;
+                      Thread.sleep(0);
                     }
                   }
                   else
                   {
-                    Thread.sleep(0);
-                  }
-                }
-                else
-                {
-                  nrRec = inputBin.available();
-                  if(nrRec > 0)
-                  {
-                    try
+                    nrRec = inputBin.available();
+                    if (nrRec > 0)
                     {
                       nrRec = inputBin.read(inData);
                     }
-                    catch (IOException exc)
+                    else
                     {
-                      // Do not know, what to do here till now
-                      //
-                      Thread.sleep(stopLatencyTime);
-                      break;
+                      Thread.sleep(0);
                     }
                   }
-                  else
-                  {
-                    Thread.sleep(0);
-                  }
+                }
+                catch (IOException exc)
+                {
+                  // Do not know, what to do here till now
+                  //
+                  Thread.sleep(stopLatencyTime);
+                  break;
                 }
                 break;
 
               // ---------------------------------------------------------------
               case ComServerBusy:
               // ---------------------------------------------------------------
-                if(textMode == true)
+                try
                 {
-                  outputText.print(outMessage);
-                  if(outputText.checkError() == true)
+                  if (textMode)
                   {
-                    repCounter--;
-                    if(repCounter > 0)
+                    outputText.print(outMessage);
+                    if (outputText.checkError())
                     {
-                      Thread.sleep(stopLatencyTime);
-                      break;
+                      repCounter--;
+                      if (repCounter > 0)
+                      {
+                        Thread.sleep(stopLatencyTime);
+                        break;
+                      }
+                      else
+                      {
+                        writeError = true;
+                        writeCheckError = true;
+                        connStatus = ConnStatus.ComServerReady;
+                        break;
+                      }
                     }
-                    else
+                  }
+                  else
+                  {
+                    outputBin.write(outData);
+                    if (outputBin.checkError())
                     {
-                      writeError = true;
-                      connStatus = ConnStatus.ComServerReady;
-                      break;
+                      repCounter--;
+                      if (repCounter > 0)
+                      {
+                        Thread.sleep(stopLatencyTime);
+                        break;
+                      }
+                      else
+                      {
+                        writeError = true;
+                        writeCheckError = true;
+                        connStatus = ConnStatus.ComServerReady;
+                        break;
+                      }
                     }
                   }
                 }
-                else
+                catch (IOException exc)
                 {
-                  outputBin.write(outData);
-                  if(outputBin.checkError() == true)
-                  {
-                    repCounter--;
-                    if(repCounter > 0)
-                    {
-                      Thread.sleep(stopLatencyTime);
-                      break;
-                    }
-                    else
-                    {
-                      writeError = true;
-                      connStatus = ConnStatus.ComServerReady;
-                      break;
-                    }
-                  }
+                  // I hope, this exception is thrown, if the server is not
+                  // available anymore. I will test ist later.
+                  writeError = true;
+                  connStatus = ConnStatus.ComServerReady;
+                  break;
                 }
+                doSend = false;
                 break;
 
               case ThreadClosed:
@@ -486,11 +493,16 @@ public class SocManNet
 
     public int write(String text)
     {
-      int retv = 0;
+      if(watchServer.writeError)
+        return(-2);
 
+      if(watchServer.doSend)
+        return(-1);
 
+      watchServer.outMessage = text.toCharArray();
+      watchServer.doSend = true;
 
-      return(retv);
+      return(0);
     }
 
   } // end class smnClient

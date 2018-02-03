@@ -55,7 +55,7 @@ public class KeyHandler implements View.OnKeyListener
 
         if(!locEnterDown) break;
 
-        setUpIpVars(view);
+        setUpIpVars((EditText) view);
         retv = true;
 
         break;
@@ -80,9 +80,8 @@ public class KeyHandler implements View.OnKeyListener
     portGiven       = false;
   }
 
-  public void setUpIpVars(View view)
+  public void setUpIpVars(EditText edt)
   {
-    EditText edt = (EditText) view;
     String input = edt.getText().toString();
 
     String[] ipPort  = input.split(":");
@@ -136,7 +135,7 @@ public class KeyHandler implements View.OnKeyListener
         {
           InputMethodManager imm = (InputMethodManager)
                   context.getSystemService(context.INPUT_METHOD_SERVICE);
-          imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+          imm.hideSoftInputFromWindow(edt.getWindowToken(), 0);
         }
       }
       else

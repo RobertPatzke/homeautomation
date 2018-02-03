@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity
 
   void initIpAdr()
   {
-    String fileDirectory = getFilesDir().toString();
+    String fileDirectory = getExternalFilesDir(null).toString();
     LineFile.setFilesDir(fileDirectory);
 
     etIpAdr = findViewById(R.id.etIpAdr);
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity
     String ippStr;
 
     if(!etIpKeyHandler.ipEntered(false))
-      etIpKeyHandler.setUpIpVars(view);
+      etIpKeyHandler.setUpIpVars(etIpAdr);
 
     if(etIpKeyHandler.ipEntered(false))
     {
@@ -98,13 +98,26 @@ public class MainActivity extends AppCompatActivity
     }
     else
     {
-
+      tvStatus.setText(R.string.ipInitError);
     }
   }
 
   // -------------------------------------------------------------------------
   // Testing Client
   // -------------------------------------------------------------------------
+
+  Button  butSmnClient;
+
+  void initClient()
+  {
+
+  }
+
+  public void butSmnClient_Click(View view)
+  {
+  }
+
+
 
 }
 

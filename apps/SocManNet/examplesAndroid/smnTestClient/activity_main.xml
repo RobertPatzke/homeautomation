@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/darksteelblue"
-        android:textSize="10dp"
+        android:textSize="12dp"
         android:textColor="@color/whitesmoke"/>
 
     <LinearLayout
@@ -40,5 +40,14 @@
             android:onClick="butIpAdr_Click" />
 
     </LinearLayout>
+
+    <Button
+        android:id="@+id/butSmnClient"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAllCaps="false"
+        android:textColor="@color/gray"
+        android:text="@string/smnConnect"
+        android:onClick="butSmnClient_Click"/>
 
 </LinearLayout>

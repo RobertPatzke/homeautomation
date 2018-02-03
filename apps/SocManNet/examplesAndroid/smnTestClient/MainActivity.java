@@ -1,10 +1,12 @@
 package hsh.mplab.smntestclient;
 
+import android.graphics.Color;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -24,156 +26,85 @@ public class MainActivity extends AppCompatActivity
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     initIpAdr();
-    timerInit();
+    //timerInit();
   }
 
 
+  int     defaultPort   = 4001;
+  String  ipAdrFileName = "IpAdr01.txt";
+
   // -------------------------------------------------------------------------
   // Handling IP address input:  EditText id = etIpAdr, Button id = butIpAdr
+  //           and status view:  TextView id = tvStatus
   // -------------------------------------------------------------------------
   //
 
+  TextView        tvStatus;
   Button          butIpAdr;
   EditText        etIpAdr;
   String          etIpInitText;
   String          etIpInitStr;
   KeyHandler      etIpKeyHandler;
+  String          serverIpAdrStr;
+  int             serverPort;
 
   void initIpAdr()
   {
+    String fileDirectory = getFilesDir().toString();
+    LineFile.setFilesDir(fileDirectory);
+
     etIpAdr = findViewById(R.id.etIpAdr);
     etIpInitStr = getResources().getString(R.string.ipInitText);
-    etIpInitText = LineFile.getString("IpAdr01.txt",etIpInitStr);
+    etIpInitText = LineFile.getString(ipAdrFileName,etIpInitStr);
     etIpAdr.setText(etIpInitText);
     etIpKeyHandler = new KeyHandler(this,1,true);
     etIpAdr.setOnKeyListener(etIpKeyHandler);
 
     butIpAdr = findViewById(R.id.butIpAdr);
+    tvStatus = findViewById(R.id.tvStatus);
+    tvStatus.setText(fileDirectory);
   }
 
   public void etIpAdr_Click(View view)
   {
     if(etIpInitText.equals(etIpInitStr))
       etIpAdr.setText("");
+    butIpAdr.setTextColor(Color.BLACK);
   }
 
   public void butIpAdr_Click(View view)
   {
-  }
+    String ippStr;
 
+    if(!etIpKeyHandler.ipEntered(false))
+      etIpKeyHandler.setUpIpVars(view);
 
-
-  // -------------------------------------------------------------------------
-  // State Machine
-  // -------------------------------------------------------------------------
-  // Ok, it is not necessary to have a state machine with any simple program,
-  // but I got so much familiar with this kind of programming that I feel
-  // somehow helpless with other concepts.
-  // (I have to create a snippet for it, because on x times I just copy the
-  // code from other projects, here from devices/android/baseDevice)
-  //
-
-  // -------------------------------------------------------------------------
-  // Initialisation of a timer for running a state machine (automat)
-  // -------------------------------------------------------------------------
-  //
-  Timer     smnTimer;
-  TimerTask smnTimerTask;
-  int       frequency;
-
-  private void timerInit()
-  {
-    long smnTimerPeriod = 50;       // repetition time in milliseconds
-    long smnTimerStartDelay = 500;  // start delay in milliseconds
-                                    // Expecting some time extra for creating
-                                    // all graphics we simply wait
-
-    frequency = (int) (1000 / smnTimerPeriod);  // timer frequency is put to a
-                                                // global variable for using it
-                                                // in any environment
-
-    smnTimerTask = new TimerTask()
+    if(etIpKeyHandler.ipEntered(false))
     {
-      @Override                       // creating a timer task and overriding
-      public void run()               // its run method with ower own run method
-      {
-        stateMachine(frequency);      // cyclic calling our state machine
-      }
-    };
+      if(etIpKeyHandler.portEntered(false))
+        ippStr = etIpKeyHandler.getIpPortStr();
+      else
+        ippStr = etIpKeyHandler.getIpStr() + ":" + defaultPort;
 
-    smnTimer = new Timer();
-    smnTimer.scheduleAtFixedRate(smnTimerTask, smnTimerStartDelay, smnTimerPeriod);
-  }
+      String result = LineFile.putString(ipAdrFileName,ippStr);
+      if(result != null)
+        tvStatus.setText(result);
 
-  enum SmState          // Definition of possible internal states
-  {
-    Init,
-    WaitAdress,
-    Idle
-  }
+      serverIpAdrStr = etIpKeyHandler.getIpStr();
+      serverPort = etIpKeyHandler.getPort();
 
-  // Variables used for the state machine
-  //
-  SmState   smState = SmState.Init;       // Initialising state machine
-  int       globSeqCounter = 0;           // Counter for second interval
-  int       waitCounter = 0;              // Counter for delays
-  String    infoMsg;                      // Holding Messages
-  boolean   oneShot;                      // Control single actions in loops
-  int       stateLoopCounter = 0;         // Counting the ticks in state
-
-  boolean   ipAddressValid = false;
-
-
-  void stateMachine(int inFreq)
-  {
-    // -----------------------------------------------------------------------
-    // state independent activities
-    // -----------------------------------------------------------------------
-    //
-
-    stateLoopCounter++;     // simply counting the enters
-
-    // do this independent from state every half second
-    //
-    globSeqCounter++;
-    if (globSeqCounter >= inFreq / 2)
+      etIpKeyHandler.clear();
+      butIpAdr.setTextColor(Color.GRAY);
+    }
+    else
     {
-      globSeqCounter = 0;
 
     }
-
-    // -----------------------------------------------------------------------
-    // state dependent activities
-    // -----------------------------------------------------------------------
-    //
-
-    switch (smState)
-    {
-      // ---------------------------------------------------------------------
-      case Init:                            // Initialisation
-        // ---------------------------------------------------------------------
-        // Initialising our application variables
-        smState = SmState.WaitAdress;
-        break;
-
-
-      // ---------------------------------------------------------------------
-      case WaitAdress:                      // Waiting for a valid Ip-Address
-        // ---------------------------------------------------------------------
-        //
-        if (!ipAddressValid)
-          break;
-        smState = SmState.Idle;
-        break;
-
-      // ---------------------------------------------------------------------
-      case Idle:
-        // ---------------------------------------------------------------------
-        break;
-
-    }
-
   }
+
+  // -------------------------------------------------------------------------
+  // Testing Client
+  // -------------------------------------------------------------------------
 
 }
 

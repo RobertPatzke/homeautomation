@@ -55,65 +55,7 @@ public class KeyHandler implements View.OnKeyListener
 
         if(!locEnterDown) break;
 
-        EditText edt = (EditText) view;
-        String input = edt.getText().toString();
-        String[] ipPort  = input.split(":");
-        if(ipPort.length == 2)
-        {
-          try
-          {
-            port = Integer.parseInt(ipPort[1]);
-            portGiven = true;
-          }
-          catch (NumberFormatException exc)
-          {
-            portGiven = false;
-          }
-        }
-        String[] element = ipPort[0].split("\\.");
-        if(element.length != 4)
-        {
-          isIpAdr = false;
-          edt.setText("");
-        }
-        else
-        {
-          isIpAdr = true;
-
-          for(int i = 0; i < 4; i++)
-          {
-            try
-            {
-              int ival = Integer.parseInt(element[i]);
-              if(ival < 0 || ival > 255)
-              {
-                isIpAdr = false;
-                break;
-              }
-              ipAdrByte[i] = (byte) ival;
-            }
-            catch (NumberFormatException exc)
-            {
-              isIpAdr = false;
-              break;
-            }
-          }
-
-          if(isIpAdr)
-          {
-            ipAdrStr = ipPort[0];
-            if(portGiven)
-              ipAdrPortStr = input;
-            if(hideKeyboard)
-            {
-              InputMethodManager imm = (InputMethodManager)
-                      context.getSystemService(context.INPUT_METHOD_SERVICE);
-              imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-            }
-          }
-          else
-            edt.setText("");
-        }
+        setUpIpVars(view);
         retv = true;
 
         break;
@@ -136,6 +78,70 @@ public class KeyHandler implements View.OnKeyListener
     ipAdrByte       = new byte[4];
     isIpAdr         = false;
     portGiven       = false;
+  }
+
+  public void setUpIpVars(View view)
+  {
+    EditText edt = (EditText) view;
+    String input = edt.getText().toString();
+
+    String[] ipPort  = input.split(":");
+    if(ipPort.length == 2)
+    {
+      try
+      {
+        port = Integer.parseInt(ipPort[1]);
+        portGiven = true;
+      }
+      catch (NumberFormatException exc)
+      {
+        portGiven = false;
+      }
+    }
+    String[] element = ipPort[0].split("\\.");
+    if(element.length != 4)
+    {
+      isIpAdr = false;
+      edt.setText("");
+    }
+    else
+    {
+      isIpAdr = true;
+
+      for(int i = 0; i < 4; i++)
+      {
+        try
+        {
+          int ival = Integer.parseInt(element[i]);
+          if(ival < 0 || ival > 255)
+          {
+            isIpAdr = false;
+            break;
+          }
+          ipAdrByte[i] = (byte) ival;
+        }
+        catch (NumberFormatException exc)
+        {
+          isIpAdr = false;
+          break;
+        }
+      }
+
+      if(isIpAdr)
+      {
+        ipAdrStr = ipPort[0];
+        if(portGiven)
+          ipAdrPortStr = input;
+        if(hideKeyboard)
+        {
+          InputMethodManager imm = (InputMethodManager)
+                  context.getSystemService(context.INPUT_METHOD_SERVICE);
+          imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+      }
+      else
+        edt.setText("");
+    }
   }
 
   public boolean enterDown(boolean reset)

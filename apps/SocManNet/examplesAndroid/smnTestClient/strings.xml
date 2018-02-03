@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">smnTestClient</string>
+    <string name="ipInitText">Enter IP+port (d.d.d.d:d)</string>
+    <string name="ipInitError">Error: Invalid IP-Adress, Click input field</string>
+</resources>

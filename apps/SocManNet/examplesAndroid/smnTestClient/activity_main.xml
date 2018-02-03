@@ -7,10 +7,28 @@
     android:orientation="vertical"
     tools:context="hsh.mplab.smntestclient.MainActivity">
 
-    <EditText
-        android:id="@+id/etIpAdr"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="etIpAdr_Click" />
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/etIpAdr"
+            android:layout_width="0dp"
+            android:layout_weight=".8"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:backgroundTint="@color/darksteelblue"
+            android:onClick="etIpAdr_Click" />
+
+        <Button
+            android:id="@+id/butIpAdr"
+            android:layout_width="0dp"
+            android:layout_weight=".2"
+            android:layout_height="wrap_content"
+            android:text="OK"
+            android:onClick="butIpAdr_Click" />
+
+    </LinearLayout>
 
 </LinearLayout>

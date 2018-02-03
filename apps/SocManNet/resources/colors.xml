@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Farben entsprechend .NET WPF, teilweise korrigiert
+<!-- Created by Robert Patzke (long time ago, < 2010)
+     English comments added 2018
+     These colors I'd taken from .NET/WPF, but later I found, that names
+     and values come from Internet standardisation environment.
+     Some names/values are created by myself (most extensions of dark/light
 -->
 <resources>
     <color name="tab_selected">#ccffff</color>
@@ -10,8 +14,8 @@
     <color name="colorPrimaryDark">#303f9f</color>
     <color name="colorAccent">#80cccc</color>
 
-    <!-- Grau, Variationen -->
-    <!-- ================= -->
+    <!-- gray and variations -->
+    <!-- =================== -->
     <color name="black">#000000</color>
     <color name="darkdarkgray">#202020</color>
     <color name="darkslategray">#203040</color>
@@ -21,9 +25,9 @@
     <color name="darkgray">#808080</color>
     <color name="lightslategray">#8090A0</color>
     <color name="gray">#A9A9A9</color>
-    <!-- DarkGray und Gray sind bei .NET/WPF genau umgekehrt definiert
-         Das halte ich allerdings für einen Fehler, denn DarkGray sollt
-         auf jeden Fall dunkler sein als Gray                            -->
+    <!-- DarkGray and Gray are changed hier compared to .NET/WPF
+         Because in WPF, Gray is darker than DarkGray
+         and that is a mistake in my view                    -->
     <color name="silver">#C0C0C0</color>
     <color name="lightgray">#D3D3D3</color>
     <color name="gainsboro">#DCDCDC</color>
@@ -39,6 +43,7 @@
     <color name="darkblue">#00008B</color>
     <color name="mediumblue">#0000CD</color>
     <color name="blue">#0000FF</color>
+    <color name="darksteelblue">#2E5678</color>
     <color name="darkslateblue">#483D8B</color>
     <color name="slateblue">#6A5ACD</color>
     <color name="mediumslateblue">#7B68EE</color>

@@ -3,6 +3,7 @@ package hsh.mplab.smntestclient;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 
 import java.util.Timer;
@@ -28,10 +29,11 @@ public class MainActivity extends AppCompatActivity
 
 
   // -------------------------------------------------------------------------
-  // EditText id = etIpAdr
+  // Handling IP address input:  EditText id = etIpAdr, Button id = butIpAdr
   // -------------------------------------------------------------------------
   //
 
+  Button          butIpAdr;
   EditText        etIpAdr;
   String          etIpInitText;
   String          etIpInitStr;
@@ -43,8 +45,10 @@ public class MainActivity extends AppCompatActivity
     etIpInitStr = getResources().getString(R.string.ipInitText);
     etIpInitText = LineFile.getString("IpAdr01.txt",etIpInitStr);
     etIpAdr.setText(etIpInitText);
-    etIpKeyHandler = new KeyHandler(1);
+    etIpKeyHandler = new KeyHandler(this,1,true);
     etIpAdr.setOnKeyListener(etIpKeyHandler);
+
+    butIpAdr = findViewById(R.id.butIpAdr);
   }
 
   public void etIpAdr_Click(View view)
@@ -52,6 +56,11 @@ public class MainActivity extends AppCompatActivity
     if(etIpInitText.equals(etIpInitStr))
       etIpAdr.setText("");
   }
+
+  public void butIpAdr_Click(View view)
+  {
+  }
+
 
 
   // -------------------------------------------------------------------------

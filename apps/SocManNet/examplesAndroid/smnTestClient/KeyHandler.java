@@ -1,7 +1,10 @@
 package hsh.mplab.smntestclient;
 
+import android.app.Activity;
+import android.content.Context;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
 /**
@@ -15,15 +18,19 @@ public class KeyHandler implements View.OnKeyListener
   int     enterDownCount;
   byte[]  ipAdrByte;
   String  ipAdrStr;
+  String  ipAdrPortStr;
+  int     port;
   boolean isIpAdr;
+  boolean portGiven;
+  boolean hideKeyboard;
+  Context context;
 
-  public KeyHandler(int setMode)
+  public KeyHandler(Context userContext, int setMode, boolean doneHide)
   {
     modus           = setMode;
-    locEnterDown    = false;
-    enterDownCount  = 0;
-    ipAdrByte       = new byte[4];
-    isIpAdr         = false;
+    hideKeyboard    = doneHide;
+    context         = userContext;
+    clear();
   }
 
   @Override
@@ -45,47 +52,70 @@ public class KeyHandler implements View.OnKeyListener
     switch (modus)
     {
       case 1:
+
+        if(!locEnterDown) break;
+
         EditText edt = (EditText) view;
-
-        if(locEnterDown)
+        String input = edt.getText().toString();
+        String[] ipPort  = input.split(":");
+        if(ipPort.length == 2)
         {
-          String input = edt.getText().toString();
-          String[] element = input.split("\\.");
-          if(element.length != 4)
+          try
           {
-            isIpAdr = false;
-            edt.setText("");
+            port = Integer.parseInt(ipPort[1]);
+            portGiven = true;
           }
-          else
+          catch (NumberFormatException exc)
           {
-            isIpAdr = true;
+            portGiven = false;
+          }
+        }
+        String[] element = ipPort[0].split("\\.");
+        if(element.length != 4)
+        {
+          isIpAdr = false;
+          edt.setText("");
+        }
+        else
+        {
+          isIpAdr = true;
 
-            for(int i = 0; i < 4; i++)
+          for(int i = 0; i < 4; i++)
+          {
+            try
             {
-              try
-              {
-                int ival = Integer.parseInt(element[i]);
-                if(ival < 0 || ival > 255)
-                {
-                  isIpAdr = false;
-                  break;
-                }
-                ipAdrByte[i] = (byte) ival;
-              }
-              catch (NumberFormatException exc)
+              int ival = Integer.parseInt(element[i]);
+              if(ival < 0 || ival > 255)
               {
                 isIpAdr = false;
                 break;
               }
+              ipAdrByte[i] = (byte) ival;
             }
-
-            if(isIpAdr)
-              ipAdrStr = input;
-            else
-              edt.setText("");
+            catch (NumberFormatException exc)
+            {
+              isIpAdr = false;
+              break;
+            }
           }
-          retv = true;
+
+          if(isIpAdr)
+          {
+            ipAdrStr = ipPort[0];
+            if(portGiven)
+              ipAdrPortStr = input;
+            if(hideKeyboard)
+            {
+              InputMethodManager imm = (InputMethodManager)
+                      context.getSystemService(context.INPUT_METHOD_SERVICE);
+              imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            }
+          }
+          else
+            edt.setText("");
         }
+        retv = true;
+
         break;
 
       default:
@@ -95,26 +125,74 @@ public class KeyHandler implements View.OnKeyListener
     return(retv);
   }
 
-  public boolean enterDown()
+  // -------------------------------------------------------------------------
+  // User functions (methods) for accessing results
+  // -------------------------------------------------------------------------
+
+  public void clear()
+  {
+    locEnterDown    = false;
+    enterDownCount  = 0;
+    ipAdrByte       = new byte[4];
+    isIpAdr         = false;
+    portGiven       = false;
+  }
+
+  public boolean enterDown(boolean reset)
   {
     if(locEnterDown)
     {
-      locEnterDown = false;
+      if(reset)
+        locEnterDown = false;
       return(true);
     }
     return(false);
   }
 
-  public boolean ipEntered()
+  public boolean ipEntered(boolean reset)
   {
     if(isIpAdr)
     {
-      isIpAdr = false;
+      if(reset)
+       isIpAdr = false;
       return(true);
     }
     return(false);
   }
 
+  public boolean portEntered(boolean reset)
+  {
+    if(portGiven)
+    {
+      if(reset)
+        portGiven = false;
+      return(true);
+    }
+    return(false);
+  }
+
+  public String getIpStr()
+  {
+    if(!isIpAdr)
+      return(null);
+
+    return(ipAdrStr);
+  }
+
+  public int getPort()
+  {
+    if(!portGiven)
+      return(-1);
+
+    return(port);
+  }
+
+  public String getIpPortStr()
+  {
+    if(portGiven && isIpAdr)
+      return(ipAdrPortStr);
+    return(null);
+  }
 
 }
 

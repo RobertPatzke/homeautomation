@@ -11,6 +11,9 @@ import android.widget.TextView;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import hsh.mplab.socmannet.SmnClient;
+import hsh.mplab.socmannet.SocManNet;
+
 /**
  * Testing the Client of SocManNet
  * Created on February 2nd 2018 by Robert Patzke
@@ -26,12 +29,16 @@ public class MainActivity extends AppCompatActivity
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     initIpAdr();
+    initClient();
     //timerInit();
   }
 
 
   int     defaultPort   = 4001;
   String  ipAdrFileName = "IpAdr01.txt";
+
+  int     colButActive;
+  int     colButClosed;
 
   // -------------------------------------------------------------------------
   // Handling IP address input:  EditText id = etIpAdr, Button id = butIpAdr
@@ -40,11 +47,14 @@ public class MainActivity extends AppCompatActivity
   //
 
   TextView        tvStatus;
+  TextView        tvError;
+  TextView        tvInfo;
   Button          butIpAdr;
   EditText        etIpAdr;
   String          etIpInitText;
   String          etIpInitStr;
   KeyHandler      etIpKeyHandler;
+
   String          serverIpAdrStr;
   int             serverPort;
 
@@ -61,8 +71,15 @@ public class MainActivity extends AppCompatActivity
     etIpAdr.setOnKeyListener(etIpKeyHandler);
 
     butIpAdr = findViewById(R.id.butIpAdr);
+
     tvStatus = findViewById(R.id.tvStatus);
     tvStatus.setText(fileDirectory);
+
+    tvError = findViewById(R.id.tvError);
+    tvInfo = findViewById(R.id.tvInfo);
+
+    colButActive = getResources().getColor(R.color.black);
+    colButClosed = getResources().getColor(R.color.gray);
   }
 
   public void etIpAdr_Click(View view)
@@ -94,30 +111,137 @@ public class MainActivity extends AppCompatActivity
       serverPort = etIpKeyHandler.getPort();
 
       etIpKeyHandler.clear();
-      butIpAdr.setTextColor(Color.GRAY);
+      butIpAdr.setTextColor(colButClosed);
+      butSmnClientLeft.setTextColor(colButActive);
     }
     else
     {
-      tvStatus.setText(R.string.ipInitError);
+      tvError.setText(R.string.ipInitError);
     }
   }
 
   // -------------------------------------------------------------------------
   // Testing Client
   // -------------------------------------------------------------------------
+  //
+  SmnClient smnClient01;
 
-  Button  butSmnClient;
+  enum TestClientStatus
+  {
+    unborn,
+    initialising,
+    waitForServer
+  }
+
+  TestClientStatus   testClientStatus = TestClientStatus.unborn;
+
+  Button  butSmnClientLeft;
+  Button  butSmnClientRight;
 
   void initClient()
   {
-
+    butSmnClientLeft = findViewById(R.id.butSmnClientLeft);
+    butSmnClientRight = findViewById(R.id.butSmnClientRight);
   }
 
-  public void butSmnClient_Click(View view)
+  public void butSmnClientLeft_Click(View view)
+  {
+    switch (testClientStatus)
+    {
+      case unborn:
+        tvStatus.setText(R.string.tcsInitialising);
+        smnClient01 = SmnClient.connectServer
+          (serverIpAdrStr, serverPort, new HandleClientEvents());
+        if(smnClient01 != null)
+          testClientStatus = TestClientStatus.initialising;
+        else
+          tvError.setText("ERROR: " + SmnClient.connectErrorMsg);
+        break;
+
+      case waitForServer:
+        butSmnClientLeft.setText(R.string.smnConnect);
+        testClientStatus = TestClientStatus.unborn;
+        smnClient01.close();
+        break;
+    }
+  }
+
+  void setButSmnClientLeft(SmnClient.ConnStatus connStat)
+  {
+    if(testClientStatus == TestClientStatus.initialising)
+    {
+      if(   connStat == SmnClient.ConnStatus.TestConnection
+         || connStat == SmnClient.ConnStatus.WaitBeforeNextTry )
+      {
+        testClientStatus = TestClientStatus.waitForServer;
+        butSmnClientLeft.setText(R.string.smnClose);
+      }
+    }
+  }
+
+  public void butSmnClientRight_Click(View view)
   {
   }
 
+  // -------------------------------------------------------------------------
+  // Support for accessing UIThread
+  // -------------------------------------------------------------------------
+  //
+  class HandleClientEvents implements SmnClient.Event
+  {
+    public void putStatus(final SmnClient.ConnStatus connStat)
+    {
+      if(tvStatus == null) return;
+      final String msg = "ClientStatus = " + connStat;
 
+      Runnable displayStatus = new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          tvStatus.setText(msg);
+          setButSmnClientLeft(connStat);
+        }
+      };
+
+      runOnUiThread(displayStatus);
+    }
+
+    public void putErrorMsg(String errMsg)
+    {
+      if(tvError == null) return;
+      final String msg = "ERROR: " + errMsg;
+
+      Runnable displayError = new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          tvError.setText(msg);
+        }
+      };
+
+      runOnUiThread(displayError);
+    }
+
+    public void putInfoMsg(String infMsg)
+    {
+      if(tvInfo == null) return;
+      final String msg = infMsg;
+
+      Runnable displayInfo = new Runnable()
+      {
+        @Override
+        public void run()
+        {
+          tvInfo.setText(msg);
+        }
+      };
+
+      runOnUiThread(displayInfo);
+    }
+
+  }
 
 }
 

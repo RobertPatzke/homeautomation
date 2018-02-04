@@ -2,10 +2,11 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    tools:context="hsh.mplab.smntestclient.MainActivity"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="hsh.mplab.smntestclient.MainActivity">
+    android:background="@color/lightsteelblue">
 
     <TextView
         android:id="@+id/tvStatus"
@@ -15,18 +16,35 @@
         android:textSize="12dp"
         android:textColor="@color/whitesmoke"/>
 
+    <TextView
+        android:id="@+id/tvInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/forestgreen"
+        android:textSize="12dp"
+        android:textColor="@color/whitesmoke"/>
+
+    <TextView
+        android:id="@+id/tvError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/darkred"
+        android:textSize="12dp"
+        android:textColor="@color/white"/>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:background="@color/aliceblue">
 
         <EditText
             android:id="@+id/etIpAdr"
             android:layout_width="0dp"
-            android:layout_weight=".8"
             android:layout_height="wrap_content"
-            android:inputType="text"
+            android:layout_weight=".8"
             android:backgroundTint="@color/darksteelblue"
+            android:inputType="text"
             android:onClick="etIpAdr_Click" />
 
         <Button
@@ -34,20 +52,40 @@
             android:layout_width="0dp"
             android:layout_weight=".2"
             android:layout_height="wrap_content"
-            android:textStyle="normal"
-            android:textColor="@color/gray"
+            android:textStyle="bold"
+            android:textColor="@color/black"
             android:text="OK"
             android:onClick="butIpAdr_Click" />
 
     </LinearLayout>
 
-    <Button
-        android:id="@+id/butSmnClient"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAllCaps="false"
-        android:textColor="@color/gray"
-        android:text="@string/smnConnect"
-        android:onClick="butSmnClient_Click"/>
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/butSmnClientLeft"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            android:textColor="@color/gray"
+            android:text="@string/smnConnect"
+            android:onClick="butSmnClientLeft_Click"/>
+
+        <Button
+            android:id="@+id/butSmnClientRight"
+            android:layout_width="0dp"
+            android:layout_weight="0"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:text="@string/smnClose"
+            android:onClick="butSmnClientRight_Click"/>
+
+    </LinearLayout>
 
 </LinearLayout>

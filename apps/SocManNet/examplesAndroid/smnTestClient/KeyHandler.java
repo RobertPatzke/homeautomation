@@ -82,6 +82,7 @@ public class KeyHandler implements View.OnKeyListener
 
   public void setUpIpVars(EditText edt)
   {
+    String portStr;
     String input = edt.getText().toString();
 
     String[] ipPort  = input.split(":");
@@ -89,7 +90,8 @@ public class KeyHandler implements View.OnKeyListener
     {
       try
       {
-        port = Integer.parseInt(ipPort[1]);
+        portStr = ipPort[1].replace("\n","").replace("\r","");
+        port = Integer.parseInt(portStr);
         portGiven = true;
       }
       catch (NumberFormatException exc)

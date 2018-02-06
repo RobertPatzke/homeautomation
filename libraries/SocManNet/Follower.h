@@ -32,8 +32,9 @@
 
 #define MAXVALCHRLEN  128
 
-#define COMM_OBJ_NAME_LEN 32
-#define DATA_OBJ_NAME_LEN 32
+#define COMM_OBJ_NAME_LEN   32
+#define DATA_OBJ_NAME_LEN   32
+#define TIME_STR_LEN        24
 
 #define TEXTVAL_LEN_MAX 256
 
@@ -160,6 +161,7 @@ class Follower
     int         deviceKey;
     int         deviceState;
     char        deviceName[DATA_OBJ_NAME_LEN];
+    char        timeString[TIME_STR_LEN];
     int         posX;
     int         posY;
     int         posZ;

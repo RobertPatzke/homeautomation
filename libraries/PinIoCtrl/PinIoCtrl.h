@@ -1,14 +1,14 @@
 //-----------------------------------------------------------------------------
 // Topic:   Decentral home automation / smart devices
-// File:    Sonoff.h
+// File:    PinIoCtrl.h
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de  / homeautomation.x-api.de
 //-----------------------------------------------------------------------------
 // Licence: CC-BY-SA  (see Wikipedia: Creative Commons)
 //
 
-#ifndef _Sonoff_h
-#define _Sonoff_h
+#ifndef _PinIoCtrl_h
+#define _PinIoCtrl_h
 //-----------------------------------------------------------------------------
 
 #ifndef smnNoArduinoLibs
@@ -21,12 +21,25 @@
 
 #define InfoLED     13
 
+enum MorseCode
+{
+  Ignore,
+  Dit,
+  Dah,
+  PauseDit,
+  PauseDah,
+  PauseWord,
+  PauseLong,
+  Repeat,
+  Close
+};
+
 // ---------------------------------------------------------------------------
-// class Sonoff
+// class PinIoCtrl
 // ---------------------------------------------------------------------------
 //
 
-class Sonoff
+class PinIoCtrl
 {
   // -------------------------------------------------------------------------
   // class specific data types
@@ -46,6 +59,8 @@ private:
   int       dimmVal, dimmCount;
   boolean   dimmed, simulatedDimm;
   int       ditLen, morseCount;
+  int       morseSmallSeq;
+  boolean   doMorse;
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -62,7 +77,7 @@ public:
   // constructors and initialisations
   // -------------------------------------------------------------------------
   //
-  Sonoff(); Sonoff(int outport);
+  PinIoCtrl(); PinIoCtrl(int outport);
   int initPerif(); void init(int port);
 
   // -------------------------------------------------------------------------
@@ -77,4 +92,4 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-#endif // _Sonoff_h
+#endif // _PinIoCtrl_h

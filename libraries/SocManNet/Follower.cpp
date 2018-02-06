@@ -742,90 +742,6 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
       //-----------------------------------------------------------------------
       chr = msg[idxValueChar];
 
-      /*
-      switch(chr)
-      {
-        
-        // ----------------------------------------------------------------- //
-        case ',':
-        // ----------------------------------------------------------------- //
-          // String abschliessen
-          valueBuf[idxBuf] = 0;
-
-          // Wert ASCII->INT konvertieren
-          intValue = atoi(valueBuf);
-
-          // Wert speichern
-          if(idxValue < MAXNRINT)
-          {
-            intArray[idxValue] = intValue;
-
-            idxValue++;
-          }
-
-          // Das Speichern weitere Werte initialisieren
-          idxBuf = 0;
-
-          break;
-          
-
-        // ----------------------------------------------------------------- //
-        case ';':
-        case ':':
-        // ----------------------------------------------------------------- //
-          // String abschliessen
-          valueBuf[idxBuf] = 0;
-
-          // Wert ASCII->INT konvertieren
-          intValue = atoi(valueBuf);
-
-          // Wert speichern
-          if(idxValue < MAXNRINT)
-          {
-            intArray[idxValue] = intValue;
-
-            idxValue++;
-          }
-
-          // Das Speichern weitere Werte initialisieren
-          idxBuf = 0;
-
-          // Merker 'Speichern ist fertig' setzen
-          storeReady = true;
-
-          break;
-
-        // ----------------------------------------------------------------- //
-        default:
-        // ----------------------------------------------------------------- //
-          if(idxBuf <= sizeof(idxBuf) - 2)
-          {
-            valueBuf[idxBuf] = chr;
-            idxBuf++;
-          }
-      }
-      
-
-      //-----------------------------------------------------------------------
-      // Pruefen, ob das Speichern fertig  ist
-      //-----------------------------------------------------------------------
-      if(storeReady == true)
-      {
-        // Anzahl der Werte uebernehmen
-        // Es wird nicht locIntCount uebernommen,
-        // weil es moeglich ist nur eine begrenzte Anzahl der Werte
-        // zu uebernehmen.
-        // locIntCount - entspricht der Anzahl empfangene Werte
-        // idxValue - entspricht der Anzahl uebernommene Werte
-        intCount = idxValue;
-
-        // Index fuer die Position weitere Wert-Strings aktualisieren
-        idxValueStr = idxValueChar + 1;
-
-        break;
-      }
-      */
-
       if(chr != ';' && chr != ':')
       {
           if(idxBuf <= MAXVALCHRLEN - 2)
@@ -880,87 +796,6 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
       //-----------------------------------------------------------------------
       chr = msg[idxValueChar];
 
-      /*
-      switch(chr)
-      {
-        // ----------------------------------------------------------------- //
-        case ',':
-        // ----------------------------------------------------------------- //
-          // String abschliessen
-          valueBuf[idxBuf] = 0;
-
-          // Wert ASCII->INT konvertieren
-          floatValue = atof(valueBuf);
-
-          // Wert speichern
-          if(idxValue < MAXNRFLOAT)
-          {
-            floatArray[idxValue] = floatValue;
-
-            idxValue++;
-          }
-
-          // Das Speichern weitere Werte initialisieren
-          idxBuf = 0;
-
-          break;
-
-        // ----------------------------------------------------------------- //
-        case ';':
-        case ':':
-        // ----------------------------------------------------------------- //
-          // String abschliessen
-          valueBuf[idxBuf] = 0;
-
-          // Wert ASCII->INT konvertieren
-          floatValue = atof(valueBuf);
-
-          // Wert speichern
-          if(idxValue < MAXNRFLOAT)
-          {
-            floatArray[idxValue] = floatValue;
-
-            idxValue++;
-          }
-
-          // Das Speichern weitere Werte initialisieren
-          idxBuf = 0;
-
-          // Merker 'Speichern ist fertig' setzen
-          storeReady = true;
-
-          break;
-
-        // ----------------------------------------------------------------- //
-        default:
-        // ----------------------------------------------------------------- //
-          if(idxBuf <= sizeof(idxBuf) - 2)
-          {
-            valueBuf[idxBuf] = chr;
-            idxBuf++;
-          }
-      }
-
-      //-----------------------------------------------------------------------
-      // Pruefen, ob das Speichern fertig  ist
-      //-----------------------------------------------------------------------
-      if(storeReady == true)
-      {
-        // Anzahl der Werte uebernehmen
-        // Es wird nicht locFloatCount uebernommen,
-        // weil es moeglich ist nur eine begrenzte Anzahl der Werte
-        // zu uebernehmen.
-        // locFloatCount - entspricht der Anzahl empfangene Werte
-        // idxValue - entspricht der Anzahl uebernommene Werte
-        floatCount = idxValue;
-
-        // Index fuer die Position weitere Wert-Strings aktualisieren
-        idxValueStr = idxValueChar + 1;
-
-        break;
-      }
-      */
-
       if(chr != ';' && chr != ':')
       {
           if(idxBuf <= MAXVALCHRLEN - 2)
@@ -1014,76 +849,6 @@ int Follower::storeDataMsg(char * msg, unsigned int msgLen)
       //-----------------------------------------------------------------------
       chr = msg[idxValueChar];
 
-      /*
-      switch(chr)
-      {
-        // ----------------------------------------------------------------- //
-        case ',':
-        // ----------------------------------------------------------------- //
-          // Speichern des Sring-Wertes abschliessen
-          if(idxValue < MAXNRTEXT)
-          {
-            textArray[idxValue][idxBuf] = 0;
-
-            idxValue++;
-          }
-
-          // Das Speichern weitere Werte initialisieren
-          idxBuf = 0;
-
-          break;
-
-        // ----------------------------------------------------------------- //
-        case ';':
-        case ':':
-        // ----------------------------------------------------------------- //
-          // Speichern des Sring-Wertes abschliessen
-          if(idxValue < MAXNRTEXT)
-          {
-            textArray[idxValue][idxBuf] = 0;
-
-            idxValue++;
-          }
-
-          // Das Speichern weitere Werte initialisieren
-          idxBuf = 0;
-
-          // Merker 'Speichern ist fertig' setzen
-          storeReady = true;
-
-          break;
-
-        // ----------------------------------------------------------------- //
-        default:
-        // ----------------------------------------------------------------- //
-          if(idxValue < MAXNRTEXT && idxBuf < (TEXTVAL_LEN_MAX - 2))
-          {
-            textArray[idxValue][idxBuf] = chr;
-
-            idxBuf++;
-          }
-      }
-
-      //-----------------------------------------------------------------------
-      // Pruefen, ob das Speichern fertig  ist
-      //-----------------------------------------------------------------------
-      if(storeReady == true)
-      {
-        // Anzahl der Werte uebernehmen
-        // Es wird nicht locTextCount uebernommen,
-        // weil es moeglich ist nur eine begrenzte Anzahl der Werte
-        // zu uebernehmen.
-        // locTextCount - entspricht der Anzahl empfangene Werte
-        // idxValue - entspricht der Anzahl uebernommene Werte
-        textCount = idxValue;
-
-        // Index fuer die Position weitere Wert-Strings aktualisieren
-        idxValueStr = idxValueChar + 1;
-
-        break;
-      }
-      */
-            
       if(chr != ';' && chr != ':')
       {
           if(idxValue < MAXNRTEXT && idxBuf < (TEXTVAL_LEN_MAX - 2))
@@ -1191,6 +956,22 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
         break;
       }
     }
+
+    //-------------------------------------------------------------------------
+    // DeviceName
+    //-------------------------------------------------------------------------
+
+  msgIdx = pduDataIdxField[pdiTime];
+  for(int i = 0; i < (TIME_STR_LEN - 1); i++)
+  {
+    timeString[i] = msg[msgIdx+i];
+    if(timeString[i] == ';')
+    {
+      timeString[i] = '\0';
+      break;
+    }
+  }
+
 
     //-------------------------------------------------------------------------
     // posX

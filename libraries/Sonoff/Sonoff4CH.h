@@ -19,7 +19,7 @@
   #include "Arduino.h"
 #endif
 
-#include "Sonoff.h"
+#include "PinIoCtrl.h"
 
 #define Relay1      12
 #define Relay2      05

@@ -1,19 +1,19 @@
 //-----------------------------------------------------------------------------
 // Topic:   Decentral home automation / smart devices
-// File:    Sonoff.cpp
+// File:    PinIoCtrl.cpp
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de  / homeautomation.x-api.de
 //-----------------------------------------------------------------------------
 // Licence: CC-BY-SA  (see Wikipedia: Creative Commons)
 //
-#include "Sonoff.h"
+#include "PinIoCtrl.h"
 
 // ---------------------------------------------------------------------------
 // Constructors and initialisations
 // ---------------------------------------------------------------------------
 //
 
-Sonoff::Sonoff()
+PinIoCtrl::PinIoCtrl()
 {
 #ifdef smnArduino
 
@@ -22,7 +22,7 @@ Sonoff::Sonoff()
   init(InfoLED);
 }
 
-Sonoff::Sonoff(int outport)
+PinIoCtrl::PinIoCtrl(int outport)
 {
 #ifdef smnArduino
 
@@ -31,7 +31,7 @@ Sonoff::Sonoff(int outport)
   init(outport);
 }
 
-void Sonoff::init(int port)
+void PinIoCtrl::init(int port)
 {
   outPort       = port;
   doFlash       = false;
@@ -39,6 +39,7 @@ void Sonoff::init(int port)
   flashLen      = 2;
   outPortSet    = false;
   outPortON     = false;
+  doMorse       = false;
 }
 
 
@@ -48,7 +49,7 @@ void Sonoff::init(int port)
 // This nitialisation is not part of the constructor, because we may call other
 // resources which may return errors or throw exceptions
 //
-int Sonoff::initPerif()
+int PinIoCtrl::initPerif()
 {
   int retv = 0;
 
@@ -67,7 +68,7 @@ int Sonoff::initPerif()
 // ---------------------------------------------------------------------------
 // This function has to be called cyclic, parameter is the calling frequency
 //
-void Sonoff::run(int frequency)
+void PinIoCtrl::run(int frequency)
 {
   currentFreq = frequency;
 
@@ -174,7 +175,7 @@ void Sonoff::run(int frequency)
 // flash()              start flashing the info LED
 // ---------------------------------------------------------------------------
 //
-void Sonoff::flash(int len)
+void PinIoCtrl::flash(int len)
 {
   int calc;
 
@@ -197,7 +198,7 @@ void Sonoff::flash(int len)
 // ---------------------------------------------------------------------------
 // Not all Pins support PWM. Set <sim> for simulation
 //
-int Sonoff::dimm(double damp, boolean sim)
+int PinIoCtrl::dimm(double damp, boolean sim)
 {
   if(sim)
   {
@@ -230,7 +231,7 @@ int Sonoff::dimm(double damp, boolean sim)
 // ---------------------------------------------------------------------------
 // Not all Pins support PWM. Set <sim> for simulation
 //
-void Sonoff::turn(boolean onOff)
+void PinIoCtrl::turn(boolean onOff)
 {
   outPortON = onOff;
 }

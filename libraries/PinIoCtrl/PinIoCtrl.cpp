@@ -39,7 +39,12 @@ void PinIoCtrl::init(int port)
   flashLen      = 2;
   outPortSet    = false;
   outPortON     = false;
+
+  simulatedDimm = false;
   doMorse       = false;
+  morseCount    = 0;
+  morseSeqIdx   = 0;
+  ditLen        = 150;
 }
 
 
@@ -59,9 +64,14 @@ int PinIoCtrl::initPerif()
 #else
    here may be direct port/register access used
 #endif
-
+   outPortSet = false;
   return(retv);
 }
+
+// ---------------------------------------------------------------------------
+// Auxiliary functions
+// ---------------------------------------------------------------------------
+//
 
 // ---------------------------------------------------------------------------
 // run()        cooperative threading
@@ -167,7 +177,82 @@ void PinIoCtrl::run(int frequency)
     }
   }
 
+  // -------------------------------------------------------------------------
+  // run morse
+  // -------------------------------------------------------------------------
+  //
+  if(doMorse)
+  {
+    if(morseCount > 0)
+    {
+      morseCount--;
+    }
+    else
+    {
+      if(outPortON)
+      {
+        morseCount = (currentFreq * ditLen) / 1000;
+        outPortON = false;
+        goto EndDoMorse;
+      }
 
+      byte morseCode = morseSequence[morseSeqIdx];
+      morseSeqIdx++;
+      if(morseSeqIdx >= smnMaxMorseLen)
+        morseSeqIdx = 0;
+
+      switch(morseCode)
+      {
+        case mcIgnore:
+          morseCount = 0;
+          break;
+
+        case mcDit:
+          morseCount = (currentFreq * ditLen) / 1000;
+          outPortON = true;
+          break;
+
+        case mcDah:
+          morseCount = (3 * currentFreq * ditLen) / 1000;
+          outPortON = true;
+          break;
+
+        case mcPauseSig:
+          morseCount = (currentFreq * ditLen) / 1000;
+          outPortON = false;
+          break;
+
+        case mcPauseChar:
+          morseCount = (2 * currentFreq * ditLen) / 1000;
+          outPortON = false;
+          break;
+
+        case mcPauseWord:
+          morseCount = (6 * currentFreq * ditLen) / 1000;
+          outPortON = false;
+          break;
+
+        case mcPauseLong:
+          morseCount = (34 * currentFreq * ditLen) / 1000;
+          outPortON = false;
+          break;
+
+        case mcRepeat:
+          morseSeqIdx = 0;
+          break;
+
+        case mcClose:
+          morseCount = 0;
+          morseSeqIdx = 0;
+          outPortON = false;
+          doMorse = false;
+          break;
+      }
+    }
+  }
+
+EndDoMorse:
+        ;
   // -------------------------------------------------------------------------
 } // end run()
 
@@ -234,5 +319,555 @@ int PinIoCtrl::dimm(double damp, boolean sim)
 void PinIoCtrl::turn(boolean onOff)
 {
   outPortON = onOff;
+}
+
+
+// ---------------------------------------------------------------------------
+// sos()                start morsing SOS
+// ---------------------------------------------------------------------------
+//
+void PinIoCtrl::sos(boolean repeat)
+{
+  int i = 0;
+
+  morseSequence[i++] = mcDit;
+  morseSequence[i++] = mcDit;
+  morseSequence[i++] = mcDit;
+  morseSequence[i++] = mcDah;
+  morseSequence[i++] = mcDah;
+  morseSequence[i++] = mcDah;
+  morseSequence[i++] = mcDit;
+  morseSequence[i++] = mcDit;
+  morseSequence[i++] = mcDit;
+  morseSequence[i++] = mcPauseWord;
+  if(repeat)
+    morseSequence[i++] = mcRepeat;
+  else
+    morseSequence[i++] = mcClose;
+  doMorse = true;
+}
+
+// ---------------------------------------------------------------------------
+// getMorseChar                 creating Morse sequence
+// ---------------------------------------------------------------------------
+// I've avoided to create a more smart method with using tables or so,
+// because it would take RAM. This method does not take RAM.
+//
+int PinIoCtrl::getMorseChar(char chr, byte *buffer)
+{
+  int retv = 0;
+
+  switch(toupper(chr))
+  {
+    case 'E':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'T':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'A':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'I':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'M':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'N':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'O':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'G':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'K':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'D':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'W':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'R':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'U':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'S':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'H':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'V':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'F':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'Ü':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'L':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'Ä':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'P':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'J':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'B':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'X':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'C':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'Y':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'Z':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'Q':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'Ö':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '1':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '2':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '3':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '4':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '5':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '6':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '7':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '8':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '9':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '0':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '.':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case ',':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case ':':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '?':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '-':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '_':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '(':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case ')':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '\'':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '=':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '+':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '/':
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '@':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case 'ß':
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '\r':          // KA (Spruchanfang)
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '\n':          // AR (Spruchende)
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case ' ':          // BT (Pause)
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '\t':          // VE (Verstanden)
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '\"':          // SK (Verkehrsende)
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    case '\a':          // SOS (Notruf)
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDah;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcPauseChar;
+      break;
+
+    default:
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      buffer[retv++] = mcDit;
+      break;
+  }
+
+  return(retv);
 }
 

@@ -19,19 +19,35 @@
   #include "Arduino.h"
 #endif
 
-#define InfoLED     13
+#define InfoLED         13
+#define smnMaxMorseLen  256
+
+#define PORT_LOW    \
+        #ifdef smnArduino \
+        digitalWrite(outPort, LOW); \
+        #else \
+        alternativly set port/register direct \
+        #endif
+
+#define PORT_HIGH    \
+        #ifdef smnArduino \
+        digitalWrite(outPort, HIGH); \
+        #else \
+        alternativly set port/register direct \
+        #endif \
+
 
 enum MorseCode
 {
-  Ignore,
-  Dit,
-  Dah,
-  PauseDit,
-  PauseDah,
-  PauseWord,
-  PauseLong,
-  Repeat,
-  Close
+  mcIgnore,
+  mcDit,
+  mcDah,
+  mcPauseSig,
+  mcPauseChar,
+  mcPauseWord,
+  mcPauseLong,
+  mcRepeat,
+  mcClose
 };
 
 // ---------------------------------------------------------------------------
@@ -59,13 +75,15 @@ private:
   int       dimmVal, dimmCount;
   boolean   dimmed, simulatedDimm;
   int       ditLen, morseCount;
-  int       morseSmallSeq;
+  int       morseSeqIdx;
+  byte      morseSequence[smnMaxMorseLen];
   boolean   doMorse;
 
   // -------------------------------------------------------------------------
   // local functions/methods
   // -------------------------------------------------------------------------
   //
+  int getMorseChar(char chr, byte *buffer);
 
 public:
   // -------------------------------------------------------------------------
@@ -88,6 +106,7 @@ public:
   void  flash(int len);             // Flash Info LED for <len> milliseconds
   int   dimm(double damp, boolean sim);           // Set intensity of Info LED
   void  turn(boolean onOff);        // Switch Info LED on or off
+  void  sos(boolean repeat);        // Start morsing SOS
 
 };
 

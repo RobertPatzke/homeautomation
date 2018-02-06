@@ -35,8 +35,10 @@ void Sonoff::init(int port)
 {
   outPort       = port;
   doFlash       = false;
-  outPortSet    = false;
+  flashed       = false;
   flashLen      = 2;
+  outPortSet    = false;
+  outPortON     = false;
 }
 
 
@@ -108,7 +110,49 @@ void Sonoff::run(int frequency)
   // run dimmer simulation
   // -------------------------------------------------------------------------
   //
-  if(simulatedDimm)
+  if(outPortON)
+  {
+    if(simulatedDimm)
+    {
+      if(outPortSet)
+      {
+        #ifdef smnArduino
+        digitalWrite(outPort, HIGH);
+        #else
+        alternativly set port/register direct
+        #endif
+        outPortSet = false;
+      }
+
+      if(dimmCount > 0)
+        dimmCount--;
+      else
+      {
+        #ifdef smnArduino
+        digitalWrite(outPort, LOW);
+        #else
+        alternativly set port/register direct
+        #endif
+        outPortSet = true;
+
+        dimmCount = dimmVal;
+      }
+    } // end if simulatedDimm
+    else
+    {
+      if(!outPortSet)
+      {
+        #ifdef smnArduino
+        digitalWrite(outPort, LOW);
+        #else
+        alternativly set port/register direct
+        #endif
+
+        outPortSet = true;
+      }
+    }
+  } // end if outPortON
+  else
   {
     if(outPortSet)
     {
@@ -117,21 +161,8 @@ void Sonoff::run(int frequency)
       #else
       alternativly set port/register direct
       #endif
+
       outPortSet = false;
-    }
-
-    if(dimmCount > 0)
-      dimmCount--;
-    else
-    {
-      #ifdef smnArduino
-      digitalWrite(outPort, LOW);
-      #else
-      alternativly set port/register direct
-      #endif
-      outPortSet = true;
-
-      dimmCount = dimmVal;
     }
   }
 
@@ -147,9 +178,17 @@ void Sonoff::flash(int len)
 {
   int calc;
 
-  calc = (currentFreq * len) / 1000;
-  if(calc == 0) calc = 1;
-  flashLen = calc;
+  if(len > 0)
+  {
+    calc = (currentFreq * len) / 1000;
+    if(calc == 0)
+      calc = 1;
+    flashLen = calc;
+  }
+  else
+    flashLen = 0;
+
+  flashed = false;
   doFlash = true;
 }
 
@@ -185,3 +224,14 @@ int Sonoff::dimm(double damp, boolean sim)
   dimmed = true;
   return(dimmVal);
 }
+
+// ---------------------------------------------------------------------------
+// turn()               switch info LED on or off
+// ---------------------------------------------------------------------------
+// Not all Pins support PWM. Set <sim> for simulation
+//
+void Sonoff::turn(boolean onOff)
+{
+  outPortON = onOff;
+}
+

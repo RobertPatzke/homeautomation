@@ -21,10 +21,15 @@
 
 #include "Sonoff.h"
 
-#define so4chRel1       12
-#define so4chRel2       05
-#define so4chRel3       04
-#define so4chRel4       15
+#define Relay1      12
+#define Relay2      05
+#define Relay3      04
+#define Relay4      15
+
+#define Button1     00
+#define Button2     09
+#define Button3     10
+#define Button4     14
 
 // ---------------------------------------------------------------------------
 // class Sonoff

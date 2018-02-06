@@ -56,7 +56,7 @@
 
   void LoopCheck::initTasks()
   {
-    for (int i = 0; i < NrOfLoopTasks; i++)
+    for (int i = 0; i < NrOfTimerTasks; i++)
     {
       timerTaskList[i].counterStarted    = false;
       timerTaskList[i].finished          = false;
@@ -348,7 +348,7 @@
     TimerTask *ctrlPtr;
 
     if(taskIdx < 0) return(false);
-    if(taskIdx >= NrOfLoopTasks) return(false);
+    if(taskIdx >= NrOfTimerTasks) return(false);
 
     ctrlPtr = &timerTaskList[taskIdx];
 
@@ -432,7 +432,7 @@
   unsigned long LoopCheck::timerCycle(int taskIdx)
   {
     if(taskIdx < 0) return(0);
-    if(taskIdx >= NrOfLoopTasks) return(0);
+    if(taskIdx >= NrOfTimerTasks) return(0);
     return(timerTaskList[taskIdx].runCounter);
   }
 

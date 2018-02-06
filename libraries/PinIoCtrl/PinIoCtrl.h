@@ -39,12 +39,13 @@ private:
   // -------------------------------------------------------------------------
   //
   int       outPort;
-  boolean   outPortSet;
+  boolean   outPortSet, outPortON;
   boolean   doFlash, flashed;
   int       flashLen;
   int       currentFreq;
   int       dimmVal, dimmCount;
   boolean   dimmed, simulatedDimm;
+  int       ditLen, morseCount;
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -68,9 +69,10 @@ public:
   // user functions
   // -------------------------------------------------------------------------
   //
-  void run(int frequency);      // has to be cyclic called with <frequency>
-  void flash(int len);          // Flash Info LED for <len> milliseconds
-  int  dimm(double damp, boolean sim);      // Set intensity of Info LED
+  void  run(int frequency);         // has to be cyclic called with <frequency>
+  void  flash(int len);             // Flash Info LED for <len> milliseconds
+  int   dimm(double damp, boolean sim);           // Set intensity of Info LED
+  void  turn(boolean onOff);        // Switch Info LED on or off
 
 };
 

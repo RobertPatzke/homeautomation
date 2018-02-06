@@ -18,9 +18,9 @@
   #define LoopScreeningGrades 6
 #endif
 
-#define NrOfLoopTasks       8
-#define NrOfOnceTasks       8
-#define NrOfToggleTasks     8
+#define NrOfTimerTasks      10
+#define NrOfOnceTasks       4
+#define NrOfToggleTasks     4
 #define CalcAverageDepth    32
 
 #ifdef UseGithubPath
@@ -161,7 +161,7 @@ private:
   bool          firstLoop;              // Spezielle Kennzeichnung erste loop()
   bool          taskHappened;           // Kennzeichnung: Es lief ein LoopTask
 
-  TimerTask     timerTaskList[NrOfLoopTasks];    // Steuerung der zyklischen
+  TimerTask     timerTaskList[NrOfTimerTasks];  // Steuerung der zyklischen
                                                 // Tasks (Timer-Ersatz in loop())
   OnceTask      onceTaskList[NrOfOnceTasks];
   bool          toggleTaskList[NrOfToggleTasks];
@@ -224,7 +224,7 @@ public:
   // Diese Funktion muss als Bedingung (if) aufgerufen werden, um den
   // nachfolgenden Block {} mit der Wiederholzeit <repeatTime> auszuführen
   // Für jede Taskschleife muss ein anderer Index <taskIdx> aus dem Bereich
-  // 0 <= taskIdx < MaxNrOfLoopTasks angegeben werden.s
+  // 0 <= taskIdx < MaxNrOfLoopTasks angegeben werden.
   // Mit <repetitions> wird angegeben, wie oft der Durchlauf überhaupt erfolgt.
   // Der Wert 0 gibt an, dass der Task für immer läuft
 

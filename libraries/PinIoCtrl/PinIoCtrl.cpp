@@ -107,15 +107,14 @@ void PinIoCtrl::run(int frequency)
     else
     {
       doFlash       = false;
-      flashed       = false;
-      outPortSet    = false;
       #ifdef smnArduino
       digitalWrite(outPort, HIGH);
       #else
       alternativly set port/register direct
       #endif
+      outPortSet    = false;
     }
-  }
+  } // end if(doFlash)
 
   // -------------------------------------------------------------------------
   // run dimmer simulation
@@ -123,7 +122,7 @@ void PinIoCtrl::run(int frequency)
   //
   if(outPortON)
   {
-    if(simulatedDimm)
+    if(simulatedDimm && outPortON)
     {
       if(outPortSet)
       {
@@ -165,7 +164,7 @@ void PinIoCtrl::run(int frequency)
   } // end if outPortON
   else
   {
-    if(outPortSet)
+    if(outPortSet && !doFlash)
     {
       #ifdef smnArduino
       digitalWrite(outPort, HIGH);

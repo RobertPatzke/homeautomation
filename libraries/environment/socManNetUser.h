@@ -132,7 +132,7 @@
 #define BROADCAST_PORT  4100
 // Portnummer Rundruf
 
-#define CONFIG_PORT     4110
+#define CONFIG_PORT     4001
 
 //-------------------------------------------------------------------------
 // Sub-Netz-Maske

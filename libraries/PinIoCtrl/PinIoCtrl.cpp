@@ -263,6 +263,8 @@ void PinIoCtrl::flash(int len)
 {
   int calc;
 
+  if(doFlash) return;   // Flash is still running
+
   if(len > 0)
   {
     calc = (currentFreq * len) / 1000;

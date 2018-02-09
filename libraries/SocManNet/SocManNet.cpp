@@ -16,6 +16,9 @@
     // Funktionen
     //-------------------------------------------------------------------------
 
+smnServPtr      nextSrv;
+
+
         //---------------------------------------------------------------------
         // Ereignis (Event) der Schnittstelle verarbeiten
         //---------------------------------------------------------------------
@@ -34,7 +37,6 @@ int             wifiEventCounter = 0;
 int             wifiEventIdx = 0;
 WiFiEvent_t     wifiEventList[SMNmaxNrIFEvt];
 WiFiServer      server(CONFIG_PORT);
-smnServPtr      nextSrv;
 
 #endif
 
@@ -156,6 +158,10 @@ smnServPtr      nextSrv;
   IPAddress       ipAdr;
   byte            macAdr[MAC_ADR_SIZE];
 
+#endif
+
+#ifdef smnArduinoShieldEth
+  EthernetServer    server(CONFIG_PORT);
 #endif
 
         //---------------------------------------------------------------------
@@ -1135,7 +1141,17 @@ void srvInit()
   nextSrv = waitClient;
 }
 
+#if defined(smnESP32) || defined(smnESP8266)
+
 WiFiClient extClient;
+
+#endif
+
+#ifdef smnArduinoShieldEth
+
+EthernetClient extClient;
+
+#endif
 
 void waitClient()
 {

@@ -91,7 +91,7 @@ typedef struct _LoopStatistics
   bool          periodAlarm;    // Aufrufdistanz > PeriodMinTime
   unsigned int  alarmCount;     // Anzahl der Überschreitungen
 
-  unsigned int  rtSreening[LoopScreeningGrades];
+  unsigned int  rtScreening[LoopScreeningGrades];
   // Echtzeitüberwachung (Klassierung der ms Überschreitungen)
 } LoopStatistics;
 
@@ -190,6 +190,8 @@ private:
   bool          periodFailAlarm;        // periodMicros > Millisekunde
   unsigned int  periodFailCount;        // Anzahl der Überschreitungen
 
+  unsigned long measureTimeSet;         // Mikrosekunden-Offset Zeitmessung
+
 private:
   // -------------------------------------------------------------------------
   // Lokale Funktionen
@@ -260,6 +262,12 @@ public:
 
   const char * refDateTime();
   // Zeiger auf Datum/Uhrzeit holen
+
+  void startTimeMeasure();
+  // Zeitmessung starten
+
+  unsigned long getTimeMeasure();
+  // Zeitmesswert holen
 
 
   // -------------------------------------------------------------------------

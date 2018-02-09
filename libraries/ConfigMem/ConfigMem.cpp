@@ -38,6 +38,37 @@ void ConfigMem::begin(int nrOfPages)
 // -------------------------------------------------------------------------
 //
 
+// -------------------------------------------------------------------------
+// access EEPROM, basic configuration (page 0)
+// -------------------------------------------------------------------------
+//
+bool ConfigMem::promHasData()
+{
+  byte promVal;
+
+  promVal = EEPROM.read(0x90);
+  if(promVal != 'V') return(false);
+  promVal = EEPROM.read(0x9D);
+  if(promVal != 'M') return(false);
+  promVal = EEPROM.read(0x9E);
+  if(promVal != 'F') return(false);
+  promVal = EEPROM.read(0x9F);
+  if(promVal != 'P') return(false);
+  return(true);
+}
+
+void ConfigMem::promInit()
+{
+  byte promVal;
+
+  for(int i = 0; i < 256; i++)
+  {
+    promVal = pgm_read_dword_near(confDeviceName + i);
+    EEPROM.write(i, promVal);
+  }
+}
+
+
 int ConfigMem::startServer()
 {
 

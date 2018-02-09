@@ -468,7 +468,7 @@
     statistics->minPeriod   =   periodMinMicros;
 
     for (int i = 0; i < LoopScreeningGrades; i++)
-      statistics->rtSreening[i] = loopScreening[i];
+      statistics->rtScreening[i] = loopScreening[i];
 
     return(loopCounter);
   }
@@ -649,6 +649,16 @@
     return(retv);
   }
 #endif
+
+  void LoopCheck::startTimeMeasure()
+  {
+    measureTimeSet = SYSMICSEC;
+  }
+
+  unsigned long LoopCheck::getTimeMeasure()
+  {
+    return(SYSMICSEC - measureTimeSet);
+  }
 
   // -------------------------------------------------------------------------
   // Debug-Funktionen

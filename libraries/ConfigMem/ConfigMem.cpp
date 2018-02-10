@@ -17,11 +17,6 @@
 
 ConfigMem::ConfigMem(){;}
 
-ConfigMem::ConfigMem(int nrOfPages)
-{
-  begin(nrOfPages);
-}
-
 void ConfigMem::begin(int nrOfPages)
 {
   int     memSize;
@@ -29,6 +24,7 @@ void ConfigMem::begin(int nrOfPages)
   memSize = nrOfPages * PageSizeNVR;
   if(memSize > SizeNVR)
     memSize = SizeNVR;
+
   EEPROM.begin(memSize);
 }
 
@@ -57,16 +53,86 @@ bool ConfigMem::promHasData()
   return(true);
 }
 
+void ConfigMem::promClear()
+{
+  for(int i = 0; i < 256; i++)
+    EEPROM.write(i, 0);
+}
+
 void ConfigMem::promInit()
 {
-  byte promVal;
+  byte promVal = 0;
 
   for(int i = 0; i < 256; i++)
   {
-    promVal = pgm_read_dword_near(confDeviceName + i);
+    promVal = pgm_read_byte_near(confDeviceName + i);
     EEPROM.write(i, promVal);
   }
 }
+
+void  ConfigMem::getIpAddress(byte *bList)
+{
+  for(int i = 0; i < 4; i++)
+    bList[i] = EEPROM.read(0x50 + i);
+  bList[4] = EEPROM.read(0x5A);
+}
+
+void  ConfigMem::getMacAddress(byte *bList)
+{
+  for(int i = 0; i < 6; i++)
+    bList[i] = EEPROM.read(0x54 + i);
+}
+
+void  ConfigMem::getPorts(byte *bList)
+{
+  for(int i = 0; i < 8; i++)
+    bList[i] = EEPROM.read(0x60 + i);
+}
+
+void ConfigMem::getNetName(byte *bList)
+{
+  byte val;
+
+  for(int i = 0; i < 16; i++)
+  {
+    val = EEPROM.read(0xA0 + i);
+    if(val != ' ')
+      bList[i] = val;
+    else
+    {
+      bList[i] = 0;
+      break;
+    }
+  }
+}
+
+void ConfigMem::getNetPass(byte *bList)
+{
+  byte val;
+
+  for(int i = 0; i < 16; i++)
+  {
+    val = EEPROM.read(0xB0 + i);
+    if(val != ' ')
+      bList[i] = val;
+    else
+    {
+      bList[i] = 0;
+      break;
+    }
+  }
+}
+
+
+bool ConfigMem::getDhcp()
+{
+  byte val = EEPROM.read(0x5B);
+  if(val == 0)
+    return (false);
+  else
+    return(true);
+}
+
 
 
 int ConfigMem::startServer()

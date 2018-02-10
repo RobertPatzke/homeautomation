@@ -37,7 +37,9 @@
 // I defined the following literals in my properties/settings for the compiler
 // with -DsmnSpecificConfig and -DConfFile=\"myConfFile\"
 #ifdef smnSpecificConfig
-  #include ConfFile
+
+#define CONFIG_PAGE0
+#include"/media/win/work/Hochschule/Forschung/Heimautomatisierung/slws8266/checkSo4ch/Sonoff4chConf.h"
 #else
 
  // Page 0
@@ -58,13 +60,16 @@
  const PROGMEM byte confDeviceType[16] =
           {'S','t','d','D','e','v','i','c','e','T','y','p','e',' ',' ',' '};
  // L5
- const PROGMEM byte confIPAddress[16] =
-          {'1','9','2','.','1','6','8','.','9','9','.','2','0','1',' ',' '};
+ const PROGMEM byte confIPAddress[4] =                     {192,168,90,221};
+ const PROGMEM byte confMacAddress[6] =     {0x90,0xA2,0xDA,0x0F,0x1B,0x88};
+ const PROGMEM byte confExtNet[6] =                   {1,1,' ',' ',' ',' '};
+                                                // gateway,dhcp
  // L6
- const PROGMEM byte confPortBroadcast[4] =                {'4','1','0','0'};
- const PROGMEM byte confPortCfgServer[4] =                {'4','0','0','1'};
- const PROGMEM byte confPortPrgServer[4] =                {'4','0','1','0'};
- const PROGMEM byte confPortExtServer[4] =                {'4','0','1','1'};
+ const PROGMEM byte confPortBroadcast[2] =         {4100 >> 8,4100 & 0x0FF};
+ const PROGMEM byte confPortCfgServer[2] =         {4001 >> 8,4001 & 0x0FF};
+ const PROGMEM byte confPortPrgServer[2] =         {4010 >> 8,4010 & 0x0FF};
+ const PROGMEM byte confPortExtServer[2] =         {4011 >> 8,4011 & 0x0FF};
+ const PROGMEM byte confReserve[8]      = {' ',' ',' ',' ',' ',' ',' ',' '};
  // L7
  const PROGMEM byte confAuthorPrim[16] =
           {'M','y','N','a','m','e',',','M','y','N','a','m','e',' ',' ',' '};
@@ -141,6 +146,13 @@ public:
   //
   bool  promHasData();              // Check if EEPROM has data
   void  promInit();                 // copy base data to page 0
+  void  promClear();                // delete page 0
+  void  getIpAddress(byte *bList);
+  void  getMacAddress(byte *bList);
+  void  getPorts(byte *bList);
+  void  getNetName(byte *bList);
+  void  getNetPass(byte *bList);
+  bool  getDhcp();
   int   startServer();
 
 

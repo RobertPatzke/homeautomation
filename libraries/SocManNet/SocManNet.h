@@ -63,6 +63,8 @@
 #define SMNmaxNrIFEvt                   32
 #define SMNreadExtClientBlockSize       32
 #define SRV_BUF_REC_SIZE                1024
+#define SMNnetNameMaxSize               32
+#define SMNnetPassMaxSize               32
 
 typedef void (*BROADCAST_EVT)(void * evtHnd, char * msg, unsigned int msgLen);
 
@@ -306,7 +308,15 @@ public:
   SocManNet();
   // Konstruktor
 
-  void init(char *macAdr, char *ipAdr, char *netName, char *netPass, bool dhcp);
+  void setMac(byte *bList);
+  void setIpAdr(byte *bList);
+  void setPorts(byte *bList);
+  void setNetName(byte *bList);
+  void setNetPass(byte *bList);
+  enum SocManNetError setInit(bool dhcp);
+  // Initialisation in single steps.
+
+  void init(char *netName, char *netPass, bool dhcp);
   // Broadcast-Interface Initialisierung (dynamische Argumente)
 
   enum SocManNetError init(bool dhcp);

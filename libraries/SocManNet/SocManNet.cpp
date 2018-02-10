@@ -2,7 +2,9 @@
 // Thema:   Social Manufacturing Network / Broadcast Socket Interface
 // Datei:   SocManNet.cpp
 // Editor:  Igor Farber, Robert Patzke
-// URI/URL: www.mfp-portal.de
+// URI/URL: www.mfp-portal.de / homeautomation.x-api.de
+// Todo:    The initialisation (init/open) has to be revised and improved
+//          it is to complex and not transparent (10.02.18, R.P.)
 //-----------------------------------------------------------------------------
 // Lizenz:  CC-BY-SA  (siehe Wikipedia: Creative Commons)
 //
@@ -174,11 +176,6 @@ SocManNet::SocManNet()
 	debugOn			= false;
 	idxFieldObjData	= 0;
 	idxFieldObjName	= 0;
-	IpAddress		= (char *) "1.1.1.1";
-    BcAddress       = (char *) "1.1.1.1";
-	MacAddress		= (char *) "1-1-1-1-1-1";
-	ssid            = (char *) "Netzwerkname";
-	pass            = (char *) "Passwort";
 	portBroadcast 	= 4100;
 	portLocal       = 4000;
 	recParseCounter = 0;
@@ -209,16 +206,152 @@ SocManNet::SocManNet()
         // Broadcast-Interface initialisieren und Öffnen mit SocManNetUser.h
         //---------------------------------------------------------------------
         //
-byte           localMacAdr[MAC_ADR_SIZE];
-byte           localIp[4];
-unsigned int   localPort;
+byte            localMacAdr[MAC_ADR_SIZE];
+byte            localIp[4];
+unsigned int    localPort;
 
-byte           broadcastIp[4];
-unsigned int   broadcastPort;
-byte           subNetMask[4];
-byte           gatewayIp[4];
-byte           primDnsIp[4];
-byte           secDnsIp[4];
+byte            broadcastIp[4];
+unsigned int    broadcastPort;
+byte            subNetMask[4];
+byte            gatewayIp[4];
+byte            primDnsIp[4];
+byte            secDnsIp[4];
+char            netName[SMNnetNameMaxSize];
+char            netPass[SMNnetPassMaxSize];
+
+
+void SocManNet::setMac(byte *bList)
+{
+  for(int i = 0; i < 6; i++)
+    localMacAdr[i] = bList[i];
+
+  // DNS IP-Adresse
+  primDnsIp[0] = PRIMDNS_IP_B0;
+  primDnsIp[1] = PRIMDNS_IP_B1;
+  primDnsIp[2] = PRIMDNS_IP_B2;
+  primDnsIp[3] = PRIMDNS_IP_B3;
+
+  secDnsIp[0] = SECDNS_IP_B0;
+  secDnsIp[1] = SECDNS_IP_B1;
+  secDnsIp[2] = SECDNS_IP_B2;
+  secDnsIp[3] = SECDNS_IP_B3;
+}
+
+void SocManNet::setIpAdr(byte *bList)
+{
+  for(int i = 0; i < 4; i++)
+  {
+    localIp[i] = broadcastIp[i] = gatewayIp[i] = bList[i];
+  }
+  subNetMask[0] = subNetMask[1] = subNetMask[2] = 255;
+
+  subNetMask[3]     = 0;
+  broadcastIp[3]    = 255;
+  gatewayIp[3]      = bList[4];
+}
+
+void SocManNet::setPorts(byte *bList)
+{
+  broadcastPort = (bList[0] << 8) + bList[1];
+  localPort     = (bList[2] << 8) + bList[3];
+}
+
+void SocManNet::setNetName(byte *bList)
+{
+  char  c;
+  int   i;
+
+  for(i = 0; i < (SMNnetNameMaxSize - 1); i++)
+  {
+    c = bList[i];
+    netName[i] = c;
+    if(c == '\0') break;
+  }
+  if(i == (SMNnetNameMaxSize - 1))
+    netName[i] = '\0';
+  ssid = netName;
+}
+
+void SocManNet::setNetPass(byte *bList)
+{
+  char  c;
+  int   i;
+
+  for(i = 0; i < (SMNnetPassMaxSize - 1); i++)
+  {
+    c = bList[i];
+    netPass[i] = c;
+    if(c == '\0') break;
+  }
+  if(i == (SMNnetPassMaxSize - 1))
+    netPass[i] = '\0';
+  pass = netPass;
+}
+
+enum SocManNetError SocManNet::setInit(bool dhcp)
+{
+  if(staticInitDone) return(smnError_alreadyInitialised);
+
+  useDHCP       = dhcp;
+
+  //---------------------------------------------------------------------------
+  // Broadcast-Interface zuruecksetzen
+  //---------------------------------------------------------------------------
+  memset(macLocal, 0, sizeof(macLocal));
+
+#if defined(smnESP32) || defined(smnESP8266)
+  WiFi.disconnect(true);    // Eine eventuelle alte Verbindung beenden
+#endif
+
+
+  // --------------------------------------------------------------------------
+  // Die Telegramm-Behandlung zuruecksetzen
+  // --------------------------------------------------------------------------
+  memset(commBufRec, 0, sizeof(commBufRec));
+  memset(eventDstList, 0, sizeof(eventDstList));
+  idxFieldObjName = 0;
+  idxFieldObjData = 0;
+
+  //---------------------------------------------------------------------------
+  // Debug-Interface zuruecksetzen
+  //---------------------------------------------------------------------------
+  debugOn = false;
+
+  //---------------------------------------------------------------------------
+  // Statistik zuruecksetzen
+  //---------------------------------------------------------------------------
+  cntSendMsg    = 0;
+  cntRecMsg     = 0;
+
+  initialised   = true;
+
+#if defined(smnESP32) || defined(smnESP8266)
+
+  // Umgebung für den Event initialisieren
+  locUdpPortPtr     = &localPort;
+  wifiUdpPtr        = &Udp;
+  connected         = false;
+  connectedPtr      = &connected;
+  connectCount      = 0;
+  connectCountPtr   = &connectCount;
+  wifiPendingPtr    = &initPending;
+  nextSrv           = srvInit;
+
+  WiFi.onEvent(smnWiFiEventHandler);
+
+#endif
+
+
+  // Kommunikationsschnittstelle oeffnen
+  error = open  (
+                localMacAdr,localIp,localPort,broadcastIp,
+                broadcastPort,subNetMask,gatewayIp,primDnsIp,
+                secDnsIp, false
+                );
+
+  return(error);
+
+}
 
 enum SocManNetError SocManNet::init(bool dhcp)
 {
@@ -247,8 +380,6 @@ enum SocManNetError SocManNet::init(bool dhcp)
   broadcastIp[2] = BROADCAST_IP_B2;
   broadcastIp[3] = BROADCAST_IP_B3;
 
-  BcAddress = BROADCAST_IP_ADR_STR;
-
   // Broadcast Portnummer
   broadcastPort = BROADCAST_PORT;
 
@@ -275,9 +406,7 @@ enum SocManNetError SocManNet::init(bool dhcp)
   secDnsIp[3] = SECDNS_IP_B3;
 
   // Kommunikationsobjekt initialisieren
-  init((char *) LOCAL_MAC_ADR_STR,
-       (char *) LOCAL_IP_ADR_STR,
-       (char *) SMNSSID,
+  init((char *) SMNSSID,
        (char *) SMNPASS,dhcp);
 
 #if defined(smnESP32) || defined(smnESP8266)
@@ -310,10 +439,8 @@ enum SocManNetError SocManNet::init(bool dhcp)
         // Broadcast-Interface initialisieren mit variablen Werten
         //---------------------------------------------------------------------
         //
-void SocManNet::init(char *macAdr, char *ipAdr, char *netName, char *netPass, bool dhcp)
+void SocManNet::init(char *netName, char *netPass, bool dhcp)
 {
-  MacAddress    = macAdr;
-  IpAddress     = ipAdr;
   ssid          = netName;
   pass          = netPass;
   useDHCP       = dhcp;

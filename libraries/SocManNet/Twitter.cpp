@@ -1,7 +1,7 @@
 /*
   Twitter.cpp
-  Zwitscherer f�r Arduino Due
-  Robert Patzke, 08. M�rz 2015
+  Zwitscherer für Arduino Due
+  Robert Patzke, 08. März 2015
 */
 
 #include 	<string.h>

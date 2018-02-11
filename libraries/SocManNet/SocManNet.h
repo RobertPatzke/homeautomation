@@ -109,6 +109,8 @@ enum SocManNetError
   smnError_socketConf,
   smnError_bind,
   smnError_notConnected,
+  smnError_debugBreak1,
+  smnError_debugBreak2,
   smnError_unexpected
 };
 

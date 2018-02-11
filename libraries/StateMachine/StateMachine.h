@@ -17,6 +17,8 @@
 
 #define NrOfSteps       32
 
+#define AUTBREAK(x,y)   { x.enter(y); return; }
+
 // ---------------------------------------------------------------------------
 // class StateMachine
 // ---------------------------------------------------------------------------
@@ -68,6 +70,7 @@ public:
   StatePtr  nextState;          // Pointer for indirect calling next state
   StatePtr  pastState;          // Pointer of the past state
   StatePtr  futureState;        // Pointer to a future state (see useVarState)
+  StatePtr  doAlways;           // Pointer to a always called state
   int       cycleTime;          // Cycle time in milliseconds
   int       frequency;          // Frequency in Hertz (1/s)
   int       userStatus;         // A number presenting the visible state
@@ -82,7 +85,7 @@ public:
   // constructors and initialisations
   // -------------------------------------------------------------------------
   //
-  StateMachine(StatePtr firstState, int cycle);
+  StateMachine(StatePtr firstState, StatePtr anyState, int cycle);
 
   // -------------------------------------------------------------------------
   // user functions

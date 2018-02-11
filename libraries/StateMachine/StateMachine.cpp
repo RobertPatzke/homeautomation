@@ -19,9 +19,10 @@ int  StateMachine_InstCounter;
 // This should be a static variable inside the class, but the C/C++ compiler
 // of ESP8266 (did not test any other) does not handle it correctly.
 
-StateMachine::StateMachine(StatePtr firstState, int cycle)
+StateMachine::StateMachine(StatePtr firstState, StatePtr anyState, int cycle)
 {
   nextState     = firstState;
+  doAlways      = anyState;
   cycleTime     = cycle;
   frequency     = 1000 / cycle;
   delay         = 0;
@@ -45,6 +46,9 @@ void StateMachine::run()
 
   if(timeMeasureOn)
     timeMeasureCounter++;
+
+  if(doAlways != NULL)
+    doAlways();
 
   if(delay > 0)
   {

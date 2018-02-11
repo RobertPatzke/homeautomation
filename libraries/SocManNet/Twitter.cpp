@@ -840,3 +840,12 @@ unsigned int Twitter::getStatistic(char * strPtr)
   //---------------------------------------------------------------------------
   return(msgLen);
 }
+
+bool Twitter::pduSent(int *refCounter)
+{
+  if(*refCounter == cntSendMsg)
+    return(false);
+  *refCounter = cntSendMsg;
+  return(true);
+}
+

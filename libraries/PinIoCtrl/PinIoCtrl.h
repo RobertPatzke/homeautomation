@@ -22,20 +22,8 @@
 #define InfoLED         13
 #define smnMaxMorseLen  256
 
-#define PORT_LOW    \
-        #ifdef smnArduino \
-        digitalWrite(outPort, LOW); \
-        #else \
-        alternativly set port/register direct \
-        #endif
-
-#define PORT_HIGH    \
-        #ifdef smnArduino \
-        digitalWrite(outPort, HIGH); \
-        #else \
-        alternativly set port/register direct \
-        #endif \
-
+#define ON      true
+#define OFF     false
 
 enum MorseCode
 {

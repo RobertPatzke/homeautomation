@@ -51,11 +51,15 @@
  const PROGMEM byte confLocationName[16] =
           {'M','y','L','i','v','i','n','g','R','o','o','m',' ',' ',' ',' '};
  // L2
- const PROGMEM byte confLocationPosX[8] = {'0',' ',' ',' ',' ',' ',' ',' '};
- const PROGMEM byte confLocationPosY[8] = {'0',' ',' ',' ',' ',' ',' ',' '};
+ const PROGMEM byte confLocationPosX[4] =                         {0,0,0,0};
+ const PROGMEM byte confLocationPosY[4] =                         {0,0,0,0};
+ const PROGMEM byte confLocationPosZ[4] =                         {0,0,0,0};
+ const PROGMEM byte confAppCode[2]      =                             {0,0};
+ const PROGMEM byte confAppKey[2]       =                             {0,0};
+
  // L3
- const PROGMEM byte confLocationPosZ[8] = {'0',' ',' ',' ',' ',' ',' ',' '};
- const PROGMEM byte confAppCode[8]      = {'0',' ',' ',' ',' ',' ',' ',' '};
+ const PROGMEM byte confReserve1[16]    = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
  // L4
  const PROGMEM byte confDeviceType[16] =
           {'S','t','d','D','e','v','i','c','e','T','y','p','e',' ',' ',' '};
@@ -69,7 +73,7 @@
  const PROGMEM byte confPortCfgServer[2] =         {4001 >> 8,4001 & 0x0FF};
  const PROGMEM byte confPortPrgServer[2] =         {4010 >> 8,4010 & 0x0FF};
  const PROGMEM byte confPortExtServer[2] =         {4011 >> 8,4011 & 0x0FF};
- const PROGMEM byte confReserve[8]      = {' ',' ',' ',' ',' ',' ',' ',' '};
+ const PROGMEM byte confReserve2[8]     = {' ',' ',' ',' ',' ',' ',' ',' '};
  // L7
  const PROGMEM byte confAuthorPrim[16] =
           {'M','y','N','a','m','e',',','M','y','N','a','m','e',' ',' ',' '};
@@ -129,6 +133,10 @@ private:
   // local functions
   // -------------------------------------------------------------------------
   //
+   char hex(byte b);
+   unsigned short getWordProm(int adr);
+   unsigned long  getDwordProm(int adr);
+   void copyProg(int adr, const byte *src, int cnt);
 
 public:
   // -------------------------------------------------------------------------
@@ -153,6 +161,13 @@ public:
   void  getNetName(byte *bList);
   void  getNetPass(byte *bList);
   bool  getDhcp();
+  int   getPosX();
+  int   getPosY();
+  int   getPosZ();
+
+  void  getDevTwitterName(byte *bList);
+  int   getApplicationKey();
+
   int   startServer();
 
 

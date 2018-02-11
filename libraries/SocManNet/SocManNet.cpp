@@ -20,6 +20,17 @@
 
 smnServPtr      nextSrv;
 
+//#define SocManNetDebug
+
+#ifdef SocManNetDebug
+
+#define dp(x)   Serial.print(x)
+#define dpl(x)  Serial.println(x)
+char ds[128];
+
+#endif
+
+
 
         //---------------------------------------------------------------------
         // Ereignis (Event) der Schnittstelle verarbeiten
@@ -303,6 +314,7 @@ enum SocManNetError SocManNet::setInit(bool dhcp)
   WiFi.disconnect(true);    // Eine eventuelle alte Verbindung beenden
 #endif
 
+  //return(smnError_debugBreak1);
 
   // --------------------------------------------------------------------------
   // Die Telegramm-Behandlung zuruecksetzen
@@ -341,6 +353,38 @@ enum SocManNetError SocManNet::setInit(bool dhcp)
 
 #endif
 
+#ifdef SocManNetDebug
+
+  sprintf(ds,"localMacAdr = %02X-%02X-%02X-%02X-%02X-%02X",
+          localMacAdr[0],localMacAdr[1],localMacAdr[2],localMacAdr[3],localMacAdr[4],localMacAdr[5]);
+  dpl(ds);
+
+  sprintf(ds,"localIpAdr = %d.%d.%d.%d",
+          localIp[0],localIp[1],localIp[2],localIp[3]);
+  dpl(ds);
+
+  sprintf(ds,"broadcastIpAdr = %d.%d.%d.%d",
+          broadcastIp[0],broadcastIp[1],broadcastIp[2],broadcastIp[3]);
+  dpl(ds);
+
+  sprintf(ds,"gatewayIpAdr = %d.%d.%d.%d",
+          gatewayIp[0],gatewayIp[1],gatewayIp[2],gatewayIp[3]);
+  dpl(ds);
+
+  sprintf(ds,"localPort = %d, broadcastPort = %d",localPort,broadcastPort);
+  dpl(ds);
+
+  sprintf(ds,"primDnsIpAdr = %d.%d.%d.%d",
+          primDnsIp[0],primDnsIp[1],primDnsIp[2],primDnsIp[3]);
+  dpl(ds);
+
+  sprintf(ds,"secDnsIpAdr = %d.%d.%d.%d",
+          secDnsIp[0],secDnsIp[1],secDnsIp[2],secDnsIp[3]);
+  dpl(ds);
+
+  return(smnError_debugBreak1);
+
+#endif
 
   // Kommunikationsschnittstelle oeffnen
   error = open  (

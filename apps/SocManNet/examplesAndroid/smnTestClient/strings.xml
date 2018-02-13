@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">smnTestClient</string>
+    <string name="ipInitText">Enter IP+port (d.d.d.d:d)</string>
+    <string name="ipInitError">Error: Invalid IP-Adress, Click input field</string>
+    <string name="smnConnect">Connect to Server</string>
+    <string name="smnClose">Close Client Task</string>
+    <string name="smnPause">Pause Client Task</string>
+    <string name="smnResume">Resume Client Task</string>
+    <string name="tcsInitialising">Initialising SocManNet</string>
+</resources>

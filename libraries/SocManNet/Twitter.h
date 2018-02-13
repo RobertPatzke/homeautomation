@@ -119,6 +119,10 @@ class Twitter
     void      setFloatValue(int idx, double value);
     void      setTextValue(int idx, char *value);
 
+    // Statistische und Betriebsinformationen
+    //
+    bool      pduSent(int *refCounter);
+
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
   // --------------------------------------------------------------------------

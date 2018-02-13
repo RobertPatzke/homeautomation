@@ -5,3 +5,7 @@ How the source code may be integrated in Android Studio is described in the [Rea
 
 At this level of the repository are the libraries located. It is not a library structure as Java experts would use. Here simply are Java source files (.java) sorted into folders naming their purpose. There may be cross references between the files inside a folder. But we will avoid cross references between files in different folders (I hope it works).
 
+# Important
+Do not forget to set permissions to INTERNET in your AndroidManifest.xml with <br/>
+  \<uses-permission android:name="android.permission.INTERNET" /> <br/>
+before <application ...

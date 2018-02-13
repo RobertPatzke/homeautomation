@@ -1,0 +1,17 @@
+Needed content for AndroidManifest.xml
+
+    <uses-permission android:name="android.permission.WRITE_SETTINGS"/>
+
+
+source folder / package name:  stcheckall
+
+library folder (parallel):     systemtools
+libraries (java files):        BatteryTool.java, ScreenTool.java
+
+
+Extra resources:
+in ...res/values:              colors.xml   from ../../resources
+
+Note:
+Since Android 5 there is another security level for settings, i.e. an app has to ask the user at runtime for permission.
+In this example, it is not cared for it, instead the Targed Sdk Version was set to Android 4.0 (like the Min Sdk Version).

@@ -62,6 +62,8 @@ Twitter     devTwitter;     // Instance of Twitter
 Follower    devFollower;    // Instance of Follower
 smnStatePtr nextState;      // Pointer to next state function
 
+lcDateTime  dt;             // Time-Structure of LoopCheck
+
 // Variables to be twittered
 //
 int     appIntVar1, appIntVar2, appIntVar3;
@@ -161,6 +163,7 @@ void updateTwitter()
 //
 int     smTimeOut;      // Counter for time out control
 int     smDelay;        // Counter for delay control
+boolean doTimeRefresh;  // One-shot for immediate setup time from twitter
 
 // ---------------------------------------------------------------------------
 // Special (first) Initialisation
@@ -325,7 +328,8 @@ void smWaitForTestTwitter()
     devTwitter.baseState = smpsRun;     // Follower. So we wait here, until
     nextState = smDisplayValues;        // Follower has got 3 telegrams.
     smDelay = SM_FREQUENCY / 10;        // next state parameter
-    return;                             // Then we are in status "running"
+    doTimeRefresh = true;               // setup time immediately
+    return;
   }
 
   if(smTimeOut > 0)                     // we will wait 5 seconds for the
@@ -373,6 +377,15 @@ void smDisplayValues()
   if(textMan1.newPdu)
   {
     Serial.println(textMan1.value);
+  }
+
+  // Update the time in LoopCheck from TestTwitter every hour
+  //
+  loopCheck.getDateTime(&dt);
+  if(dt.Minute == 0 || doTimeRefresh)
+  {
+    loopCheck.setDateTime(devFollower.timeString);
+    doTimeRefresh = false;
   }
 }
 

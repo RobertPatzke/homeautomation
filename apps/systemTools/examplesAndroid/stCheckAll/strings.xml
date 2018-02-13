@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">stCheckAll</string>
+    <string name="isFading">Screen will fade: Keep alive</string>
+    <string name="staysAlive">Screen keeps alive: Let fade</string>
+</resources>

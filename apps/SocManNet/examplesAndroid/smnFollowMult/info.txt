@@ -1,0 +1,9 @@
+Needed content for AndroidManifest.xml
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+
+source folder / package name:  smnfollowermult
+library folder (parallel):     socmannet
+librarieds (java files):       FollowMultDev.java, SocManNet.java, Twitter.java
+

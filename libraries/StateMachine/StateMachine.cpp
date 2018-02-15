@@ -266,6 +266,38 @@ bool StateMachine::firstEnter()
   return(true);
 }
 
+// counting local cycles
+//
+bool StateMachine::cycle(int cnt)
+{
+  if(callCycleCnt <= 0)
+  {
+    callCycleCnt = cnt;
+    return(true);
+  }
+  callCycleCnt--;
+  return(false);
+}
+//
+bool StateMachine::cycleSec()
+{
+  if(callCycleCnt <= 0)
+  {
+    callCycleCnt = frequency;
+    return(true);
+  }
+  callCycleCnt--;
+  return(false);
+}
+
+// Alternativly returning true and false
+//
+bool StateMachine::toggle()
+{
+  markToggle = !markToggle;
+  return(markToggle);
+}
+
 // set the time-out value (milliseconds)
 //
 void StateMachine::setTimeOut(int toValue)

@@ -56,6 +56,9 @@ private:
   int       timeMeasureCounter;     // triggered automatic incremented counter
   bool      timeMeasureOn;          // control of the counter
 
+  int       callCycleCnt;           // For cycles inside a state
+  bool      markToggle;             // For bit complements
+
   // -------------------------------------------------------------------------
   // local functions/methods
   // -------------------------------------------------------------------------
@@ -111,6 +114,9 @@ public:
   void      enterListAt(StatePtr fin, int index, int delayTime);
 
   bool      firstEnter();       // true only, if the state is first entered
+  bool      cycle(int cnt);     // true only, if called <cnt> times
+  bool      cycleSec();         // true only, if a second passed
+  bool      toggle();           // alternating return true and false
 
   void      setTimeOut(int toValue);        // Set time-out counter
   bool      timeOut();                      // Check time-out counter

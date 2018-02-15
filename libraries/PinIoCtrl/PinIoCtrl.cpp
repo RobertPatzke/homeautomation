@@ -114,6 +114,7 @@ void PinIoCtrl::run(int frequency)
       #endif
       outPortSet    = false;
     }
+    return;     // Doing FLASH is the one and only if running
   } // end if(doFlash)
 
   // -------------------------------------------------------------------------
@@ -164,7 +165,7 @@ void PinIoCtrl::run(int frequency)
   } // end if outPortON
   else
   {
-    if(outPortSet && !doFlash)
+    if(outPortSet)
     {
       #ifdef smnArduino
       digitalWrite(outPort, HIGH);

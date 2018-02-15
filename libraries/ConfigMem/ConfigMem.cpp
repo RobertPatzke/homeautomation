@@ -361,7 +361,6 @@ void ConfigMem::promInit()
 }
 
 
-
 int   ConfigMem::getApplicationKey()
 {
   int retv;
@@ -456,6 +455,34 @@ void ConfigMem::getDevTwitterName(byte *bList)
     }
   }
 }
+
+
+void ConfigMem::getDeviceName(byte *bList)
+{
+  byte val;
+
+  for(int i = 0; i < 16; i++)
+  {
+    val = EEPROM.read(0x00 + i);
+    if(val != ' ')
+      bList[i] = val;
+    else
+    {
+      bList[i] = 0;
+      break;
+    }
+  }
+}
+
+long   ConfigMem::getPos(int xyz)
+{
+  long retv;
+
+  int adr = 0x20 + (xyz << 2);
+  retv = getDwordProm(adr);
+  return(retv);
+}
+
 
 
 int ConfigMem::startServer()

@@ -60,19 +60,23 @@ private:
   // -------------------------------------------------------------------------
   //
   int       outPort;
-  boolean   outPortSet, outPortON;
-  boolean   doFlash, flashed;
+  bool      outPortSet, outPortON;
+  bool      doFlash, flashed;
   int       flashLen;
+  bool      doBlink, blinked;
+  int       blinkLen, blinkLenSet;
+  int       blinkPause, blinkPauseSet;
   int       currentFreq;
   int       dimmVal, dimmCount;
-  boolean   dimmed, simulatedDimm;
+  bool      dimmed, simulatedDimm;
   int       ditLen, morseCount;
   int       morseSeqIdx;
   byte      morseSequence[smnMaxMorseLen];
-  boolean   doMorse;
+  bool      doMorse;
   int       chkInPort;
   int       chkInSet;
   int       chkInCnt;
+  int       chkInVal;
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -99,10 +103,12 @@ public:
   //
   void  run(int frequency);         // has to be cyclic called with <frequency>
   void  flash(int len);             // Flash Info LED for <len> milliseconds
+  void  blink(int len, int pause);
+  // Blink Info LED for <len> milliseconds ON and pause OFF
   int   dimm(double damp, boolean sim);           // Set intensity of Info LED
   void  turn(boolean onOff);        // Switch Info LED on or off
   void  sos(boolean repeat);        // Start morsing SOS
-  bool  inDigLevel(int port, bool highLow, int periodTime); // check stay input
+  bool  inDigLevel(int port, int highLow, int periodTime); // check stay input
 
 };
 

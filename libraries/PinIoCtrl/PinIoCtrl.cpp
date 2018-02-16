@@ -35,6 +35,7 @@ void PinIoCtrl::init(int port)
 {
   outPort       = port;
   doFlash       = false;
+  doBlink       = false;
   flashed       = false;
   flashLen      = 2;
   outPortSet    = false;
@@ -45,6 +46,8 @@ void PinIoCtrl::init(int port)
   morseCount    = 0;
   morseSeqIdx   = 0;
   ditLen        = 150;
+
+  chkInPort     = -1;
 }
 
 
@@ -80,15 +83,26 @@ int PinIoCtrl::initPerif()
 //
 void PinIoCtrl::run(int frequency)
 {
+  int   tmpInt;
+
   currentFreq = frequency;
 
   // -------------------------------------------------------------------------
   // run check digital input
   // -------------------------------------------------------------------------
   //
-  if(chkInPort >= 0)
+  if(chkInCnt > 0)
   {
+  #ifdef smnArduino
+    tmpInt = digitalRead(chkInPort);
+  #else
+    alternativly set port/register direct
+  #endif
 
+    if(tmpInt != chkInVal)
+      chkInCnt = chkInSet;
+    else
+      chkInCnt--;
   }
 
   // -------------------------------------------------------------------------
@@ -129,6 +143,60 @@ void PinIoCtrl::run(int frequency)
     }
     return;     // Doing FLASH is the one and only if running
   } // end if(doFlash)
+
+  // -------------------------------------------------------------------------
+  // run blink
+  // -------------------------------------------------------------------------
+  //
+  if(doBlink)
+  {
+    if(!blinked)
+    {
+      if(!outPortSet)
+      {
+        #ifdef smnArduino
+        analogWrite(outPort, 0);
+        digitalWrite(outPort, LOW);
+        #else
+        alternativly set port/register direct
+        #endif
+        outPortSet = true;
+      }
+
+      if(blinkLen > 0)
+        blinkLen--;
+      else
+      {
+        blinked = true;
+        blinkLen = blinkLenSet;
+      }
+    }
+    else
+    {
+      if(outPortSet)
+      {
+      #ifdef smnArduino
+        if(dimmed && outPortON && !simulatedDimm)
+          analogWrite(outPort, dimmVal);
+        else
+          digitalWrite(outPort, HIGH);
+      #else
+        alternativly set port/register direct
+      #endif
+        outPortSet    = false;
+      }
+
+      if(blinkPause > 0)
+        blinkPause--;
+      else
+      {
+        blinked = false;
+        blinkPause = blinkPauseSet;
+      }
+    }
+    return;     // Doing BLINK is the one and only if running
+  } // end if(doBlink)
+
 
   // -------------------------------------------------------------------------
   // run dimmer simulation
@@ -300,6 +368,12 @@ void PinIoCtrl::flash(int len)
 {
   int calc;
 
+  if(len < 0)
+  {
+    doFlash = false;
+    return;
+  }
+
   if(doFlash) return;   // Flash is still running
 
   if(len > 0)
@@ -312,9 +386,34 @@ void PinIoCtrl::flash(int len)
   else
     flashLen = 0;
 
-  flashed = false;
-  doFlash = true;
-  outPortSet = false;
+  flashed       = false;
+  doFlash       = true;
+  outPortSet    = false;
+}
+
+void PinIoCtrl::blink(int len, int pause)
+{
+  int calc;
+
+  if(len <= 0)
+  {
+    doBlink = false;
+    return;
+  }
+
+  calc = (currentFreq * len) / 1000;
+  if(calc == 0)
+    calc = 1;
+  blinkLen = blinkLenSet = calc;
+
+  calc = (currentFreq * pause) / 1000;
+  if(calc == 0)
+    calc = 1;
+  blinkPause = blinkPauseSet = calc;
+
+  blinked       = false;
+  doBlink       = true;
+  outPortSet    = false;
 }
 
 // ---------------------------------------------------------------------------
@@ -367,9 +466,21 @@ void PinIoCtrl::turn(boolean onOff)
 
 // ---------------------------------------------------------------------------
 //
-bool PinIoCtrl::inDigLevel(int port, bool highLow, int periodTime)
+bool PinIoCtrl::inDigLevel(int port, int highLow, int periodTime)
 {
+  if(chkInCnt > 0)
+    return(false);
 
+  if(chkInPort < 0)
+  {
+    chkInVal = highLow;
+    chkInCnt = chkInSet = (currentFreq * periodTime) / 1000;
+    chkInPort = port;
+    return(false);
+  }
+
+  chkInPort = -1;
+  return(true);
 }
 
 // ---------------------------------------------------------------------------

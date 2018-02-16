@@ -25,6 +25,10 @@
 #define ON      true
 #define OFF     false
 
+#ifndef PWMRANGE
+  #define PWMRANGE 255
+#endif
+
 enum MorseCode
 {
   mcIgnore,
@@ -66,6 +70,9 @@ private:
   int       morseSeqIdx;
   byte      morseSequence[smnMaxMorseLen];
   boolean   doMorse;
+  int       chkInPort;
+  int       chkInSet;
+  int       chkInCnt;
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -95,6 +102,7 @@ public:
   int   dimm(double damp, boolean sim);           // Set intensity of Info LED
   void  turn(boolean onOff);        // Switch Info LED on or off
   void  sos(boolean repeat);        // Start morsing SOS
+  bool  inDigLevel(int port, bool highLow, int periodTime); // check stay input
 
 };
 

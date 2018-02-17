@@ -299,11 +299,12 @@ public:
   bool  staticInitDone; //  "
   bool  initPending;    // Interface-Initialisierung noch aktiv
   int   bcEnable;
+  bool  runDisabled;
 
   unsigned int  connectCount;   // Zähler für die aufgebauten Verbindungen
   unsigned int  connectMark;    // Nachgeführter Merker als Zustand
 
-public:
+
   // --------------------------------------------------------------------------
   //  Allgemeine oeffentliche Funktionen
   // --------------------------------------------------------------------------

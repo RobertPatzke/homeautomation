@@ -180,13 +180,6 @@ void smInit()
     return;
   }
 
-  // Tell user network parameters (for check)
-  //
-  socManNet.getIfInfo(&smnInfo);
-  Serial.print(smnInfo.macAdrCStr);
-  Serial.print(" / ");
-  Serial.println(smnInfo.ipAdrCStr);
-
   // Set parameters for the next state
   //
   smTimeOut = 10 * SM_FREQUENCY;        // 10 seconds time-out for next state
@@ -217,6 +210,13 @@ void smWaitForSMN()
 //
 void smInitTwitter()
 {
+  // Tell user network parameters (for check)
+  //
+  socManNet.getIfInfo(&smnInfo);
+  Serial.print(smnInfo.macAdrCStr);
+  Serial.print(" / ");
+  Serial.println(smnInfo.ipAdrCStr);
+
   // There are some parameters, which have to be set befor the basic
   // initialisation of twitter is done. Because these values are used there.
   //

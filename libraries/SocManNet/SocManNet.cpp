@@ -199,6 +199,7 @@ SocManNet::SocManNet()
 	bcEnable        = 0;
 	connectCount    = 0;
 	connectMark     = 0;
+	runDisabled     = false;
 
 #ifdef smnSimLinux
 	socketId        = 0;
@@ -1174,6 +1175,7 @@ void SocManNet::run(void)
   char        * objMsg;
   unsigned int  objMsgLen;
 
+  if(runDisabled) return;
   if(error != smnError_none) return;
   if(initPending) return;
   if(connectCount == 0) return;

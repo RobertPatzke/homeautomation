@@ -121,7 +121,8 @@ class Twitter
 
     // Statistische und Betriebsinformationen
     //
-    bool      pduSent(int *refCounter);
+    bool      pduSent(unsigned int *refCounter);
+    void      getName(char *dest);
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
@@ -168,6 +169,7 @@ class Twitter
   // --------------------------------------------------------------------------
  public:
   bool debugOn;  // Verwaltung der Debug-Ausgabe
+  unsigned int cntRun;
 
   // --------------------------------------------------------------------------
   // lokale Variablen zur Steuerung
@@ -217,7 +219,7 @@ class Twitter
   // --------------------------------------------------------------------------
   // Interne Variablen fuer Statistik
   // --------------------------------------------------------------------------
-  unsigned int cntSendMsg;
+    unsigned int cntSendMsg;
 
   // --------------------------------------------------------------------------
   // lokale Funktionen zur Initialisierung und Steuerung

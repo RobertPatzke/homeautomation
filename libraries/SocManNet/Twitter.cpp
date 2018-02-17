@@ -195,6 +195,8 @@ void Twitter::run(int secFactor, int delay)
   if(!enabled) return;
   if(!netHnd->connected) return;
 
+  cntRun++;
+
   //-------------------------------------------------------------------------
   // Eventuell die Ausfuehrung der Zustandsmaschine verzoegern
   //-------------------------------------------------------------------------
@@ -841,11 +843,17 @@ unsigned int Twitter::getStatistic(char * strPtr)
   return(msgLen);
 }
 
-bool Twitter::pduSent(int *refCounter)
+bool Twitter::pduSent(unsigned int *refCounter)
 {
   if(*refCounter == cntSendMsg)
     return(false);
   *refCounter = cntSendMsg;
   return(true);
 }
+
+void  Twitter::getName(char *dest)
+{
+  strncpy(dest, objectName, TWITTER_OBJ_NAME_LEN);}
+
+
 

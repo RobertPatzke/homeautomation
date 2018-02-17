@@ -24,7 +24,7 @@
 
 #ifdef smnSAM3X
 
- not implemented jet
+ not implemented yet
 
 #endif
 
@@ -39,7 +39,7 @@
 #ifdef smnSpecificConfig
 
 #define CONFIG_PAGE0
-#include"/media/win/work/Hochschule/Forschung/Heimautomatisierung/slws8266/checkSo4ch/Sonoff4chConf.h"
+#include ConfFile
 #else
 
  // Page 0
@@ -51,9 +51,9 @@
  const PROGMEM byte confLocationName[16] =
           {'M','y','L','i','v','i','n','g','R','o','o','m',' ',' ',' ',' '};
  // L2
- const PROGMEM byte confLocationPosX[4] =                         {0,0,0,0};
- const PROGMEM byte confLocationPosY[4] =                         {0,0,0,0};
- const PROGMEM byte confLocationPosZ[4] =                         {0,0,0,0};
+ const PROGMEM byte confLocationPosX[4] =                      {0,0,0,0x0B};
+ const PROGMEM byte confLocationPosY[4] =                      {0,0,0,0x16};
+ const PROGMEM byte confLocationPosZ[4] =                      {0,0,0,0x21};
  const PROGMEM byte confAppCode[2]      =                             {0,0};
  const PROGMEM byte confAppKey[2]       =                             {0,0};
 
@@ -152,20 +152,18 @@ public:
   // user functions
   // -------------------------------------------------------------------------
   //
-  bool  promHasData();              // Check if EEPROM has data
-  void  promInit();                 // copy base data to page 0
-  void  promClear();                // delete page 0
+  bool  promHasData();                      // Check if EEPROM has data
+  void  promInit();                         // copy base data to page 0
+  void  promClear();                        // delete page 0
   void  getIpAddress(byte *bList);
   void  getMacAddress(byte *bList);
   void  getPorts(byte *bList);
   void  getNetName(byte *bList);
   void  getNetPass(byte *bList);
   bool  getDhcp();
-  int   getPosX();
-  int   getPosY();
-  int   getPosZ();
-
+  long  getPos(int xyz);                    //xyz: X = 0; Y = 1; Z = 2;
   void  getDevTwitterName(byte *bList);
+  void  getDeviceName(byte *bList);
   int   getApplicationKey();
 
   int   startServer();

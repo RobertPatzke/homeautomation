@@ -19,6 +19,8 @@
   #include "Arduino.h"
 #endif
 
+#include "environment.h"
+
 #define InfoLED         13
 #define smnMaxMorseLen  256
 
@@ -42,6 +44,13 @@ enum MorseCode
   mcClose
 };
 
+typedef struct
+{
+  Pio       *pioPtr;
+  uint32_t  mask;
+} PioDescr, *ptrPioDescr;
+
+
 // ---------------------------------------------------------------------------
 // class PinIoCtrl
 // ---------------------------------------------------------------------------
@@ -59,7 +68,6 @@ private:
   // local variables
   // -------------------------------------------------------------------------
   //
-  int       outPort;
   bool      outPortSet, outPortON;
   bool      doFlash, flashed;
   int       flashLen;
@@ -73,10 +81,12 @@ private:
   int       morseSeqIdx;
   byte      morseSequence[smnMaxMorseLen];
   bool      doMorse;
-  int       chkInPort;
   int       chkInSet;
   int       chkInCnt;
-  int       chkInVal;
+  uint32_t  chkInVal;
+  PioDescr  pioOutDescr;
+  PioDescr  pioInDescr;
+
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -94,8 +104,8 @@ public:
   // constructors and initialisations
   // -------------------------------------------------------------------------
   //
-  PinIoCtrl(); PinIoCtrl(int outport);
-  int initPerif(); void init(int port);
+  PinIoCtrl(); PinIoCtrl(int outport); PinIoCtrl(PioDescr pioData);
+  int initPerif(); void init(int port); void init(Pio *pio, uint32_t portMask);
 
   // -------------------------------------------------------------------------
   // user functions
@@ -109,7 +119,7 @@ public:
   void  turn(boolean onOff);        // Switch Info LED on or off
   void  sos(boolean repeat);        // Start morsing SOS
   bool  inDigLevel(int port, int highLow, int periodTime); // check stay input
-
+  bool  inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime);
 };
 
 //-----------------------------------------------------------------------------

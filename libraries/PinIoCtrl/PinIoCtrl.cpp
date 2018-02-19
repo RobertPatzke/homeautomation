@@ -31,23 +31,40 @@ PinIoCtrl::PinIoCtrl(int outport)
   init(outport);
 }
 
-void PinIoCtrl::init(int port)
+PinIoCtrl::PinIoCtrl(PioDescr pioData)
 {
-  outPort       = port;
-  doFlash       = false;
-  doBlink       = false;
-  flashed       = false;
-  flashLen      = 2;
-  outPortSet    = false;
-  outPortON     = false;
+#ifdef smnArduino
 
-  simulatedDimm = false;
-  doMorse       = false;
-  morseCount    = 0;
-  morseSeqIdx   = 0;
-  ditLen        = 150;
+#endif
 
-  chkInPort     = -1;
+  init(pioData.pioPtr, pioData.mask);
+}
+
+void PinIoCtrl::init(int outPort)
+{
+  init(NULL, outPort);
+}
+
+
+void PinIoCtrl::init(Pio *pio, uint32_t portMask)
+{
+  pioOutDescr.mask      = portMask;
+  pioOutDescr.pioPtr    = pio;
+  doFlash               = false;
+  doBlink               = false;
+  flashed               = false;
+  flashLen              = 2;
+  outPortSet            = false;
+  outPortON             = false;
+
+  simulatedDimm         = false;
+  doMorse               = false;
+  morseCount            = 0;
+  morseSeqIdx           = 0;
+  ditLen                = 150;
+
+  pioInDescr.mask       = -1;
+
 }
 
 
@@ -62,10 +79,20 @@ int PinIoCtrl::initPerif()
   int retv = 0;
 
 #ifdef smnArduino
-  pinMode(outPort, OUTPUT);
-  digitalWrite(outPort, HIGH);
+  if(pioOutDescr.pioPtr == NULL)
+  {
+    pinMode(pioOutDescr.mask, OUTPUT);
+    digitalWrite(pioOutDescr.mask, HIGH);
+  }
+  else
+  {
+  #ifdef smnSAM3X
+    pioOutDescr.pioPtr->PIO_OER = pioOutDescr.mask;
+    pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+  #endif
+  }
 #else
-   here may be direct port/register access used
+  alternativly set port/register direct
 #endif
    outPortSet = false;
   return(retv);
@@ -83,7 +110,7 @@ int PinIoCtrl::initPerif()
 //
 void PinIoCtrl::run(int frequency)
 {
-  int   tmpInt;
+  uint32_t   tmpInt32;
 
   currentFreq = frequency;
 
@@ -94,12 +121,21 @@ void PinIoCtrl::run(int frequency)
   if(chkInCnt > 0)
   {
   #ifdef smnArduino
-    tmpInt = digitalRead(chkInPort);
+    if(pioOutDescr.pioPtr == NULL)
+    {
+      tmpInt32 = digitalRead(pioInDescr.mask);
+    }
+    else
+    {
+    #ifdef smnSAM3X
+      tmpInt32 = pioOutDescr.pioPtr->PIO_PDSR & pioOutDescr.mask;
+    #endif
+    }
   #else
     alternativly set port/register direct
   #endif
 
-    if(tmpInt != chkInVal)
+    if(tmpInt32 != chkInVal)
       chkInCnt = chkInSet;
     else
       chkInCnt--;
@@ -116,8 +152,17 @@ void PinIoCtrl::run(int frequency)
       if(!outPortSet)
       {
         #ifdef smnArduino
-        analogWrite(outPort, 0);
-        digitalWrite(outPort, LOW);
+        if(pioOutDescr.pioPtr == NULL)
+        {
+          analogWrite(pioOutDescr.mask, 0);
+          digitalWrite(pioOutDescr.mask, LOW);
+        }
+        else
+        {
+        #ifdef smnSAM3X
+          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+        #endif
+        }
         #else
         alternativly set port/register direct
         #endif
@@ -132,10 +177,19 @@ void PinIoCtrl::run(int frequency)
     {
       doFlash       = false;
     #ifdef smnArduino
-      if(dimmed && outPortON && !simulatedDimm)
-        analogWrite(outPort, dimmVal);
+      if(pioOutDescr.pioPtr == NULL)
+      {
+        if(dimmed && outPortON && !simulatedDimm)
+          analogWrite(pioOutDescr.mask, dimmVal);
+        else
+          digitalWrite(pioOutDescr.mask, HIGH);
+      }
       else
-        digitalWrite(outPort, HIGH);
+      {
+      #ifdef smnSAM3X
+        pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+      #endif
+      }
     #else
       alternativly set port/register direct
     #endif
@@ -152,14 +206,28 @@ void PinIoCtrl::run(int frequency)
   {
     if(!blinked)
     {
+
       if(!outPortSet)
       {
+
         #ifdef smnArduino
-        analogWrite(outPort, 0);
-        digitalWrite(outPort, LOW);
+        if(pioOutDescr.pioPtr == NULL)
+        {
+        #ifndef smnSAM3X
+          analogWrite(pioOutDescr.mask, 0);
+        #endif
+          digitalWrite(pioOutDescr.mask, LOW);
+        }
+        else
+        {
+        #ifdef smnSAM3X
+          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+        #endif
+        }
         #else
         alternativly set port/register direct
         #endif
+
         outPortSet = true;
       }
 
@@ -170,16 +238,28 @@ void PinIoCtrl::run(int frequency)
         blinked = true;
         blinkLen = blinkLenSet;
       }
+
     }
     else
     {
+
       if(outPortSet)
       {
+
       #ifdef smnArduino
-        if(dimmed && outPortON && !simulatedDimm)
-          analogWrite(outPort, dimmVal);
+        if(pioOutDescr.pioPtr == NULL)
+        {
+          if(dimmed && outPortON && !simulatedDimm)
+            analogWrite(pioOutDescr.mask, dimmVal);
+          else
+            digitalWrite(pioOutDescr.mask, HIGH);
+        }
         else
-          digitalWrite(outPort, HIGH);
+        {
+        #ifdef smnSAM3X
+          pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+        #endif
+        }
       #else
         alternativly set port/register direct
       #endif
@@ -193,6 +273,7 @@ void PinIoCtrl::run(int frequency)
         blinked = false;
         blinkPause = blinkPauseSet;
       }
+
     }
     return;     // Doing BLINK is the one and only if running
   } // end if(doBlink)
@@ -211,7 +292,16 @@ void PinIoCtrl::run(int frequency)
         if(outPortSet)
         {
         #ifdef smnArduino
-          digitalWrite(outPort, HIGH);
+          if(pioOutDescr.pioPtr == NULL)
+          {
+            digitalWrite(pioOutDescr.mask, HIGH);
+          }
+          else
+          {
+          #ifdef smnSAM3X
+            pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+          #endif
+          }
         #else
           alternativly set port/register direct
         #endif
@@ -225,7 +315,16 @@ void PinIoCtrl::run(int frequency)
         else
         {
         #ifdef smnArduino
-          digitalWrite(outPort, LOW);
+          if(pioOutDescr.pioPtr == NULL)
+          {
+            digitalWrite(pioOutDescr.mask, LOW);
+          }
+          else
+          {
+          #ifdef smnSAM3X
+            pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+          #endif
+          }
         #else
           alternativly set port/register direct
         #endif
@@ -240,7 +339,7 @@ void PinIoCtrl::run(int frequency)
         if(!outPortSet)
         {
         #ifdef smnArduino
-          analogWrite(outPort, dimmVal);
+          analogWrite(pioOutDescr.mask, dimmVal);
         #else
           alternativly set port/register direct
         #endif
@@ -255,7 +354,16 @@ void PinIoCtrl::run(int frequency)
       if(!outPortSet)
       {
         #ifdef smnArduino
-        digitalWrite(outPort, LOW);
+        if(pioOutDescr.pioPtr == NULL)
+        {
+          digitalWrite(pioOutDescr.mask, LOW);
+        }
+        else
+        {
+        #ifdef smnSAM3X
+          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+        #endif
+        }
         #else
         alternativly set port/register direct
         #endif
@@ -270,9 +378,18 @@ void PinIoCtrl::run(int frequency)
     if(outPortSet)
     {
       #ifdef smnArduino
-      if(dimmed && !simulatedDimm)
-        analogWrite(outPort, 0);
-      digitalWrite(outPort, HIGH);
+      if(pioOutDescr.pioPtr == NULL)
+      {
+        if(dimmed && !simulatedDimm)
+          analogWrite(pioOutDescr.mask, 0);
+        digitalWrite(pioOutDescr.mask, HIGH);
+      }
+      else
+      {
+      #ifdef smnSAM3X
+        pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+      #endif
+      }
       #else
       alternativly set port/register direct
       #endif
@@ -391,6 +508,9 @@ void PinIoCtrl::flash(int len)
   outPortSet    = false;
 }
 
+// ACHTUNG !!! run() muss wenigstens einmal aufgerufen sein,
+// bevor blink() verwendet wird
+//
 void PinIoCtrl::blink(int len, int pause)
 {
   int calc;
@@ -426,7 +546,7 @@ int PinIoCtrl::dimm(double damp, boolean sim)
   if(damp < 0.001)
   {
   #ifdef smnArduino
-    analogWrite(outPort, 0);
+    analogWrite(pioOutDescr.mask, 0);
   #else
     alternativly set port/register direct
   #endif
@@ -468,18 +588,25 @@ void PinIoCtrl::turn(boolean onOff)
 //
 bool PinIoCtrl::inDigLevel(int port, int highLow, int periodTime)
 {
+  PioDescr pioData = { NULL, port };
+  return(inDigLevel(pioData, highLow, periodTime));
+}
+
+bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
+{
   if(chkInCnt > 0)
     return(false);
 
-  if(chkInPort < 0)
+  if(pioInDescr.mask == (uint32_t)(-1))
   {
     chkInVal = highLow;
     chkInCnt = chkInSet = (currentFreq * periodTime) / 1000;
-    chkInPort = port;
+    pioInDescr.pioPtr   = pioData.pioPtr;
+    pioInDescr.mask     = pioData.mask;
     return(false);
   }
 
-  chkInPort = -1;
+  pioInDescr.mask = -1;
   return(true);
 }
 
@@ -634,6 +761,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcPauseChar;
       break;
 
+    /*
     case 'Ü':
       buffer[retv++] = mcDit;
       buffer[retv++] = mcDit;
@@ -641,6 +769,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcDah;
       buffer[retv++] = mcPauseChar;
       break;
+    */
 
     case 'L':
       buffer[retv++] = mcDit;
@@ -650,6 +779,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcPauseChar;
       break;
 
+    /*
     case 'Ä':
       buffer[retv++] = mcDit;
       buffer[retv++] = mcDah;
@@ -657,6 +787,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcDah;
       buffer[retv++] = mcPauseChar;
       break;
+    */
 
     case 'P':
       buffer[retv++] = mcDit;
@@ -722,6 +853,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcPauseChar;
       break;
 
+    /*
     case 'Ö':
       buffer[retv++] = mcDah;
       buffer[retv++] = mcDah;
@@ -729,6 +861,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcDit;
       buffer[retv++] = mcPauseChar;
       break;
+    */
 
     case '1':
       buffer[retv++] = mcDit;
@@ -947,6 +1080,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcPauseChar;
       break;
 
+    /*
     case 'ß':
       buffer[retv++] = mcDit;
       buffer[retv++] = mcDit;
@@ -957,6 +1091,7 @@ int PinIoCtrl::getMorseChar(char chr, byte *buffer)
       buffer[retv++] = mcDit;
       buffer[retv++] = mcPauseChar;
       break;
+    */
 
     case '\r':          // KA (Spruchanfang)
       buffer[retv++] = mcDah;

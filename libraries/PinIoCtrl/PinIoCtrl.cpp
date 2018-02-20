@@ -19,24 +19,37 @@ PinIoCtrl::PinIoCtrl()
 
 #endif
 
+  currentFreq = 1000;
   init(InfoLED);
 }
 
-PinIoCtrl::PinIoCtrl(int outport)
+PinIoCtrl::PinIoCtrl(int frequency)
 {
 #ifdef smnArduino
 
 #endif
 
+  currentFreq = frequency;
+  init(InfoLED);
+}
+
+PinIoCtrl::PinIoCtrl(int frequency, int outport)
+{
+#ifdef smnArduino
+
+#endif
+
+  currentFreq = frequency;
   init(outport);
 }
 
-PinIoCtrl::PinIoCtrl(PioDescr pioData)
+PinIoCtrl::PinIoCtrl(int frequency, PioDescr pioData)
 {
 #ifdef smnArduino
 
 #endif
 
+  currentFreq = frequency;
   init(pioData.pioPtr, pioData.mask);
 }
 
@@ -108,11 +121,9 @@ int PinIoCtrl::initPerif()
 // ---------------------------------------------------------------------------
 // This function has to be called cyclic, parameter is the calling frequency
 //
-void PinIoCtrl::run(int frequency)
+void PinIoCtrl::run()
 {
   uint32_t   tmpInt32;
-
-  currentFreq = frequency;
 
   // -------------------------------------------------------------------------
   // run check digital input

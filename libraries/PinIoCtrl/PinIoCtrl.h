@@ -69,6 +69,8 @@ private:
   // -------------------------------------------------------------------------
   //
   bool      outPortSet, outPortON;
+  bool      cpl;
+  bool      perInit;
   bool      doFlash, flashed;
   int       flashLen;
   bool      doBlink, blinked;
@@ -106,16 +108,18 @@ public:
   //
   PinIoCtrl(); PinIoCtrl(int frequency); PinIoCtrl(int frequency, int outport);
   PinIoCtrl(int frequency, PioDescr pioData);
-  int initPerif(); void init(int port); void init(Pio *pio, uint32_t portMask);
+  int initPerif(); int initPerif(int port); int initPerif(PioDescr pioData);
+  void init(int port); void init(Pio *pio, uint32_t portMask);
 
   // -------------------------------------------------------------------------
   // user functions
   // -------------------------------------------------------------------------
   //
-  void  run();         // has to be cyclic called with <frequency>
+  void  run();                      // has to be cyclic called with <frequency>
   void  flash(int len);             // Flash Info LED for <len> milliseconds
   void  blink(int len, int pause);
   // Blink Info LED for <len> milliseconds ON and pause OFF
+  void  invert();                   // Invert output level (LOW/HIGH)
   int   dimm(double damp, boolean sim);           // Set intensity of Info LED
   void  turn(boolean onOff);        // Switch Info LED on or off
   void  sos(boolean repeat);        // Start morsing SOS

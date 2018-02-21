@@ -77,15 +77,17 @@ void PinIoCtrl::init(Pio *pio, uint32_t portMask)
   ditLen                = 150;
 
   pioInDescr.mask       = -1;
-
+  cpl                   = false;
+  perInit               = false;
 }
 
 
 // ---------------------------------------------------------------------------
 // Initialisation
 // ---------------------------------------------------------------------------
-// This nitialisation is not part of the constructor, because we may call other
+// This initialisation is not part of the constructor, because we may call other
 // resources which may return errors or throw exceptions
+// This function also may be used for changing the Pin.
 //
 int PinIoCtrl::initPerif()
 {
@@ -95,20 +97,40 @@ int PinIoCtrl::initPerif()
   if(pioOutDescr.pioPtr == NULL)
   {
     pinMode(pioOutDescr.mask, OUTPUT);
-    digitalWrite(pioOutDescr.mask, HIGH);
+    if(cpl)
+      digitalWrite(pioOutDescr.mask, LOW);
+    else
+      digitalWrite(pioOutDescr.mask, HIGH);
   }
   else
   {
   #ifdef smnSAM3X
     pioOutDescr.pioPtr->PIO_OER = pioOutDescr.mask;
-    pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+    if(cpl)
+      pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+    else
+      pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
   #endif
   }
 #else
   alternativly set port/register direct
 #endif
-   outPortSet = false;
+
+  perInit       = true;
+  outPortSet    = false;
   return(retv);
+}
+
+int PinIoCtrl::initPerif(PioDescr pioData)
+{
+  pioOutDescr = pioData;
+  return(initPerif());
+}
+
+int PinIoCtrl::initPerif(int port)
+{
+  PioDescr pioDescr = {NULL, (uint32_t) port};
+  return(initPerif(pioDescr));
 }
 
 // ---------------------------------------------------------------------------
@@ -166,12 +188,18 @@ void PinIoCtrl::run()
         if(pioOutDescr.pioPtr == NULL)
         {
           analogWrite(pioOutDescr.mask, 0);
-          digitalWrite(pioOutDescr.mask, LOW);
+          if(cpl)
+            digitalWrite(pioOutDescr.mask, HIGH);
+          else
+            digitalWrite(pioOutDescr.mask, LOW);
         }
         else
         {
         #ifdef smnSAM3X
-          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+          if(cpl)
+            pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         #endif
         }
         #else
@@ -193,12 +221,20 @@ void PinIoCtrl::run()
         if(dimmed && outPortON && !simulatedDimm)
           analogWrite(pioOutDescr.mask, dimmVal);
         else
-          digitalWrite(pioOutDescr.mask, HIGH);
+        {
+          if(cpl)
+            digitalWrite(pioOutDescr.mask, LOW);
+          else
+            digitalWrite(pioOutDescr.mask, HIGH);
+        }
       }
       else
       {
       #ifdef smnSAM3X
-        pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+        if(cpl)
+          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+        else
+          pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
       #endif
       }
     #else
@@ -227,12 +263,18 @@ void PinIoCtrl::run()
         #ifndef smnSAM3X
           analogWrite(pioOutDescr.mask, 0);
         #endif
-          digitalWrite(pioOutDescr.mask, LOW);
+          if(cpl)
+            digitalWrite(pioOutDescr.mask, HIGH);
+          else
+            digitalWrite(pioOutDescr.mask, LOW);
         }
         else
         {
         #ifdef smnSAM3X
-          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+          if(cpl)
+            pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         #endif
         }
         #else
@@ -268,7 +310,10 @@ void PinIoCtrl::run()
         else
         {
         #ifdef smnSAM3X
-          pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+          if(cpl)
+            pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
         #endif
         }
       #else
@@ -305,12 +350,18 @@ void PinIoCtrl::run()
         #ifdef smnArduino
           if(pioOutDescr.pioPtr == NULL)
           {
-            digitalWrite(pioOutDescr.mask, HIGH);
+            if(cpl)
+              digitalWrite(pioOutDescr.mask, LOW);
+            else
+              digitalWrite(pioOutDescr.mask, HIGH);
           }
           else
           {
           #ifdef smnSAM3X
-            pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+            if(cpl)
+              pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+            else
+              pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
           #endif
           }
         #else
@@ -328,12 +379,18 @@ void PinIoCtrl::run()
         #ifdef smnArduino
           if(pioOutDescr.pioPtr == NULL)
           {
-            digitalWrite(pioOutDescr.mask, LOW);
+            if(cpl)
+              digitalWrite(pioOutDescr.mask, HIGH);
+            else
+              digitalWrite(pioOutDescr.mask, LOW);
           }
           else
           {
           #ifdef smnSAM3X
-            pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+            if(cpl)
+              pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+            else
+              pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
           #endif
           }
         #else
@@ -367,12 +424,18 @@ void PinIoCtrl::run()
         #ifdef smnArduino
         if(pioOutDescr.pioPtr == NULL)
         {
-          digitalWrite(pioOutDescr.mask, LOW);
+          if(cpl)
+            digitalWrite(pioOutDescr.mask, HIGH);
+          else
+            digitalWrite(pioOutDescr.mask, LOW);
         }
         else
         {
         #ifdef smnSAM3X
-          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+          if(cpl)
+            pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         #endif
         }
         #else
@@ -393,12 +456,18 @@ void PinIoCtrl::run()
       {
         if(dimmed && !simulatedDimm)
           analogWrite(pioOutDescr.mask, 0);
-        digitalWrite(pioOutDescr.mask, HIGH);
+        if(cpl)
+          digitalWrite(pioOutDescr.mask, LOW);
+        else
+          digitalWrite(pioOutDescr.mask, HIGH);
       }
       else
       {
       #ifdef smnSAM3X
-        pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+        if(cpl)
+          pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+        else
+          pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
       #endif
       }
       #else
@@ -588,7 +657,6 @@ int PinIoCtrl::dimm(double damp, boolean sim)
 // ---------------------------------------------------------------------------
 // turn()               switch info LED on or off
 // ---------------------------------------------------------------------------
-// Not all Pins support PWM. Set <sim> for simulation
 //
 void PinIoCtrl::turn(boolean onOff)
 {
@@ -596,10 +664,20 @@ void PinIoCtrl::turn(boolean onOff)
 }
 
 // ---------------------------------------------------------------------------
+// invert()             Change output signal from active low to active high
+// ---------------------------------------------------------------------------
+// ... or from active high to active low (default is active low)
+//
+void PinIoCtrl::invert()
+{
+  cpl = !cpl;
+}
+
+// ---------------------------------------------------------------------------
 //
 bool PinIoCtrl::inDigLevel(int port, int highLow, int periodTime)
 {
-  PioDescr pioData = { NULL, port };
+  PioDescr pioData = { NULL, (uint32_t) port };
   return(inDigLevel(pioData, highLow, periodTime));
 }
 
@@ -614,6 +692,22 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
     chkInCnt = chkInSet = (currentFreq * periodTime) / 1000;
     pioInDescr.pioPtr   = pioData.pioPtr;
     pioInDescr.mask     = pioData.mask;
+
+  #ifdef smnArduino
+    if(pioOutDescr.pioPtr == NULL)
+    {
+      pinMode(pioOutDescr.mask, INPUT);
+    }
+    else
+    {
+    #ifdef smnSAM3X
+      pioOutDescr.pioPtr->PIO_ODR = pioOutDescr.mask;
+    #endif
+    }
+    #else
+      alternativly set port/register direct
+    #endif
+
     return(false);
   }
 

@@ -19,6 +19,10 @@
   #include "Arduino.h"
 #endif
 
+#ifndef Pio
+  #define Pio unsigned long
+#endif
+
 #include "environment.h"
 
 #define InfoLED         13
@@ -117,6 +121,7 @@ public:
   //
   void  run();                      // has to be cyclic called with <frequency>
   void  flash(int len);             // Flash Info LED for <len> milliseconds
+  void  flashMin(int addCycle);     // Flash Pin for (1 + addCycle) cycles
   void  blink(int len, int pause);
   // Blink Info LED for <len> milliseconds ON and pause OFF
   void  invert();                   // Invert output level (LOW/HIGH)

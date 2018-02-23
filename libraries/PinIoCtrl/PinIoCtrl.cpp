@@ -578,7 +578,7 @@ void PinIoCtrl::flash(int len)
     calc = (currentFreq * len) / 1000;
     if(calc == 0)
       calc = 1;
-    flashLen = calc;
+    flashLen = calc - 1;
   }
   else
     flashLen = 0;
@@ -588,8 +588,20 @@ void PinIoCtrl::flash(int len)
   outPortSet    = false;
 }
 
-// ACHTUNG !!! run() muss wenigstens einmal aufgerufen sein,
-// bevor blink() verwendet wird
+void PinIoCtrl::flashMin(int addCycle)
+{
+  int calc;
+
+  if(doFlash) return;   // Flash is still running
+
+  flashLen = addCycle;
+
+  flashed       = false;
+  doFlash       = true;
+  outPortSet    = false;
+}
+
+
 //
 void PinIoCtrl::blink(int len, int pause)
 {

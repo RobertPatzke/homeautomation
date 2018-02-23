@@ -20,14 +20,12 @@
 //#define smnBOARD006
 
 
-//#define TestAtMFP
-// Delete this definition to use the content of (your) socManNetUser.h for
-// the parameters of the network.
-// Otherwise there is an #include in socManNetUser.h to another file,
-// which holds private network parameters and is not delivered with this project
 
-#ifndef TestAtMFP
+#ifndef smnMyNet
 // ***************************************************************************
+// define smnMyNet in project properties (Arduino) with -DsmnMyNet
+// to use your own network definition file included at the end of this file
+
 
 //---------------------------------------------------------------------------//
 //-------------------------------------------------------------------------
@@ -305,9 +303,12 @@
 #else
 // ***************************************************************************
   #undef _socManNetUser_h
-  #include "socManNetMFP.h"
+  #include MyNetFile
+  // Define MyNetFile in Project-Properties with -DMyNetFile=\"xxxxx\"
+  // and xxxxx being your filename.
+  // Define also smnMyNet with -DsmnMyNet to enter this include directive
 
-#endif // TestAtMFP
+#endif // smnMyNet
 // ***************************************************************************
 
 //---------------------------------------------------------------------------//

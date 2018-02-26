@@ -79,6 +79,7 @@ void PinIoCtrl::init(Pio *pio, uint32_t portMask)
   pioInDescr.mask       = -1;
   cpl                   = false;
   perInit               = false;
+  chkInDuration         = false;
 }
 
 
@@ -154,14 +155,14 @@ void PinIoCtrl::run()
   if(chkInCnt > 0)
   {
   #ifdef smnArduino
-    if(pioOutDescr.pioPtr == NULL)
+    if(pioInDescr.pioPtr == NULL)
     {
       tmpInt32 = digitalRead(pioInDescr.mask);
     }
     else
     {
     #ifdef smnSAM3X
-      tmpInt32 = pioOutDescr.pioPtr->PIO_PDSR & pioOutDescr.mask;
+      tmpInt32 = pioInDescr.pioPtr->PIO_PDSR & pioInDescr.mask;
     #endif
     }
   #else
@@ -173,6 +174,41 @@ void PinIoCtrl::run()
     else
       chkInCnt--;
   }
+
+  // -------------------------------------------------------------------------
+  // run check input duration
+  // -------------------------------------------------------------------------
+  //
+  if(chkInDuration)
+  {
+  #ifdef smnArduino
+    if(pioInDescr.pioPtr == NULL)
+    {
+      tmpInt32 = digitalRead(pioInDescr.mask);
+    }
+    else
+    {
+    #ifdef smnSAM3X
+      tmpInt32 = pioInDescr.pioPtr->PIO_PDSR & pioInDescr.mask;
+    #endif
+    }
+  #else
+    alternativly set port/register direct
+  #endif
+
+    if(tmpInt32 == inDurVal)
+    {
+      inDurationCnt++;
+      if(inDurationCnt > inDurationLim)
+        inDurationCnt = inDurationLim;
+    }
+    else
+    {
+      inDurationCnt = 0;
+      inDurVal = tmpInt32;
+    }
+  }
+
 
   // -------------------------------------------------------------------------
   // run flash
@@ -590,8 +626,6 @@ void PinIoCtrl::flash(int len)
 
 void PinIoCtrl::flashMin(int addCycle)
 {
-  int calc;
-
   if(doFlash) return;   // Flash is still running
 
   flashLen = addCycle;
@@ -601,6 +635,17 @@ void PinIoCtrl::flashMin(int addCycle)
   outPortSet    = false;
 }
 
+
+void PinIoCtrl::blink(int len, int pause, bool chkBusy)
+{
+  if(chkBusy)
+  {
+    if(doBlink)
+      return;
+  }
+
+  blink(len, pause);
+}
 
 //
 void PinIoCtrl::blink(int len, int pause)
@@ -706,14 +751,14 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
     pioInDescr.mask     = pioData.mask;
 
   #ifdef smnArduino
-    if(pioOutDescr.pioPtr == NULL)
+    if(pioInDescr.pioPtr == NULL)
     {
-      pinMode(pioOutDescr.mask, INPUT);
+      pinMode(pioInDescr.mask, INPUT);
     }
     else
     {
     #ifdef smnSAM3X
-      pioOutDescr.pioPtr->PIO_ODR = pioOutDescr.mask;
+      pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
     #endif
     }
     #else
@@ -724,6 +769,56 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
   }
 
   pioInDescr.mask = -1;
+  return(true);
+}
+
+// ---------------------------------------------------------------------------
+// watch and evaluate digital input level
+// ---------------------------------------------------------------------------
+//
+void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime)
+{
+  if(periodTime == 0)
+  {
+    chkInDuration = false;
+    return;
+  }
+  inDurationLim = (currentFreq * periodTime) / 1000;
+  pioInDescr.pioPtr   = pioData.pioPtr;
+  pioInDescr.mask     = pioData.mask;
+
+#ifdef smnArduino
+  if(pioInDescr.pioPtr == NULL)
+  {
+    pinMode(pioInDescr.mask, INPUT);
+  }
+  else
+  {
+  #ifdef smnSAM3X
+    pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
+  #endif
+  }
+#else
+  alternativly set port/register direct
+#endif
+
+  chkInDuration = true;
+}
+
+bool PinIoCtrl::stableDigLevel(uint32_t highLow)
+{
+  if(inDurVal != highLow)
+    return(false);
+  if(inDurationCnt >= inDurationLim)
+    return(true);
+  return(false);
+}
+
+bool PinIoCtrl::getDigLevel(uint32_t *highLow)
+{
+  *highLow = inDurVal;
+  if(inDurationCnt < inDurationLim)
+    return(false);
   return(true);
 }
 

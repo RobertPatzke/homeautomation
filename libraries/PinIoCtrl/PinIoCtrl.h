@@ -19,7 +19,9 @@
   #include "Arduino.h"
 #endif
 
-#ifndef Pio
+// Test for type definitions of SAM3X
+//
+#ifndef PIO_PER_P0
   #define Pio unsigned long
 #endif
 
@@ -87,9 +89,16 @@ private:
   int       morseSeqIdx;
   byte      morseSequence[smnMaxMorseLen];
   bool      doMorse;
+
   int       chkInSet;
   int       chkInCnt;
   uint32_t  chkInVal;
+
+  bool      chkInDuration;
+  int       inDurationCnt;
+  int       inDurationLim;
+  uint32_t  inDurVal;
+
   PioDescr  pioOutDescr;
   PioDescr  pioInDescr;
 
@@ -123,6 +132,7 @@ public:
   void  flash(int len);             // Flash Info LED for <len> milliseconds
   void  flashMin(int addCycle);     // Flash Pin for (1 + addCycle) cycles
   void  blink(int len, int pause);
+  void  blink(int len, int pause, bool chkBusy);
   // Blink Info LED for <len> milliseconds ON and pause OFF
   void  invert();                   // Invert output level (LOW/HIGH)
   int   dimm(double damp, boolean sim);           // Set intensity of Info LED
@@ -130,6 +140,9 @@ public:
   void  sos(boolean repeat);        // Start morsing SOS
   bool  inDigLevel(int port, int highLow, int periodTime); // check stay input
   bool  inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime);
+  void  watchDigLevel(PioDescr pioData, int periodTime);
+  bool  stableDigLevel(uint32_t highLow);
+  bool  getDigLevel(uint32_t *highLow);
 };
 
 //-----------------------------------------------------------------------------

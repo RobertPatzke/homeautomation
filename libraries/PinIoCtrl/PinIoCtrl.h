@@ -139,8 +139,8 @@ public:
   void  turn(boolean onOff);        // Switch Info LED on or off
   void  sos(boolean repeat);        // Start morsing SOS
   bool  inDigLevel(int port, int highLow, int periodTime); // check stay input
-  bool  inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime);
-  void  watchDigLevel(PioDescr pioData, int periodTime);
+  bool  inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, int perId);
+  void  watchDigLevel(PioDescr pioData, int periodTime, int perId);
   bool  stableDigLevel(uint32_t highLow);
   bool  getDigLevel(uint32_t *highLow);
 };

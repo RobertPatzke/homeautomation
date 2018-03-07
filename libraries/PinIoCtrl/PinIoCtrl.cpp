@@ -735,10 +735,10 @@ void PinIoCtrl::invert()
 bool PinIoCtrl::inDigLevel(int port, int highLow, int periodTime)
 {
   PioDescr pioData = { NULL, (uint32_t) port };
-  return(inDigLevel(pioData, highLow, periodTime));
+  return(inDigLevel(pioData, highLow, periodTime, 0));
 }
 
-bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
+bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, int perId)
 {
   if(chkInCnt > 0)
     return(false);
@@ -759,6 +759,7 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
     {
     #ifdef smnSAM3X
       pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
+      pmc_enable_periph_clk(perId);
     #endif
     }
     #else
@@ -776,7 +777,7 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime)
 // watch and evaluate digital input level
 // ---------------------------------------------------------------------------
 //
-void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime)
+void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, int perId)
 {
   if(periodTime == 0)
   {
@@ -796,6 +797,7 @@ void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime)
   {
   #ifdef smnSAM3X
     pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
+    pmc_enable_periph_clk(perId);
   #endif
   }
 #else

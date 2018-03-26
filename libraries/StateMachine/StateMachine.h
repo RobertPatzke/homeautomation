@@ -84,6 +84,10 @@ public:
   int   instNumber;
   int   runCounter;
 
+  // error and debug support
+  //
+  int   userError;
+
   // -------------------------------------------------------------------------
   // constructors and initialisations
   // -------------------------------------------------------------------------
@@ -98,6 +102,7 @@ public:
   void      setDelay(int delayTime);                // delay before next state
   void      setSpeed(int freq);                     // internal run frequency
 
+  void      enter();                                // set next to future state
   void      enter(StatePtr state);                  // set next state to run
   void      enter(StatePtr state, int delayTime);   // ... delayed
 

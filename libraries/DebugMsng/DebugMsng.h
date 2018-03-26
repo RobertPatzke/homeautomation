@@ -19,6 +19,9 @@
   #include "Arduino.h"
 #endif
 
+extern "C" char* sbrk(int incr);
+
+#define DBMSG(x)  if(dbgRef != NULL) dbgRef->msg(x);
 
 // ---------------------------------------------------------------------------
 // class DebugMsng
@@ -37,7 +40,7 @@ private:
   // local variables
   // -------------------------------------------------------------------------
   //
-  int delay;
+  int   delay;
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -53,6 +56,9 @@ public:
   // public variables
   // -------------------------------------------------------------------------
   //
+  bool  enable;
+  int   stepCount;
+  int   freeMem;
 
   // -------------------------------------------------------------------------
   // constructors and initialisations
@@ -65,6 +71,9 @@ public:
   // -------------------------------------------------------------------------
   //
   void cyclicMsg(unsigned int intVal, int delay);
+  void msg(char * txt);
+  void val(int intVal);
+  void nl();
 
 };
 

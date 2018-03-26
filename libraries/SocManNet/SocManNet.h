@@ -11,6 +11,7 @@
 #define _SocManNet_h
 //---------------------------------------------------------------------------//
 
+
 #ifndef _environment_h
   #include "environment.h"
 #endif
@@ -274,10 +275,10 @@ private:
 #endif
 
   // --------------------------------------------------------------------------
-  // Interne Funktionen fuer Debugzwecke
+  // Interne Funktionen und Variablen fuer Debugzwecke
   // --------------------------------------------------------------------------
 private:
-  void writeDebug(char * str);
+
 
 public:
   // --------------------------------------------------------------------------
@@ -306,11 +307,17 @@ public:
 
 
   // --------------------------------------------------------------------------
+  //  Constructors and initialisations
+  // --------------------------------------------------------------------------
+  //
+  //SocManNet(DebugMsng *dbPtr);
+  SocManNet();
+  void initLoc();
+
+  // --------------------------------------------------------------------------
   //  Allgemeine oeffentliche Funktionen
   // --------------------------------------------------------------------------
-  SocManNet();
-  // Konstruktor
-
+  //
   void setMac(byte *bList);
   void setIpAdr(byte *bList);
   void setPorts(byte *bList);

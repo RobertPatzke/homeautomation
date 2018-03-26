@@ -129,6 +129,16 @@ void StateMachine::setSpeed(int freq)
   repeatDelay   = true;
 }
 
+// setting future state to be called by run
+//
+void StateMachine::enter()
+{
+  if(stayHere()) return;
+
+  pastState = nextState;
+  nextState = futureState;
+}
+
 // setting next state to be called by run
 //
 void StateMachine::enter(StatePtr next)

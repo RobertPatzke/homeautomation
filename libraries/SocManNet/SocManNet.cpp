@@ -18,19 +18,7 @@
     // Funktionen
     //-------------------------------------------------------------------------
 
-smnServPtr      nextSrv;
-
-//#define SocManNetDebug
-
-#ifdef SocManNetDebug
-
-#define dp(x)   Serial.print(x)
-#define dpl(x)  Serial.println(x)
-char ds[128];
-
-#endif
-
-
+smnServPtr  nextSrv;
 
         //---------------------------------------------------------------------
         // Ereignis (Event) der Schnittstelle verarbeiten
@@ -178,39 +166,46 @@ WiFiServer      server(CONFIG_PORT);
 #endif
 
         //---------------------------------------------------------------------
-        // Konstruktor
+        // Constructors and initilisations
         //---------------------------------------------------------------------
 SocManNet::SocManNet()
 {
-	cntRecMsg 		= 0;
-	cntSendMsg  	= 0;
-	debugOn			= false;
-	idxFieldObjData	= 0;
-	idxFieldObjName	= 0;
-	portBroadcast 	= 4100;
-	portLocal       = 4000;
-	recParseCounter = 0;
-	connected       = false;
-	initialised     = false;
-	staticInitDone  = false;
-	initPending     = false;
-	useDHCP         = false;
-	error           = smnError_none;
-	bcEnable        = 0;
-	connectCount    = 0;
-	connectMark     = 0;
-	runDisabled     = false;
+  initLoc();
+}
+
+
+void SocManNet::initLoc()
+{
+  cntRecMsg       = 0;
+  cntSendMsg      = 0;
+  debugOn         = false;
+  idxFieldObjData = 0;
+  idxFieldObjName = 0;
+  portBroadcast   = 4100;
+  portLocal       = 4000;
+  recParseCounter = 0;
+  connected       = false;
+  initialised     = false;
+  staticInitDone  = false;
+  initPending     = false;
+  useDHCP         = false;
+  error           = smnError_none;
+  bcEnable        = 0;
+  connectCount    = 0;
+  connectMark     = 0;
+  runDisabled     = false;
+  nextSrv         = srvInit;
 
 #ifdef smnSimLinux
-	socketId        = 0;
-    socketBcAdrLen  = 0;
-    socketRecAdrLen = 0;
-    ipLocal         = NULL;
-    ipPrimaryDNS    = NULL;
-    ipSecondaryDNS  = NULL;
-    ipGateway       = NULL;
-    ipSubNet        = NULL;
-    ipBroadcast     = NULL;
+  socketId        = 0;
+  socketBcAdrLen  = 0;
+  socketRecAdrLen = 0;
+  ipLocal         = NULL;
+  ipPrimaryDNS    = NULL;
+  ipSecondaryDNS  = NULL;
+  ipGateway       = NULL;
+  ipSubNet        = NULL;
+  ipBroadcast     = NULL;
 #endif
 }
 
@@ -947,7 +942,7 @@ int SocManNet::receive(unsigned char * buf, int bufSize)
 
     msgLen = bufSize;
 
-    writeDebug((char *) "Message is too long for the debug output");
+    //writeDebug((char *) "Message is too long for the debug output");
   }
 
   //---------------------------------------------------------------------------
@@ -1179,6 +1174,15 @@ void SocManNet::run(void)
   if(error != smnError_none) return;
   if(initPending) return;
   if(connectCount == 0) return;
+
+#ifdef smnSMNDBG02
+  dbgRef->msg("SocManNet.run[1]: connected = ");
+  if(connected == true)
+    dbgRef->msg("true\r\n");
+  else
+    dbgRef->msg("false\r\n");
+  return;
+#endif
 
   if(connected == false)
   {
@@ -1416,6 +1420,7 @@ void SocManNet::quitCtlSrvRead()
   srvRecFin = false;
 }
 
+/*
         //---------------------------------------------------------------------
         // writeDebug(...)
         // Ein String ueber Debug-Schnittstelle ausgeben
@@ -1450,7 +1455,7 @@ void SocManNet::writeDebug(char * str)
   printf("\n");
 #endif
 }
-
+*/
 
         //---------------------------------------------------------------------
         // getStatistic(...)

@@ -12,7 +12,8 @@
 // I could not find any datasheet for the used MY9231, only overview pages.
 // The reason for creating a new library is to understand the interface
 // to MY9231 based on the datasheet of MY9221
-//
+// With respect to the work of [XP], the first step is to wrap the library
+// of [XP] as is, i.e. including <my92xx>, for SonOff B1 (MY9231)
 
 
 #ifndef _MY92Led_h
@@ -20,6 +21,15 @@
 // ---------------------------------------------------------------------------
 
 #include "Arduino.h"
+#include "my92xx.h"
+
+enum ChipType
+{
+  MY9221,
+  MY9231,
+  MY9291,
+  MY92XX
+};
 
 typedef struct _MY9221Cmd
 {
@@ -39,7 +49,7 @@ MY9221Cmd, *MY9221CmdPtr;
 //
 #define MY9221DefCmd    0x0010
 
-// the following typedef is derived from [XP]
+// the following typedef is derived from [XP],
 // but compared to datasheet of MY9221, the value for one-shot is
 // in the sequence at an unexspected position.
 // And the meaning of several bits is just inverted.
@@ -71,6 +81,33 @@ MY9231Cmd, *MY9231CmdPtr;
 
 class MY92Led
 {
+private:
+  // -------------------------------------------------------------------------
+  // local variables
+  // -------------------------------------------------------------------------
+  //
+  ChipType  chipType;       // Type of used chip
+  word      chipCmd;        // Chip specific command
+  byte      clkPin;         // PIO for the clock
+  byte      datPin;         // PIO for data
+  byte      chipCnt;        // Number of cascaded chips
+  byte      channelCnt;     // Number of channels incl. cascading
+  word      *dutyCycles;    // Pointer to list of duty cycles (all channels)
+  my92xx    *my92x;         // Pointer to my92xx-object from [XP]
+
+public:
+  // -------------------------------------------------------------------------
+  // Constructors and initialisations
+  // -------------------------------------------------------------------------
+  //
+  MY92Led(ChipType chip, uint8_t nrChips, uint8_t dataPin, uint8_t clockPin, uint16_t cmd);
+
+  // -------------------------------------------------------------------------
+  // User functions
+  // -------------------------------------------------------------------------
+  //
+  void begin();
+  void setLight(byte cold, byte warm, byte red, byte green, byte blue);
 
 };
 

@@ -23,6 +23,15 @@
 #include "Arduino.h"
 #include "my92xx.h"
 
+enum LightColor
+{
+  ColdWhite = 0,
+  WarmWhite,
+  Red,
+  Green,
+  Blue
+};
+
 enum ChipType
 {
   MY9221,
@@ -78,22 +87,57 @@ MY9231Cmd, *MY9231CmdPtr;
 //
 #define MY9231XpCmd     0x18
 
+struct ChannelLink;
+
+struct ChannelCtrl
+{
+  int           nrChn;          // driver channel number
+  bool          blink;          // enable blinking
+  bool          sweep;          // enable sweeping
+  bool          upDownSweep;    // sweep up and down
+  bool          onToggle;       // mark on/off time
+  int           minValue;       // start value (min)
+  int           maxValue;       // end value (max)
+  int           timeOn;         // MAX on time
+  int           timeOff;        // MIN on time
+  int           count;          // time counter
+  ChannelLink   *chnLink;       // linked channel
+};
+
+struct ChannelLink
+{
+  int           nrChn;          // driver channel number
+  bool          invert;         // action is inverted
+  ChannelCtrl   *chnCtrl;       // cross (back) reference
+  ChannelLink   *next;          // next linked element
+};
+
+typedef ChannelCtrl *ChannelCtrlPtr;
+typedef ChannelLink *ChannelLinkPtr;
 
 class MY92Led
 {
 private:
   // -------------------------------------------------------------------------
-  // local variables
+  // local variables and functions
   // -------------------------------------------------------------------------
   //
-  ChipType  chipType;       // Type of used chip
-  word      chipCmd;        // Chip specific command
-  byte      clkPin;         // PIO for the clock
-  byte      datPin;         // PIO for data
-  byte      chipCnt;        // Number of cascaded chips
-  byte      channelCnt;     // Number of channels incl. cascading
-  word      *dutyCycles;    // Pointer to list of duty cycles (all channels)
-  my92xx    *my92x;         // Pointer to my92xx-object from [XP]
+  ChipType      chipType;       // Type of used chip
+  word          chipCmd;        // Chip specific command
+  byte          clkPin;         // PIO for the clock
+  byte          datPin;         // PIO for data
+  byte          chipCnt;        // Number of cascaded chips
+  byte          channelCnt;     // Number of channels incl. cascading
+  word          *dutyCycles;    // Pointer to list of duty cycles (all channels)
+  my92xx        *my92x;         // Pointer to my92xx-object from [XP]
+  ChannelCtrl   *ctrlArrPtr;    // Control of separate channels
+  int           ctrlIdx;        // Control index
+  bool          doUpdate;       // true for update values
+  int           nrCtrl;         // Number of control channels
+  int           frequency;      // Frequency of calling run()
+  int           baseBlinkTime;  // Resolution for blink timing
+
+  int driverChannel(LightColor color);
 
 public:
   // -------------------------------------------------------------------------
@@ -106,9 +150,11 @@ public:
   // User functions
   // -------------------------------------------------------------------------
   //
-  void begin();
+  void begin(int cycleTime, int nrCtrlChn);
+  void run();
   void setLight(byte cold, byte warm, byte red, byte green, byte blue);
-
+  void setBlink(LightColor color, int minVal, int minTime, int maxVal, int maxTime);
+  void linkBlink(LightColor link, LightColor color, int minVal, int maxVal, bool inv);
 };
 
 // ---------------------------------------------------------------------------

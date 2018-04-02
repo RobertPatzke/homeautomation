@@ -154,6 +154,7 @@ public:
   void run();
   void setLight(byte cold, byte warm, byte red, byte green, byte blue);
   void setBlink(LightColor color, int minVal, int minTime, int maxVal, int maxTime);
+  void clrBlink(LightColor color);
   void linkBlink(LightColor link, LightColor color, int minVal, int maxVal, bool inv);
 };
 

@@ -159,6 +159,7 @@ void MY92Led::begin(int cycleTime, int nrCtrlChn)
 {
   nrCtrl        = nrCtrlChn;
   ctrlArrPtr    = new ChannelCtrl[nrCtrl];
+  memset(ctrlArrPtr,0,nrCtrl*sizeof(ChannelCtrl));
 
   frequency = 1000 / cycleTime;
   baseBlinkTime = cycleTime * (nrCtrlChn + 1);
@@ -223,6 +224,16 @@ void MY92Led::setBlink(LightColor color, int minVal, int minTime, int maxVal, in
   ctrlPtr->count    = 0;
   ctrlPtr->blink    = true;
   ctrlPtr->chnLink  = NULL;
+}
+
+void MY92Led::clrBlink(LightColor color)
+{
+  ChannelCtrlPtr    ctrlPtr;
+  int               colorIdx;
+
+  colorIdx  = (int) color;
+  ctrlPtr   = &ctrlArrPtr[colorIdx];
+  ctrlPtr->blink    = false;
 }
 
 void MY92Led::linkBlink(LightColor link, LightColor color, int minVal, int maxVal, bool inv)

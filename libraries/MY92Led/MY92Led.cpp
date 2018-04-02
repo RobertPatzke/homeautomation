@@ -69,6 +69,7 @@ void MY92Led::run()
 {
   ChannelCtrlPtr    ctrlPtr;
   ChannelLinkPtr    linkPtr;
+  int               calcIntVal;
 
   // Update (change of light) is done after all value changes happened.
   // Cycle time is (nrCtrl+1)/frequency
@@ -86,7 +87,9 @@ void MY92Led::run()
 
   ctrlPtr = &ctrlArrPtr[ctrlIdx];
 
+  // --------------------------------------------------------------------------
   // Do blinking of light but with several features
+  // --------------------------------------------------------------------------
   //
   if(ctrlPtr->blink)
   {
@@ -146,6 +149,127 @@ void MY92Led::run()
       }
     }
   }
+  // --------------------------------------------------------------------------
+  // Do sweeping of light but with several features
+  // --------------------------------------------------------------------------
+  //
+  else if(ctrlPtr->sweep)
+  {
+    // Waiting increment/decrement time via counter
+    //
+    if(ctrlPtr->count > 0)
+    {
+      ctrlPtr->count--;
+
+      if(ctrlPtr->onToggle)
+      {
+        // --------------------------------------------------------------------
+        // light is increasing
+        // --------------------------------------------------------------------
+        //
+        ctrlPtr->calcValue += ctrlPtr->calcUpStep;
+        calcIntVal = (int) ctrlPtr->calcValue;
+        if(calcIntVal > ctrlPtr->maxValue)
+          calcIntVal = ctrlPtr->maxValue;
+        doUpdate = my92x->setChannel(ctrlPtr->nrChn, calcIntVal);
+
+        // if other channels are linked to this channel
+        // then set their values also
+        //
+        linkPtr = ctrlPtr->chnLink;
+        while(linkPtr != NULL)
+        {
+          if(linkPtr->invert)
+          {
+            linkPtr->chnCtrl->calcValue -= linkPtr->chnCtrl->calcDnStep;
+            calcIntVal = (int) linkPtr->chnCtrl->calcValue;
+            if(calcIntVal < linkPtr->chnCtrl->minValue)
+              calcIntVal = linkPtr->chnCtrl->minValue;
+            doUpdate = my92x->setChannel(linkPtr->nrChn, calcIntVal);
+          }
+          else
+          {
+            linkPtr->chnCtrl->calcValue += linkPtr->chnCtrl->calcUpStep;
+            calcIntVal = (int) linkPtr->chnCtrl->calcValue;
+            if(calcIntVal > linkPtr->chnCtrl->maxValue)
+              calcIntVal = linkPtr->chnCtrl->maxValue;
+            doUpdate = my92x->setChannel(linkPtr->nrChn, calcIntVal);
+          }
+          linkPtr = linkPtr->next;
+        }
+      }
+      else
+      {
+        // --------------------------------------------------------------------
+        // light is decreasing
+        // --------------------------------------------------------------------
+        //
+        ctrlPtr->calcValue -= ctrlPtr->calcDnStep;
+        calcIntVal = (int) ctrlPtr->calcValue;
+        if(calcIntVal < ctrlPtr->minValue)
+          calcIntVal = ctrlPtr->minValue;
+        doUpdate = my92x->setChannel(ctrlPtr->nrChn, calcIntVal);
+
+        // if other channels are linked to this channel
+        // then set their values also
+        //
+        linkPtr = ctrlPtr->chnLink;
+        while(linkPtr != NULL)
+        {
+          if(!linkPtr->invert)
+          {
+            linkPtr->chnCtrl->calcValue -= linkPtr->chnCtrl->calcDnStep;
+            calcIntVal = (int) linkPtr->chnCtrl->calcValue;
+            if(calcIntVal < linkPtr->chnCtrl->minValue)
+              calcIntVal = linkPtr->chnCtrl->minValue;
+            doUpdate = my92x->setChannel(linkPtr->nrChn, calcIntVal);
+          }
+          else
+          {
+            linkPtr->chnCtrl->calcValue += linkPtr->chnCtrl->calcUpStep;
+            calcIntVal = (int) linkPtr->chnCtrl->calcValue;
+            if(calcIntVal > linkPtr->chnCtrl->maxValue)
+              calcIntVal = linkPtr->chnCtrl->maxValue;
+            doUpdate = my92x->setChannel(linkPtr->nrChn, calcIntVal);
+          }
+          linkPtr = linkPtr->next;
+        }
+      }
+    }
+    else
+    {
+      // counter ist auf 0 gelaufen
+      //
+      if(ctrlPtr->upDownSweep)
+      {
+        // Sweeping is up and down
+        //
+        if(ctrlPtr->onToggle)
+        {
+          // we finished sweep up with increasing light
+          //
+          ctrlPtr->onToggle = false;    // next is decreasing
+          ctrlPtr->count = ctrlPtr->timeOff;
+          ctrlPtr->calcValue = (double) ctrlPtr->maxValue;
+        }
+        else
+        {
+          // we finished sweep down with decreasing light
+          //
+          ctrlPtr->onToggle = true;    // next is increasing
+          ctrlPtr->count = ctrlPtr->timeOn;
+          ctrlPtr->calcValue = (double) ctrlPtr->minValue;
+        }
+      }
+      else
+      {
+        // Sweeping is only up
+        //
+        ctrlPtr->count = ctrlPtr->timeOn;
+        ctrlPtr->calcValue = (double) ctrlPtr->minValue;
+      }
+    }
+  }
 
   ctrlIdx++;
 
@@ -184,6 +308,21 @@ void MY92Led::setLight(byte cold, byte warm, byte red, byte green, byte blue)
   }
 }
 
+void MY92Led::clrAll(bool doUpdate)
+{
+  if(chipType == MY92XX)
+  {
+    my92x->setChannel(0, 0);
+    my92x->setChannel(1, 0);
+    my92x->setChannel(3, 0);
+    my92x->setChannel(4, 0);
+    my92x->setChannel(5, 0);
+    if(doUpdate)
+      my92x->update();
+  }
+}
+
+
 int MY92Led::driverChannel(LightColor color)
 {
   switch(color)
@@ -203,6 +342,7 @@ int MY92Led::driverChannel(LightColor color)
     case Blue:
       return(5);
   }
+  return(0);
 }
 
 
@@ -280,4 +420,40 @@ void MY92Led::linkBlink(LightColor link, LightColor color, int minVal, int maxVa
     return;
   }
 }
+
+void MY92Led::setSweep(LightColor color, int minVal, int minTime, int maxVal, int maxTime)
+{
+  ChannelCtrlPtr    ctrlPtr;
+  int               colorIdx;
+
+  colorIdx          = (int) color;
+  ctrlPtr           = &ctrlArrPtr[colorIdx];
+  ctrlPtr->nrChn    = driverChannel(color);
+
+  ctrlPtr->maxValue     = maxVal;
+  ctrlPtr->timeOn       = maxTime / baseBlinkTime;
+  ctrlPtr->minValue     = minVal;
+  ctrlPtr->timeOff      = minTime / baseBlinkTime;
+  ctrlPtr->calcValue    = (double) ctrlPtr->minValue;
+  ctrlPtr->calcUpStep   = ((double) (maxVal - minVal)) / (double) ctrlPtr->timeOn;
+  ctrlPtr->calcDnStep   = ((double) (maxVal - minVal)) / (double) ctrlPtr->timeOff;
+
+  ctrlPtr->onToggle     = true;
+  ctrlPtr->count        = ctrlPtr->timeOn;;
+  ctrlPtr->blink        = false;
+  ctrlPtr->sweep        = true;
+  ctrlPtr->upDownSweep  = true;
+  ctrlPtr->chnLink      = NULL;
+}
+
+void MY92Led::clrSweep(LightColor color)
+{
+  ChannelCtrlPtr    ctrlPtr;
+  int               colorIdx;
+
+  colorIdx          = (int) color;
+  ctrlPtr           = &ctrlArrPtr[colorIdx];
+  ctrlPtr->sweep    = false;
+}
+
 

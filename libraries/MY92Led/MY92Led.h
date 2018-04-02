@@ -101,6 +101,9 @@ struct ChannelCtrl
   int           timeOn;         // MAX on time
   int           timeOff;        // MIN on time
   int           count;          // time counter
+  double        calcValue;      // calculated value
+  double        calcUpStep;     // calculation up step
+  double        calcDnStep;     // calculation down step
   ChannelLink   *chnLink;       // linked channel
 };
 
@@ -153,9 +156,12 @@ public:
   void begin(int cycleTime, int nrCtrlChn);
   void run();
   void setLight(byte cold, byte warm, byte red, byte green, byte blue);
+  void clrAll(bool update);
   void setBlink(LightColor color, int minVal, int minTime, int maxVal, int maxTime);
   void clrBlink(LightColor color);
+  void clrSweep(LightColor color);
   void linkBlink(LightColor link, LightColor color, int minVal, int maxVal, bool inv);
+  void setSweep(LightColor color, int minVal, int minTime, int maxVal, int maxTime);
 };
 
 // ---------------------------------------------------------------------------

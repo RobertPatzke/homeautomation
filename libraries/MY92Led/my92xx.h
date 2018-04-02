@@ -88,7 +88,7 @@ class my92xx {
 
         my92xx(my92xx_model_t model, unsigned char chips, unsigned char di, unsigned char dcki, my92xx_cmd_t command);
         unsigned char getChannels();
-        void setChannel(unsigned char channel, unsigned int value);
+        bool setChannel(unsigned char channel, unsigned int value);
         unsigned int getChannel(unsigned char channel);
         void setState(bool state);
         bool getState();

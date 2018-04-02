@@ -13,6 +13,10 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Attention !!!
+Some functions have been extended for convenience by
+Robert Patzke (April 2018)
 */
 
 #include "my92xx.h"
@@ -152,10 +156,13 @@ unsigned char my92xx::getChannels() {
     return _channels;
 }
 
-void my92xx::setChannel(unsigned char channel, unsigned int value) {
-    if (0 <= channel && channel < _channels) {
-        _value[channel] = value;
-    }
+bool my92xx::setChannel(unsigned char channel, unsigned int value)
+{
+  if(channel >= _channels) return(false);
+  if(_value[channel] == value) return(false);
+
+  _value[channel] = value;
+  return(true);
 }
 
 unsigned int my92xx::getChannel(unsigned char channel) {

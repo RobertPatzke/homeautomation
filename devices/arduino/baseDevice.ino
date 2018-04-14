@@ -178,6 +178,8 @@ void smCycle()
 // Special (first) Initialisation
 // ---------------------------------------------------------------------------
 //
+bool setTestTwitterTime;
+
 void smInit()
 {
   // Inform user about init parameters
@@ -328,11 +330,16 @@ void smInitFollower()
 // Waiting for a telegram from TestTwitter
 // ---------------------------------------------------------------------------
 //
+unsigned int recParseLastCount = 0;
+
 void smWaitForTestTwitter()
-{                                       // recParseCounter is incremented with
-  if(devFollower.recParseCounter > 2)   // each telegram recognised by Followe
-  {                                     // So we wait here, until Follower
-    devTwitter.baseState = smpsRun;     // received 3 telegrams.
+{                                   // recParseCounter is incremented with
+  if(                               // each telegram recognised by Follower
+      devFollower.recParseCounter >     // So we wait here, until Follower
+      (2 + recParseLastCount)           // received 3 telegrams more than
+    )                                   // the latest marked value
+  {
+    devTwitter.baseState = smpsRun;     // Running with TestTwitter
     automat.enter(smDisplayValues,100); // Enter next state with delay 100 ms
     return;
   }
@@ -348,8 +355,16 @@ void smWaitForTestTwitter()
 // Show received values
 // ---------------------------------------------------------------------------
 //
+unsigned int watchTestTwitter;
+
 void smDisplayValues()
 {
+  if(automat.firstEnter())      // smDisplayValues will be repeated
+  {                             // StateMachine.firstEnter() returns true
+    watchTestTwitter = 0;       // only the first time a state is entered
+    setTestTwitterTime = true;  // after another state was used
+  }
+
   // For this example we will show only the value of the first integer value
   // received from Testwitter, when the content changed.
   //
@@ -368,12 +383,17 @@ void smDisplayValues()
     Serial.println(textMan1.value);
   }
 
-  // Update the time in LoopCheck from TestTwitter every hour
+  // Update the time in LoopCheck from TestTwitter on the minute
   //
-  loopCheck.getDateTime(&dt);
-  if(dt.Minute == 0)
+  if(setTestTwitterTime)
   {
-    loopCheck.setDateTime(devFollower.timeString);
+    loopCheck.getDateTime(&dt);
+    if(dt.Second == 0)
+    {
+      loopCheck.setDateTime(devFollower.timeString);
+      Serial.println(devFollower.timeString);
+      setTestTwitterTime = false;
+    }
   }
 
   // We know, that TestTwitter is sending once a second.
@@ -381,6 +401,25 @@ void smDisplayValues()
   // value. It is quick enough, if we ask only ten times a second.
   //
   automat.setDelay(100);
+
+  // Let us check the activity of TestTwitter again via recParseCounter
+  // based on the status cycle time of 100 ms as defined by setDelay()
+  //
+  if(recParseLastCount != devFollower.recParseCounter)
+  {
+    // TestTwitter has sent a telegram
+    recParseLastCount = devFollower.recParseCounter;
+    watchTestTwitter = 0;
+  }
+  else
+    watchTestTwitter++;
+
+  if(watchTestTwitter > 30)
+  {
+    // no telegram from TestTwitter since 3 seconds
+    //
+    automat.enter(smStartWithoutTTW);
+  }
 }
 
 

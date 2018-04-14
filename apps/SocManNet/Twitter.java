@@ -5,7 +5,7 @@
 // It will work only in connection with module SocManNet.java
 // ---------------------------------------------------------------------------
 // Author:    Prof. Dr.-Ing. Robert Patzke (HS Hannover / MFP GmbH)
-// Date:      15.12.2017
+// Update:    14.04.2018
 // Licence:   CC-BY-SA
 // ---------------------------------------------------------------------------
 // Editors:   (Please add name and date)
@@ -363,7 +363,7 @@ public class Twitter
         if(frequency > 0)
         {
           long actMillisec = actTime.getTime();
-          actMillisec += 3 * 1000 / frequency;
+          actMillisec += 3 * 1000 / frequency; // Put time a little bit to future
           actTime = new Date(actMillisec);
         }
         createPDUMsg += pduFromTime(actTime);
@@ -465,7 +465,7 @@ public class Twitter
     //int       zoneDiffHours;
     //int       zoneDiffMinutes;
     
-    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.S", Locale.GERMANY);
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.GERMANY);
 
     pdu = dateFormat.format(inTime);
 

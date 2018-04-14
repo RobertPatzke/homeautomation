@@ -958,19 +958,18 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
     }
 
     //-------------------------------------------------------------------------
-    // DeviceName
+    // Time string from Twitter
     //-------------------------------------------------------------------------
 
   msgIdx = pduDataIdxField[pdiTime];
-  for(int i = 0; i < (TIME_STR_LEN - 1); i++)
+
+  int i;
+
+  for(i = 0; i < (TIME_STR_LEN - 1); i++)
   {
     timeString[i] = msg[msgIdx+i];
-    if(timeString[i] == ';')
-    {
-      timeString[i] = '\0';
-      break;
-    }
   }
+  timeString[i] = '\0';
 
 
     //-------------------------------------------------------------------------

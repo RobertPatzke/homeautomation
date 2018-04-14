@@ -2,8 +2,8 @@
 // File:        baseDevice.ino
 // Editors:     Robert Patzke,
 // Start:       11. November 2017
-// Last change: 11. November2017
-// URI/URL:     www.mfp-portal.de
+// Last change: 14. April 2018
+// URI/URL:     www.mfp-portal.de / homeautomation.x-api.de/wikidha
 // Licence:     Creative Commons CC-BY-SA
 // ---------------------------------------------------------------------------
 //
@@ -23,6 +23,10 @@
 #include "LoopCheck.h"
 // We will use LoopCheck to control the timing of the device independent from
 // the resources (timers) of the microcontroller.
+
+#include "StateMachine.h"
+// The auxiliary class StateMachine provides methods for a comfortable
+// handling of state sequences (timing, etc.)
 
 #include "SocManNet.h"
 // SocManNet is the interface to the broadcast communication and is needed
@@ -44,11 +48,6 @@
 #define SMN_TWITTER_NAME    "MyFirstCommObj"
 #define SMN_FOLLOWER_NAME   "TestTwitter"
 
-#define SM_CYCLE        5
-// The cycle time (clock) of the state machine in milliseconds
-
-#define SM_FREQUENCY    (1000 / SM_CYCLE)
-// The frequency of the state machine
 
 // ---------------------------------------------------------------------------
 // INSTANCES and VARIABLES
@@ -60,7 +59,13 @@ LoopCheck   loopCheck;      // Instance of LoopCheck
 SocManNet   socManNet;      // Instance of SocManNet
 Twitter     devTwitter;     // Instance of Twitter
 Follower    devFollower;    // Instance of Follower
-smnStatePtr nextState;      // Pointer to next state function
+
+// basic definitions for the state machine
+//
+#define AutCycleTime    5
+void smInit();      // forward reference to state smInit
+void smCycle();     // forward reference to state smCycle
+StateMachine automat(smInit, smCycle, AutCycleTime);
 
 lcDateTime  dt;             // Time-Structure of LoopCheck
 
@@ -90,8 +95,6 @@ void setup()
 {
   Serial.begin(115200);         // using serial interface for visualisation
 
-  nextState = smInit;           // state machine will start at smInit
-
   smnError =
     socManNet.init(false);      // Start connecting to the network with the
                                 // IP-Address from socManNetUser.h
@@ -107,9 +110,9 @@ void loop()
   loopCheck.begin();    // mandatory call at loop beginning to use LoopCheck
   // -------------------------------------------------------------------------
 
-  if(loopCheck.timerMilli(0, SM_CYCLE, 0))  // clock for the state machine
+  if(loopCheck.timerMilli(0, AutCycleTime, 0))  // clock for the state machine
   {
-    nextState();    // switching to the next state (defined by passed state)
+    automat.run();      // switching to the next state (defined by passed state)
   }
 
   if(loopCheck.timerMilli(1, 2, 0))
@@ -161,9 +164,15 @@ void updateTwitter()
 //                      S T A T E   M A C H I N E
 // ***************************************************************************
 //
-int     smTimeOut;      // Counter for time out control
-int     smDelay;        // Counter for delay control
-boolean doTimeRefresh;  // One-shot for immediate setup time from twitter
+
+// ---------------------------------------------------------------------------
+// Special state called with each clock of state machine (without delay)
+// ---------------------------------------------------------------------------
+//
+void smCycle()
+{
+  // if necessary, observe your processes here
+}
 
 // ---------------------------------------------------------------------------
 // Special (first) Initialisation
@@ -176,14 +185,14 @@ void smInit()
   if(smnError != smnError_none)
   {
     Serial.print(socManNet.getErrorMsg(smnError));
-    nextState = smStartWithoutSMN;
+    automat.enter(smStartWithoutSMN);   // next state is smStartWithoutSMN
     return;
   }
 
   // Set parameters for the next state
   //
-  smTimeOut = 10 * SM_FREQUENCY;        // 10 seconds time-out for next state
-  nextState = smWaitForSMN;
+  automat.setTimeOut(10000);            // 10 seconds time-out for next state
+  automat.enter(smWaitForSMN);          // next state is smWaitForSMN
 }
 
 // ---------------------------------------------------------------------------
@@ -192,15 +201,13 @@ void smInit()
 //
 void smWaitForSMN()
 {
-  smTimeOut--;                      // serve time out counter
-
   if(socManNet.connected)
-    nextState = smInitTwitter;      // continue there when connected
+    automat.enter(smInitTwitter);       // continue there when connected
 
-  if(smTimeOut <= 0)
+  if(automat.timeOut())
   {
     Serial.println("Time-Out with network connection");
-    nextState = smStartWithoutSMN;  // continue there when time out
+    automat.enter(smStartWithoutSMN);   // continue there when time out
   }
 }
 
@@ -289,7 +296,7 @@ void smInitTwitter()
   // so simply start Twitter and switch to next state
   //
   devTwitter.enabled = true;
-  nextState = smInitFollower;
+  automat.enter(smInitFollower);
 }
 
 // ---------------------------------------------------------------------------
@@ -313,8 +320,8 @@ void smInitFollower()
 
   devFollower.enabled = true;   // start Follower
 
-  nextState = smWaitForTestTwitter;
-  smTimeOut = 5 * SM_FREQUENCY;
+  automat.enter(smWaitForTestTwitter);
+  automat.setTimeOut(5000);     // Time-out for next state 5 seconds
 }
 
 // ---------------------------------------------------------------------------
@@ -322,25 +329,19 @@ void smInitFollower()
 // ---------------------------------------------------------------------------
 //
 void smWaitForTestTwitter()
-{
-  if(devFollower.recParseCounter > 2)   // recParseCounter is incremented
-  {                                     // with each telegram recognised by
-    devTwitter.baseState = smpsRun;     // Follower. So we wait here, until
-    nextState = smDisplayValues;        // Follower has got 3 telegrams.
-    smDelay = SM_FREQUENCY / 10;        // next state parameter
-    doTimeRefresh = true;               // setup time immediately
+{                                       // recParseCounter is incremented with
+  if(devFollower.recParseCounter > 2)   // each telegram recognised by Followe
+  {                                     // So we wait here, until Follower
+    devTwitter.baseState = smpsRun;     // received 3 telegrams.
+    automat.enter(smDisplayValues,100); // Enter next state with delay 100 ms
     return;
   }
 
-  if(smTimeOut > 0)                     // we will wait 5 seconds for the
-  {                                     // telegrams from TestTwitter
-    smTimeOut--;
-    return;
+  if(automat.timeOut())
+  {
+    Serial.println("TestTwitter not detected");
+    automat.enter(smStartWithoutTTW,10000); // Enter with delay 10 seconds
   }
-
-  Serial.println("TestTwitter not detected");
-  smDelay = 10 * SM_FREQUENCY;
-  nextState = smStartWithoutTTW;        // Time-out, start without TestTwitter
 }
 
 // ---------------------------------------------------------------------------
@@ -349,18 +350,6 @@ void smWaitForTestTwitter()
 //
 void smDisplayValues()
 {
-  // We know, that TestTwitter is sending once a second.
-  // So it makes no sence, to ask every 5 milliseconds (SM_CYCLE) for a new
-  // value. It is quick enough, if we ask only ten times a second.
-  //
-  if(smDelay > 0)
-  {
-    smDelay--;
-    return;
-  }
-
-  smDelay = SM_FREQUENCY / 10;  // Set delay for the next check of Follower
-
   // For this example we will show only the value of the first integer value
   // received from Testwitter, when the content changed.
   //
@@ -382,11 +371,16 @@ void smDisplayValues()
   // Update the time in LoopCheck from TestTwitter every hour
   //
   loopCheck.getDateTime(&dt);
-  if(dt.Minute == 0 || doTimeRefresh)
+  if(dt.Minute == 0)
   {
     loopCheck.setDateTime(devFollower.timeString);
-    doTimeRefresh = false;
   }
+
+  // We know, that TestTwitter is sending once a second.
+  // So it makes no sence, to ask every AutCycleTime for a new
+  // value. It is quick enough, if we ask only ten times a second.
+  //
+  automat.setDelay(100);
 }
 
 
@@ -400,14 +394,8 @@ void smStartWithoutTTW()
   // is not present in the network. So here is another loop implemented
   // to wait until TestTwitter is online.
   //
-  if(smDelay > 0)
-  {
-    smDelay--;
-    return;
-  }
-
-  smTimeOut = 5 * SM_FREQUENCY;
-  nextState = smWaitForTestTwitter;
+  automat.setTimeOut(5000);
+  automat.enter(smWaitForTestTwitter);
 }
 
 // ---------------------------------------------------------------------------
@@ -428,15 +416,9 @@ char statData[48];
 
 void smDisplayStatisticsSMN()
 {
-  if(smDelay > 0)
-  {
-    smDelay--;
-    return;
-  }
-
-  smDelay = SM_FREQUENCY;
   socManNet.getStatistic(statData);
   Serial.print(statData);
+  automat.setDelay(1000);
 }
 
 

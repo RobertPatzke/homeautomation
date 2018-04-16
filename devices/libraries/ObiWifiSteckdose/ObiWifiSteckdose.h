@@ -17,15 +17,13 @@
   #include "Arduino.h"
 #endif
 
+#include "Button.h"
+
 #define pinLed              4
 #define relayON             12
 #define relayOff            5
-#define button              14
+#define pinButton           14
 
-#define buttonIdleTime      2000
-#define buttonResetTime     2000
-#define buttonDetectTime    50
-#define buttonClickTime     1000
 
 // ---------------------------------------------------------------------------
 // class ObiWifiSteckdose
@@ -37,37 +35,15 @@ class ObiWifiSteckdose
   // class specific data types
   // -------------------------------------------------------------------------
   //
-  enum ButtonCheckState
-  {
-    bcsIdle,    // button is up (for long time)
-    bcsLow,     // button is down (counting)
-    bcsHigh,    // button is up (counting)
-    bcsNrOfStates
-  };
 
 private:
   // -------------------------------------------------------------------------
   // local variables
   // -------------------------------------------------------------------------
   //
-  bool relayBlink;
-  bool ledBlink;
-  bool buttonDown;
-  bool buttonReset;
-  bool buttonClicked;
-  bool buttonMultClicked;
-
-  int  buttonDownTime;
-  int  buttonUpTime;
-
-  int  buttonUpIdleTime;
-  int  buttonUpDetectTime;
-  int  buttonUpClickTime;
-  int  buttonDownResetTime;
-  int  buttonDownDetectTime;
-  int  buttonClickCounter;
-
-  ButtonCheckState  buttonCheckState;
+  Button    button;
+  bool      relayBlink;
+  bool      ledBlink;
 
   // -------------------------------------------------------------------------
   // local functions
@@ -94,7 +70,6 @@ public:
   //
   void  begin();
   void  run();
-  int   clicks();
 
 };
 

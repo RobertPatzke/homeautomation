@@ -1,15 +1,15 @@
 // ---------------------------------------------------------------------------
-// File:        ObiWifiSteckdose.h
+// File:        Button.h
 // Editors:     Robert Patzke,
-// Start:       14. April 2018
-// Last change: 14. April 2018
+// Start:       16. April 2018
+// Last change: 16. April 2018
 // URI/URL:     www.mfp-portal.de, homeautomation.x-api.de
 // Licence:     Creative Commons CC-BY-SA
 // ---------------------------------------------------------------------------
 //
 
-#ifndef _ObiWifiSteckdose_H
-#define _ObiWifiSteckdose_H
+#ifndef _Button_H
+#define _Button_H
 // ----------------------------------------------------------------------------
 #define useArduinoLibs
 
@@ -17,42 +17,55 @@
   #include "Arduino.h"
 #endif
 
-#include "Button.h"
-#include "PinIoCtrl.h"
-
-#define pinLed               4
-#define pinRelayOn          12
-#define pinRelayOff          5
-#define pinButton           14
+#define buttonIdleTime      2000
+#define buttonResetTime     2500
+#define buttonDetectTime    50
+#define buttonClickTime     500
 
 
 // ---------------------------------------------------------------------------
-// class ObiWifiSteckdose
+// class Button
 // ---------------------------------------------------------------------------
 //
-class ObiWifiSteckdose
+class Button
 {
   // -------------------------------------------------------------------------
   // class specific data types
   // -------------------------------------------------------------------------
   //
+  enum ButtonCheckState
+  {
+    bcsIdle,    // button is up (for long time)
+    bcsLow,     // button is down (counting)
+    bcsHigh,    // button is up (counting)
+    bcsNrOfStates
+  };
 
 private:
   // -------------------------------------------------------------------------
   // local variables
   // -------------------------------------------------------------------------
   //
-  Button    button;
-  bool      relayBlink;
-  bool      ledBlink;
-  bool      relayToggleOn;
-  bool      relayStateOn;
-  bool      relayOn;
+  uint8_t   pinButton;
 
-  int       blinkCounter;
-  int       blinkOnTime;
-  int       blinkOffTime;
-  int       blinkRepeatCounter;
+  bool      buttonDown;
+  bool      buttonReset;
+  bool      buttonClicked;
+  bool      buttonMultClicked;
+
+  int       buttonDownTime;
+  int       buttonUpTime;
+
+  int       buttonUpIdleTime;
+  int       buttonUpDetectTime;
+  int       buttonUpClickTime;
+  int       buttonDownResetTime;
+  int       buttonDownDetectTime;
+  int       buttonClickCounter;
+
+  ButtonCheckState  buttonCheckState;
+
+
 
   // -------------------------------------------------------------------------
   // local functions
@@ -64,7 +77,8 @@ public:
   // constructors and initialisations
   // -------------------------------------------------------------------------
   //
-  ObiWifiSteckdose(int cycleTime);
+  Button();
+  void  begin(uint8_t pin, int cycTime);
 
   // -------------------------------------------------------------------------
   //  global variables
@@ -73,24 +87,15 @@ public:
   int frequency;
   int cycleTime;
 
-  PinIoCtrl *ledBlue;
-
   // -------------------------------------------------------------------------
-  // user system functions
+  // user functions
   // -------------------------------------------------------------------------
   //
-  void  begin();
   void  run();
-
-  // -------------------------------------------------------------------------
-  // user control and measure functions
-  // -------------------------------------------------------------------------
-  //
-  int   getButtonClicks();
-  void  setBlinkRelay(int onTime, int offTime, int repeat);
-  void  setRelayOn(); void setRelayOff();
+  int   clicks();
 
 };
 
 // ----------------------------------------------------------------------------
-#endif //_ObiWifiSteckdose_H
+#endif //_Button_H
+

@@ -22,7 +22,7 @@
 // Test for type definitions of SAM3X
 //
 #ifndef PIO_PER_P0
-  #define Pio unsigned long
+  #define Pio void
 #endif
 
 #include "environment.h"
@@ -131,9 +131,12 @@ public:
   void  run();                      // has to be cyclic called with <frequency>
   void  flash(int len);             // Flash Info LED for <len> milliseconds
   void  flashMin(int addCycle);     // Flash Pin for (1 + addCycle) cycles
+
   void  blink(int len, int pause);
   void  blink(int len, int pause, bool chkBusy);
-  // Blink Info LED for <len> milliseconds ON and pause OFF
+  // Blink pin for <len> milliseconds ON and pause OFF (use invert() if LED)
+  // do not set values if blinking is active with <chkBusy>
+
   void  invert();                   // Invert output level (LOW/HIGH)
   int   dimm(double damp, boolean sim);           // Set intensity of Info LED
   void  turn(boolean onOff);        // Switch Info LED on or off

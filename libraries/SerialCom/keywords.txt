@@ -1,0 +1,30 @@
+#######################################
+# Syntax Coloring Map For Test
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+SerialCom	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+start	KEYWORD2
+init  KEYWORD2
+run   KEYWORD2
+
+#######################################
+# Instances (KEYWORD3)
+#######################################
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+DueSerial1  LITERAL1
+DueSerial2  LITERAL1
+DueSerial3  LITERAL1
+DueSerialX  LITERAL1

@@ -109,7 +109,7 @@ public:
   void      enterRep(StatePtr state, int count);    // repeat next state
   void      enterRep(StatePtr state, int count, int delayTime);
 
-  void      enterVia(StatePtr next, StatePtr future);       // next and after
+  void      enterVia(StatePtr next, StatePtr future);       // next and then
   void      enterVia(StatePtr next, StatePtr future, int delayTime);
 
   void      enterList(StatePtr fin);

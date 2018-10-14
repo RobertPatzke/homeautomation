@@ -2,7 +2,9 @@ package hsh.mplab.basedevice;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -58,6 +60,10 @@ public class MainActivity extends AppCompatActivity
     android.os.Process.killProcess(android.os.Process.myPid());
   }
 
+  public void onClickBtn(View v)
+  {
+    Toast.makeText(this, "Clicked on Button", Toast.LENGTH_LONG).show();
+  }
 
   // -------------------------------------------------------------------------
   // Initialisation to use graphical elements in code
@@ -379,17 +385,17 @@ public class MainActivity extends AppCompatActivity
       case InitFollower:              // Initialisation of Follower
       // ---------------------------------------------------------------------
 
-        devFollower = new Follower("MyFirstCommObj");
+        devFollower = new Follower("Regal1");
         // Following any baseDevice from the Arduino environment
 
         intMan1 = devFollower.getIntegerValueInst(0);
         intMan2 = devFollower.getIntegerValueInst(1);
         intMan3 = devFollower.getIntegerValueInst(2);
 
-        floatMan1 = devFollower.getFloatValueInst(0);
-        floatMan2 = devFollower.getFloatValueInst(1);
+        //floatMan1 = devFollower.getFloatValueInst(0);
+        //floatMan2 = devFollower.getFloatValueInst(1);
 
-        textMan1  = devFollower.getTextValueInst(0);
+        //textMan1  = devFollower.getTextValueInst(0);
 
         // If there is an error with initialisation of follower
         // we will go to error state with the next timer tick
@@ -496,15 +502,21 @@ public class MainActivity extends AppCompatActivity
       // ---------------------------------------------------------------------
         // Get all management data for the external Twitter
         // followed by devFollower
+        devFollower.getValue(intMan1);
         devFollower.getValue(intMan2);
         devFollower.getValue(intMan3);
-        devFollower.getValue(floatMan1);
-        devFollower.getValue(floatMan2);
-        devFollower.getValue(textMan1);
+        //devFollower.getValue(floatMan1);
+        //devFollower.getValue(floatMan2);
+        //devFollower.getValue(textMan1);
 
-        if(textMan1.newValue)
-          info(textMan1.value);
+        //if(textMan1.newValue)
+          //info(textMan1.value);
 
+        if(intMan1.newPdu)
+        {
+          String recVal = "Empfang Int1 = " + intMan1.value;
+          info(recVal);
+        }
         smState = SmState.Wait;       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;

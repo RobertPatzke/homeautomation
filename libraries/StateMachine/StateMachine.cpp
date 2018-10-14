@@ -189,13 +189,13 @@ void StateMachine::enterRep(StatePtr next, int count, int delayTime)
 
 // setting state and state after
 //
-void StateMachine::enterVia(StatePtr next, StatePtr after)
+void StateMachine::enterVia(StatePtr next, StatePtr then)
 {
   if(stayHere()) return;
 
   pastState     = nextState;
   nextState     = next;
-  futureState   = after;
+  futureState   = then;
 }
 
 // setting state and state after with delay

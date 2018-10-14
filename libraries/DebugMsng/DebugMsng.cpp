@@ -32,36 +32,24 @@ void DebugMsng::print(char *msg)
 {
   if(!enable) return;
 
-#ifdef smnArduino
-  Serial.print(msg);
-#endif
 }
 
 void DebugMsng::print(int intVal)
 {
   if(!enable) return;
 
-#ifdef smnArduino
-  Serial.print(intVal);
-#endif
 }
 
 void DebugMsng::print(unsigned int intVal)
 {
   if(!enable) return;
 
-#ifdef smnArduino
-  Serial.print(intVal);
-#endif
 }
 
 void DebugMsng::println()
 {
   if(!enable) return;
 
-#ifdef smnArduino
-  Serial.println();
-#endif
 }
 
 // ----------------------------------------------------------------------------

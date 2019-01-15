@@ -10,20 +10,12 @@
 #include "Arduino.h"
 
 // Zuweisungen der Kanalnummern zu den Seriellen Schnittstellen
-// auf dem Arduino-Due bzw. SAM3
+// auf dem Arduino-Due
 //
-#define SamCom0     -1
-#define SamCom1     0
-#define SamCom2     1
-#define SamCom3     2
-#define SamCom4     3
-
-#define DueCom0     -1
-#define DueCom1     0
-#define DueCom2     1
-#define DueCom3     3
-#define DueComX     2
-
+#define DueSerial1  0
+#define DueSerial2  1
+#define DueSerial3  3
+#define DueSerialX  2
 
 #ifdef IntTxdTest
 // -----------------------------------------
@@ -41,7 +33,7 @@
 // -----------------------------------------
 #endif
 
-// Bit-Masken fuer Kommunikationsbedingungen
+// Bit-Masken fuer Empfangsbedingungen
 //
 #define BM_REC_NOT_COND 0x00
 // Keine Bedingungen beim Empfang
@@ -51,8 +43,6 @@
 // Receive characters in ring buffer
 #define BM_SND_RINGBUF  0x04
 // Transmit characters via ring buffer
-
-typedef void (*scCallback)();
 
 class SerialCom
 {
@@ -67,18 +57,20 @@ class SerialCom
     bool startTransmit(void);
 
   // --------------------------------------------------------------------------
-  // Methoden (Funktionen) für den Anwender
+  // Methoden (Funktionen) f�r den Anwender
   // --------------------------------------------------------------------------
   //
-  public:                   // Konstruktoren
+  public:
+    SerialCom();                        // Konstruktor
     SerialCom(int chn);
+    void  init(int chn);
     void  run(void);
-    void  IrqHandler(void);
 
     // Starten der Schnittstelle mit Uebrtragungsparametern
     //
     void  start(int baud);
     void  stop();
+    void  IrqHandler(void);
 
     // Lesen und Schreiben von Zeichen
     //
@@ -100,13 +92,6 @@ class SerialCom
     int   putChr(int chr);
     int   putStr(char *msg);
     int   putStr(char *msg, int n);
-
-  // --------------------------------------------------------------------------
-  // interne Methoden (Funktionen)
-  // --------------------------------------------------------------------------
-  //
-  private:
-    void  init(int chn);
 
   // --------------------------------------------------------------------------
   // Variablen zur Steuerung/Anwendung
@@ -134,7 +119,7 @@ class SerialCom
     uint8_t   *ptrRec;          // Der (veraenderliche) Empfangszeiger
     int       maxRec;           // Maximale Anzahl zu empfangender Bytes
     uint8_t   endChrRec;        // Abschlusszeichen beim Empfang
-    uint8_t   condMaskCom;      // Bedingungen fuer den Datenaustausch
+    uint8_t   condMaskRec;      // Bedingungen fuer den Empfang
 
     uint8_t   *recBuffer;       // Receive ring buffer start address
     uint16_t  rbReadIdx;        // Read index

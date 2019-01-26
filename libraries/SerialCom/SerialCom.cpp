@@ -1,8 +1,13 @@
-/*
-  SerialCom.cpp
-  Bedienung der USARTs fuer Arduino Due
-  Robert Patzke, 29. August 2013
-*/
+//-----------------------------------------------------------------------------
+// Thema:       Social Manufacturing Network / Development Environment
+// Datei:       SerialCom.h
+// Editor:      Robert Patzke
+// Erstellt:    29.08.2013
+// Bearbeitet:  26.01.2019
+// URI/URL:     www.mfp-portal.de
+//-----------------------------------------------------------------------------
+// Lizenz:      CC-BY-SA  (siehe Wikipedia: Creative Commons)
+//
 
 #include "Arduino.h"
 
@@ -12,7 +17,7 @@
 prog_uchar scCopyRightMsg[] PROGMEM = {"MFP GmbH, 2013"};
 prog_uchar scTopicMsg[]     PROGMEM = {"USART auf Interrupt"};
 prog_uchar scAuthorMsg[]    PROGMEM = {"Dr.-Ing. Robert Patzke"};
-prog_uchar scVersionMsg[]   PROGMEM = {"Version 13.9.10.3"};
+prog_uchar scVersionMsg[]   PROGMEM = {"Version 18.10.14.1"};
 
 
 // include this library's description file
@@ -24,17 +29,55 @@ prog_uchar scVersionMsg[]   PROGMEM = {"Version 13.9.10.3"};
 // ----------------------------------------------------------------------------
 //
 
-SerialCom::SerialCom()
+SerialCom::SerialCom(int chn)
 {
   // Beim Einrichten eines statischen Objektes muss die Konstruktion
   // ueber den Aufruf der Funktion <init> erfolgen.
   sndBuffer = NULL;
   recBuffer = NULL;
+  condMaskCom = BM_SND_RINGBUF;
+  init(chn);
 }
 
-SerialCom::SerialCom(int chn)
+
+SerialCom *scPtr = NULL;
+
+void UART_Handler()
 {
-  init(chn);
+  if(scPtr == NULL) return;
+  scPtr->IrqHandler();
+}
+
+SerialCom *sc0Ptr = NULL;
+
+void USART0_Handler()
+{
+  if(sc0Ptr == NULL) return;
+  sc0Ptr->IrqHandler();
+}
+
+SerialCom *sc1Ptr = NULL;
+
+void USART1_Handler()
+{
+  if(sc1Ptr == NULL) return;
+  sc1Ptr->IrqHandler();
+}
+
+SerialCom *sc2Ptr = NULL;
+
+void USART2_Handler()
+{
+  if(sc2Ptr == NULL) return;
+  sc2Ptr->IrqHandler();
+}
+
+SerialCom *sc3Ptr = NULL;
+
+void USART3_Handler()
+{
+  if(sc3Ptr == NULL) return;
+  sc3Ptr->IrqHandler();
 }
 
 void SerialCom::init(int chn)
@@ -77,13 +120,15 @@ void SerialCom::init(int chn)
       //
       REG_PIOD_PDR = PIO_PD5B_RXD3 | PIO_PD4B_TXD3;
 
-      // Peripheriefunktion B ausw�hlen
+      // Peripheriefunktion B auswählen
       //
       REG_PIOD_ABSR = PIO_PD5B_RXD3 | PIO_PD4B_TXD3;
 
-      // Zeiger setzen f�r die Manipulation des USART
+      // Zeiger setzen für die Manipulation des USART
       //
       usartPtr = USART3;
+      sc3Ptr = this;
+
       break;
 
     // -----------------------------------------------------------
@@ -101,6 +146,7 @@ void SerialCom::init(int chn)
       // Zeiger setzen f�r die Manipulation des USART
       //
       usartPtr = USART2;
+      sc2Ptr = this;
       break;
 
     // ---------------------------------------------------------
@@ -115,9 +161,10 @@ void SerialCom::init(int chn)
       // Peripheriefunktion A ist per Default ausgew�hlt
       //
 
-      // Zeiger setzen f�r die Manipulation des USART
+      // Zeiger setzen für die Manipulation des USART
       //
       usartPtr = USART1;
+      sc1Ptr = this;
       break;
 
     // ---------------------------------------------------------
@@ -132,9 +179,10 @@ void SerialCom::init(int chn)
       // Peripheriefunktion A ist per Default ausgew�hlt
       //
 
-      // Zeiger setzen f�r die Manipulation des USART
+      // Zeiger setzen für die Manipulation des USART
       //
       usartPtr = USART0;
+      sc0Ptr = this;
       break;
 
       // ---------------------------------------------------------
@@ -149,20 +197,21 @@ void SerialCom::init(int chn)
         // Peripheriefunktion A ist per Default ausgew�hlt
         //
 
-        // Zeiger setzen f�r die Manipulation des USART
+        // Zeiger setzen für die Manipulation des USART
         //
         usartPtr = (Usart *) UART;
+        scPtr = this;
         break;
   }
 
-  condMaskRec = BM_REC_NOT_COND;
+  //condMaskCom = BM_REC_NOT_COND;
 }
 
 void SerialCom::start(int baud)
 {
   Uart *uartPtr;
 
-  // Einschalten des Taktgenerators f�r den USART
+  // Einschalten des Taktgenerators für den USART
   //
   REG_PMC_PCER0 = pmcPcerVal;
 
@@ -184,6 +233,12 @@ void SerialCom::start(int baud)
     // Erst mal alle Interrupts sperren
     //
     uartPtr->UART_IDR = 0xFFFFFFFF;
+
+  if(customCom)uartPtr->UART_MR =   // Alles Standard bis auf
+    uartDataBits  |       // DatenBits
+    uartStopBits  |       // StopBits
+    uartParitaet  |       // Paritaet
+    uartmsbf;           // MSBFirst
 
     uartPtr->UART_MR =    // Alles Standard bis auf
         UART_MR_PAR_NO;   // keine Paritaet
@@ -225,6 +280,12 @@ void SerialCom::start(int baud)
   //
   usartPtr->US_IDR = 0xFFFFFFFF;
 
+  if(customCom)usartPtr->US_MR =                    // Alles Standard bis auf
+      uartDataBits  |       // DatenBits
+      uartStopBits  |       // StopBits
+      uartParitaet  |       // Paritaet
+      uartmsbf;           // MSBFirst
+
   usartPtr->US_MR =                 // Alles Standard bis auf
     US_MR_CHRL_8_BIT |              // 8-Bit
     US_MR_PAR_NO;                   // keine Paritaet
@@ -247,6 +308,80 @@ void SerialCom::start(int baud)
   //
   usartPtr->US_CR = US_CR_RXEN | US_CR_TXEN;
   }
+}
+
+void SerialCom::start(int baud, int userDataBits, int stopBits, int paritaet, int msbf)
+{
+  switch(userDataBits)
+  {
+  //Setzen der DatenBits [CHRL] im US_MR_
+      case 5:
+        uartDataBits = US_MR_CHRL_5_BIT;
+        break;
+      case 6:
+        uartDataBits = US_MR_CHRL_6_BIT;
+        break;
+      case 7:
+        uartDataBits = US_MR_CHRL_7_BIT;
+        break;
+      case 8:
+        uartDataBits = US_MR_CHRL_8_BIT;
+        break;
+  }
+
+
+  switch(stopBits)
+  {
+  //Setzen der Stopbits [NBSTOP] im US_MR_
+      case 1:
+        uartStopBits = US_MR_NBSTOP_1_BIT;
+        break;
+      case 2:
+        uartStopBits = US_MR_NBSTOP_1_5_BIT;
+        break;
+      case 3:
+        uartStopBits = US_MR_NBSTOP_2_BIT;
+        break;
+  }
+
+  switch(paritaet)
+  {
+  //Setzen der paritaet [PAR] im US_MR_
+      case 1:
+        uartParitaet = US_MR_PAR_EVEN;
+        break;
+      case 2:
+        uartParitaet = US_MR_PAR_ODD;
+        break;
+      case 3:
+        uartParitaet = US_MR_PAR_SPACE;
+        break;
+      case 4:
+        uartParitaet = US_MR_PAR_MARK;
+        break;
+      case 5:
+        uartParitaet = US_MR_PAR_NO;
+        break;
+      case 6:
+        uartParitaet = US_MR_PAR_MULTIDROP;
+        break;
+  }
+
+  switch(msbf)
+  {
+  //Setze MSB/LSB [MSBF] im US_MR_
+      case 1:
+        uartmsbf = US_MR_MSBF;
+        //MSBFirst
+        break;
+      case 2:
+        uartmsbf = (0x0u << 16);
+        //LSBFirst
+        break;
+  }
+  customCom =true;
+  start(baud);
+
 }
 
 void SerialCom::stop()
@@ -276,6 +411,9 @@ void SerialCom::IrqHandler()
 #endif
 
   if(pidUsart == 8)
+  // ----------------------------------------------------------------------------
+  // UART used for Tx0 and Rx0 at DUE (USB program interface)
+  // ----------------------------------------------------------------------------
   {
     uartPtr = (Uart *) usartPtr;
 
@@ -291,7 +429,7 @@ void SerialCom::IrqHandler()
 
       // Der Sendepuffer ist frei
       //
-      if(condMaskRec & BM_SND_RINGBUF)
+      if(condMaskCom & BM_SND_RINGBUF)
       {
         restSend = sbWriteIdx - sbReadIdx;
 
@@ -305,13 +443,6 @@ void SerialCom::IrqHandler()
             sbReadIdx = 0;
           restSend--;
         }
-
-        // Der Transmit-Interrupt wird gesperrt,
-        // wenn das letzte Zeichen ausgegeben wurde.
-        if(restSend < 1)
-        {
-          uartPtr->UART_IDR = UART_IDR_TXRDY;
-        }
       }
       else
       {
@@ -323,13 +454,13 @@ void SerialCom::IrqHandler()
           ptrSend++;
           restSend--;
         }
+      }
 
-        // Der Transmit-Interrupt wird gesperrt,
-        // wenn das letzte Zeichen ausgegeben wurde.
-        if(restSend < 1)
-        {
-          uartPtr->UART_IDR = UART_IDR_TXRDY;
-        }
+      // Der Transmit-Interrupt wird gesperrt,
+      // wenn das letzte Zeichen ausgegeben wurde.
+      if(restSend < 1)
+      {
+        uartPtr->UART_IDR = UART_IDR_TXRDY;
       }
     }
 
@@ -343,7 +474,7 @@ void SerialCom::IrqHandler()
       // -----------------------------------------
       inByte = uartPtr->UART_RHR;
 
-      if(condMaskRec & BM_REC_RINGBUF)
+      if(condMaskCom & BM_REC_RINGBUF)
       {
         recBuffer[rbWriteIdx] = inByte;
         rbWriteIdx++;
@@ -371,7 +502,7 @@ void SerialCom::IrqHandler()
 
           // Pruefen, ob Weiterempfangen noetig/moeglich ist
           //
-          if((condMaskRec & BM_REC_END_CHR) && (inByte == endChrRec))
+          if((condMaskCom & BM_REC_END_CHR) && (inByte == endChrRec))
           {
             restRec = 0;
           }
@@ -383,7 +514,9 @@ void SerialCom::IrqHandler()
   }
   // --------------------------------------------------------------------------
   else
-  // --------------------------------------------------------------------------
+  // ----------------------------------------------------------------------------
+  // USART used for Tx1/4 and Rx1/4 at DUE (Serial interfaces 1 to 3)
+  // ----------------------------------------------------------------------------
   {
     status = usartPtr->US_CSR;
 
@@ -395,13 +528,35 @@ void SerialCom::IrqHandler()
     {
       // Der Sendepuffer ist frei
       //
-      if(restSend > 0)
+      txInt = true;
+
+      // Der Sendepuffer ist frei
+      //
+      if(condMaskCom & BM_SND_RINGBUF)
       {
-        // es sind noch Zeichen zum Senden da
-        //
-        usartPtr->US_THR = *ptrSend;
-        ptrSend++;
-        restSend--;
+        restSend = sbWriteIdx - sbReadIdx;
+
+        if(restSend > 0)
+        {
+          // es sind noch Zeichen zum Senden da
+          //
+          usartPtr->US_THR = sndBuffer[sbReadIdx];
+          sbReadIdx++;
+          if(sbReadIdx >= sbSize)
+            sbReadIdx = 0;
+          restSend--;
+        }
+      }
+      else
+      {
+        if(restSend > 0)
+        {
+          // es sind noch Zeichen zum Senden da
+          //
+          usartPtr->US_THR = *ptrSend;
+          ptrSend++;
+          restSend--;
+        }
       }
 
     // Der Transmit-Interrupt wird gesperrt,
@@ -419,7 +574,7 @@ void SerialCom::IrqHandler()
       // -----------------------------------------
       inByte = usartPtr->US_RHR;
 
-      if(condMaskRec & BM_REC_RINGBUF)
+      if(condMaskCom & BM_REC_RINGBUF)
       {
         recBuffer[rbWriteIdx] = inByte;
         rbWriteIdx++;
@@ -447,7 +602,7 @@ void SerialCom::IrqHandler()
 
           // Pruefen, ob Weiterempfangen noetig/moeglich ist
           //
-          if((condMaskRec & BM_REC_END_CHR) && (inByte == endChrRec))
+          if((condMaskCom & BM_REC_END_CHR) && (inByte == endChrRec))
           {
             restRec = 0;
           }
@@ -516,7 +671,7 @@ void SerialCom::read(uint8_t *rdPtr, int nrOfBytes)
   ptrRec = rdPtr;
   nrRec =  0;
   restRec = nrOfBytes;
-  condMaskRec = BM_REC_NOT_COND;
+  condMaskCom = BM_REC_NOT_COND;
 }
 
 void SerialCom::read(uint8_t *rdPtr, int maxNrOfBytes, uint8_t endChr)
@@ -525,7 +680,7 @@ void SerialCom::read(uint8_t *rdPtr, int maxNrOfBytes, uint8_t endChr)
   nrRec =  0;
   restRec = maxNrOfBytes;
   endChrRec = endChr;
-  condMaskRec = condMaskRec | BM_REC_END_CHR;
+  condMaskCom = condMaskCom | BM_REC_END_CHR;
 }
 
 void SerialCom::setReadBuffer(uint8_t *bufPtr, int size)
@@ -534,14 +689,14 @@ void SerialCom::setReadBuffer(uint8_t *bufPtr, int size)
   rbSize = size;
   rbReadIdx = 0;
   rbWriteIdx = 0;
-  condMaskRec |= BM_REC_RINGBUF;
+  condMaskCom |= BM_REC_RINGBUF;
 }
 
 int SerialCom::getChr()
 {
   int retv;
 
-  if(!(condMaskRec & BM_REC_RINGBUF))
+  if(!(condMaskCom & BM_REC_RINGBUF))
     return(EOF);
   if(rbReadIdx == rbWriteIdx)
     return(EOF);
@@ -564,7 +719,7 @@ int SerialCom::getAll(uint8_t *buffer)
   uint16_t  count, i;
   int       tmpInt;
 
-  if(!(condMaskRec & BM_REC_RINGBUF))
+  if(!(condMaskCom & BM_REC_RINGBUF))
     return(EOF);
   if(rbReadIdx == rbWriteIdx)
     return(EOF);
@@ -591,7 +746,7 @@ int SerialCom::getCount(uint8_t *buffer, int len)
   uint16_t  count, i;
   int       tmpInt;
 
-  if(!(condMaskRec & BM_REC_RINGBUF))
+  if(!(condMaskCom & BM_REC_RINGBUF))
     return(EOF);
   if(rbReadIdx == rbWriteIdx)
     return(0);
@@ -632,7 +787,7 @@ int SerialCom::getRestChar(uint8_t tagChr, uint8_t *buffer, int len)
   int       tmpInt;
   bool      tagged;
 
-  if(!(condMaskRec & BM_REC_RINGBUF))
+  if(!(condMaskCom & BM_REC_RINGBUF))
     return(EOF);
   if(rbReadIdx == rbWriteIdx)
     return(0);
@@ -682,7 +837,7 @@ int SerialCom::getRestStr(char *tagStr, uint8_t *buffer, int len)
   int       tagLen;
   int       tagIdx;
 
-  if(!(condMaskRec & BM_REC_RINGBUF))
+  if(!(condMaskCom & BM_REC_RINGBUF))
     return(EOF);
   if(rbReadIdx == rbWriteIdx)
     return(0);
@@ -748,7 +903,7 @@ void SerialCom::setWriteBuffer(uint8_t *bufPtr, int size)
   sbSize = size;
   sbReadIdx = 0;
   sbWriteIdx = 0;
-  condMaskRec |= BM_SND_RINGBUF;
+  condMaskCom |= BM_SND_RINGBUF;
 }
 
 int SerialCom::putChr(int chr)
@@ -992,4 +1147,3 @@ void  SerialCom::showCounting(int delayCount)
 }
 
 #endif
-

@@ -1,8 +1,13 @@
-/*
-  SerialCom.h
-  Bedienung der USARTs f�r Arduino Due
-  Robert Patzke, 29. August 2013
-*/
+//-----------------------------------------------------------------------------
+// Thema:       Social Manufacturing Network / Development Environment
+// Datei:       SerialCom.h
+// Editor:      Robert Patzke
+// Erstellt:    29.08.2013
+// Bearbeitet:  26.01.2019
+// URI/URL:     www.mfp-portal.de
+//-----------------------------------------------------------------------------
+// Lizenz:      CC-BY-SA  (siehe Wikipedia: Creative Commons)
+//
 
 #ifndef SerialCom_h
 #define SerialCom_h
@@ -10,12 +15,20 @@
 #include "Arduino.h"
 
 // Zuweisungen der Kanalnummern zu den Seriellen Schnittstellen
-// auf dem Arduino-Due
+// auf dem Arduino-Due bzw. SAM3
 //
-#define DueSerial1  0
-#define DueSerial2  1
-#define DueSerial3  3
-#define DueSerialX  2
+#define SamCom0     -1
+#define SamCom1     0
+#define SamCom2     1
+#define SamCom3     2
+#define SamCom4     3
+
+#define DueCom0     -1
+#define DueCom1     0
+#define DueCom2     1
+#define DueCom3     3
+#define DueComX     2
+
 
 #ifdef IntTxdTest
 // -----------------------------------------
@@ -33,7 +46,7 @@
 // -----------------------------------------
 #endif
 
-// Bit-Masken fuer Empfangsbedingungen
+// Bit-Masken fuer Kommunikationsbedingungen
 //
 #define BM_REC_NOT_COND 0x00
 // Keine Bedingungen beim Empfang
@@ -43,6 +56,8 @@
 // Receive characters in ring buffer
 #define BM_SND_RINGBUF  0x04
 // Transmit characters via ring buffer
+
+typedef void (*scCallback)();
 
 class SerialCom
 {
@@ -57,20 +72,19 @@ class SerialCom
     bool startTransmit(void);
 
   // --------------------------------------------------------------------------
-  // Methoden (Funktionen) f�r den Anwender
+  // Methoden (Funktionen) für den Anwender
   // --------------------------------------------------------------------------
   //
-  public:
-    SerialCom();                        // Konstruktor
+  public:                   // Konstruktoren
     SerialCom(int chn);
-    void  init(int chn);
     void  run(void);
+    void  IrqHandler(void);
 
     // Starten der Schnittstelle mit Uebrtragungsparametern
     //
     void  start(int baud);
+    void  start(int baud, int userDataBits, int stopBits, int paritaet, int msbf);
     void  stop();
-    void  IrqHandler(void);
 
     // Lesen und Schreiben von Zeichen
     //
@@ -94,6 +108,13 @@ class SerialCom
     int   putStr(char *msg, int n);
 
   // --------------------------------------------------------------------------
+  // interne Methoden (Funktionen)
+  // --------------------------------------------------------------------------
+  //
+  private:
+    void  init(int chn);
+
+  // --------------------------------------------------------------------------
   // Variablen zur Steuerung/Anwendung
   // --------------------------------------------------------------------------
   //
@@ -112,6 +133,11 @@ class SerialCom
     Usart     *usartPtr;        // Zum Ansprechen des USART
     int       pidUsart;         // Berechnung des Identifier
     bool      txInt;            // Set true by IRQ-handler
+    bool      customCom;        // Set true by start for custom Com settings
+    int       uartDataBits;     // Variablen zum Start von
+    int       uartStopBits;     // Sercom
+    int       uartParitaet;     //
+    int       uartmsbf;         //
 
     // Lesen und Schreiben von Zeichen (Bytes)
     //
@@ -119,7 +145,7 @@ class SerialCom
     uint8_t   *ptrRec;          // Der (veraenderliche) Empfangszeiger
     int       maxRec;           // Maximale Anzahl zu empfangender Bytes
     uint8_t   endChrRec;        // Abschlusszeichen beim Empfang
-    uint8_t   condMaskRec;      // Bedingungen fuer den Empfang
+    uint8_t   condMaskCom;      // Bedingungen fuer den Datenaustausch
 
     uint8_t   *recBuffer;       // Receive ring buffer start address
     uint16_t  rbReadIdx;        // Read index
@@ -131,6 +157,44 @@ class SerialCom
     uint16_t  sbWriteIdx;       // Write index
     uint16_t  sbSize;           // Buffer size
 
+    //---------------------------------------------------------------------------//
+    //Attribute
+    //---------------------------------------------------------------------------//
+    //
+  public:
+            typedef enum
+            { //Anzahl Datenbits
+              CHRL_5  = 5,
+              CHRL_6  = 6,
+              CHRL_7  = 7,
+              CHRL_8  = 8
+            } mp_UART_MR_CHRL;
+
+            typedef enum
+            { //Anzahl Stopbits
+              NBSTP_1   = 1,
+              NBSTP_1_5   = 2,
+              NBSTP_2   = 3
+            } mp_UART_MR_NBSTP;
+
+            typedef enum
+            { //Paritaet
+              PAR_EVEN  = 1,
+              PAR_ODD   = 2,
+              PAR_SPACE = 3,
+              PAR_MARK  = 4,
+              PAR_NO    = 5
+            } mp_UART_MR_PAR;
+
+            typedef enum
+            { //MSB / LSB first
+              MSBF  = 1,
+              LSBF  = 2,
+            } mp_UART_MR_MSBF;
+
+    //---------------------------------------------------------------------------//
+
+
 #ifdef IntTxdTest
     int       loopCounter;
     int       loopDelay;
@@ -141,4 +205,3 @@ class SerialCom
 };
 
 #endif
-

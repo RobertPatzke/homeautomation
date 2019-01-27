@@ -615,7 +615,7 @@ void SerialCom::IrqHandler()
 }
 
 // ----------------------------------------------------------------------------
-// Schreiben und Lesen von Daten
+// Direct writing and reading data
 // ----------------------------------------------------------------------------
 //
 
@@ -682,6 +682,11 @@ void SerialCom::read(uint8_t *rdPtr, int maxNrOfBytes, uint8_t endChr)
   endChrRec = endChr;
   condMaskCom = condMaskCom | BM_REC_END_CHR;
 }
+
+// ----------------------------------------------------------------------------
+// Writing and reading data via circular buffer (default usage)
+// ----------------------------------------------------------------------------
+//
 
 void SerialCom::setReadBuffer(uint8_t *bufPtr, int size)
 {
@@ -769,6 +774,58 @@ int SerialCom::getCount(uint8_t *buffer, int len)
   }
 
   return(len);
+}
+
+int SerialCom::getCount(char *buffer, int len)
+{
+  int nrChar;
+
+  nrChar = getCount((uint8_t *) buffer, len);
+  buffer[nrChar] = 0;
+  return(nrChar);
+}
+
+int SerialCom::getLine(char *buffer)
+{
+  bool      eol;
+  uint16_t  count, i;
+  int       tmpInt;
+
+  if(!(condMaskCom & BM_REC_RINGBUF))
+    return(EOF);
+  if(rbReadIdx == rbWriteIdx)
+    return(0);
+
+  tmpInt = rbWriteIdx - rbReadIdx;
+  if(tmpInt < 0)
+    count = tmpInt + rbSize;
+  else
+    count = tmpInt;
+
+  eol = false;
+
+  for(i = 0; i < count; i++)
+  {
+    buffer[i] = recBuffer[rbReadIdx];
+    if(!eol)
+    {
+    if(buffer[i] == '\r' || buffer[i] == '\n')
+      eol = true;
+    }
+    else
+    {
+      if(buffer[i] != '\r' && buffer[i] != '\n')
+        break;
+    }
+    rbReadIdx++;
+    if(rbReadIdx >= rbSize)
+      rbReadIdx = 0;
+  }
+
+  if(!eol) return(0);
+
+  buffer[i] = 0;
+  return(i);
 }
 
 

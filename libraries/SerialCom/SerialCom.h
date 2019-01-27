@@ -98,6 +98,8 @@ class SerialCom
     void  clrRecBuf();
     int   getAll(uint8_t *buffer);
     int   getCount(uint8_t *buffer, int count);
+    int   getCount(char *buffer, int count);
+    int   getLine(char *buffer);
     int   inCount(void);
     int   getRestChar(uint8_t tagChr, uint8_t *buffer, int len);
     int   getRestStr(char *tagStr, uint8_t *buffer, int len);

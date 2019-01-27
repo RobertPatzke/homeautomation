@@ -72,11 +72,22 @@ void setup()
   com3.setReadBuffer(recBufCom3, 128);
 }
 
+// Forward references
+//
+void  comSub1(int nrInChars);
+void  comSub2();
+
 // The loop function is called in an endless loop
 //
+int   loopCtrl = 0;
+int   loopCount = 0;
+char  localCharBuffer[128];
+
 void loop()
 {
-  char  localCharBuffer[128];
+  int   nrInChars;
+
+  loopCount++;
 
   // --------------------------------------------------------------------------
   // echo monitor input
@@ -97,7 +108,8 @@ void loop()
   // character
   //
 
-  int nrInChars = monitor.inCount();
+  nrInChars = monitor.inCount();
+
   if(nrInChars > 0)
   {
     uint32_t startMics = micros();
@@ -118,6 +130,14 @@ void loop()
     // there is no string end mark (0) provided with <getCount>
     // we have to add this extra
 
+    if((char) localCharBuffer[0] == '/')
+    {
+      loopCtrl = localCharBuffer[1] & 0x07;
+      com1.clrRecBuf();
+      com2.clrRecBuf();
+      com3.clrRecBuf();
+    }
+
     monitor.putStr(localCharBuffer);
     monitor.putStr((char *) "\r\n");
     uint32_t diffMics = micros() - startMics;
@@ -127,8 +147,163 @@ void loop()
     monitor.putStr((char *) " microseconds\r\n\n");
   }
 
-  com1.putStr((char *) "This is COM1");
-  com2.putStr((char *) "This is COM2");
-  com3.putStr((char *) "This is COM3");
+  // --------------------------------------------------------------------------
+  // Test 1: Enter /1 and send with Serial Monitor View
+  // --------------------------------------------------------------------------
+  // Repeated sending of small strings via TX1, TX2 and TX3
+  // If you connect TXn and RXn, you will see the sent and received strings
+  // also on Serial Monitor View
+  //
 
+  if(loopCtrl == 1)
+  {
+    com1.putStr((char *) "This is COM1");
+    com2.putStr((char *) "This is COM2");
+    com3.putStr((char *) "This is COM3");
+    loopCtrl = 101;
+    return;
+  }
+
+  if(loopCtrl == 101)
+  {
+    nrInChars = com1.inCount();
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM1: [");
+      comSub1(nrInChars);
+      com1.getCount(localCharBuffer, nrInChars);
+      comSub2();
+    }
+
+    nrInChars = com2.inCount();
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM2: [");
+      comSub1(nrInChars);
+      com2.getCount(localCharBuffer, nrInChars);
+      comSub2();
+    }
+
+    nrInChars = com3.inCount();
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM3: [");
+      comSub1(nrInChars);
+      com3.getCount(localCharBuffer, nrInChars);
+      comSub2();
+   }
+
+    loopCtrl = 1;
+  }
+
+  // --------------------------------------------------------------------------
+  // Test 2: Enter /2 and send with Serial Monitor View
+  // --------------------------------------------------------------------------
+  // Repeated sending of a small string via TX3
+  // If you connect TX3 and RX1, TX1 and RX2, TX2 and RX1,
+  // you will see the sent and received string passed through
+  // all 3 serials also on Serial Monitor View
+  //
+
+  if(loopCtrl == 2)
+  {
+    com3.putStr((char *) "Passing through all Serials.");
+    loopCtrl = 201;
+    return;
+  }
+
+  if(loopCtrl == 201)
+  {
+    nrInChars = com1.inCount();
+    if(nrInChars > 0)
+    {
+      com1.getCount(localCharBuffer, nrInChars);
+      com1.putStr(localCharBuffer, nrInChars);
+    }
+
+    nrInChars = com2.inCount();
+    if(nrInChars > 0)
+    {
+      com2.getCount(localCharBuffer, nrInChars);
+      com2.putStr(localCharBuffer, nrInChars);
+    }
+
+    nrInChars = com3.inCount();
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM3: [");
+      comSub1(nrInChars);
+      com3.getCount(localCharBuffer, nrInChars);
+      comSub2();
+   }
+
+    loopCtrl = 2;
+  }
+
+  // --------------------------------------------------------------------------
+  // Test 3: Enter /3 and send with Serial Monitor View
+  // --------------------------------------------------------------------------
+  // Repeated sending of small strings via TXn with \r and/or \n (line)
+  // If you connect TXn and RXn, you will see the sent and received strings
+  // also on Serial Monitor View
+  //
+
+  if(loopCtrl == 3)
+  {
+    com1.putStr((char *) "This is a line with CR/LF\r\n");
+    com2.putStr((char *) "This is a line with LF\n");
+    com3.putStr((char *) "This is a line with CR/LF\r\nand more... ");
+    loopCtrl = 301;
+    return;
+  }
+
+  if(loopCtrl == 301)
+  {
+    nrInChars = com1.getLine(localCharBuffer);
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM1: [");
+      comSub1(nrInChars);
+      comSub2();
+    }
+
+    nrInChars = com2.getLine(localCharBuffer);
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM2: [");
+      comSub1(nrInChars);
+      comSub2();
+    }
+
+    nrInChars = com3.getLine(localCharBuffer);
+    if(nrInChars > 0)
+    {
+      monitor.putStr((char *) "\r\nCOM3: [");
+      comSub1(nrInChars);
+      comSub2();
+   }
+
+    loopCtrl = 3;
+  }
+
+
+
+}
+
+void comSub1(int nrInChars)
+{
+  char convert[32];
+
+  itoa(nrInChars, convert, 10);
+  monitor.putStr(convert);
+  monitor.putStr((char *) "] = ");
+}
+
+void comSub2()
+{
+  monitor.putStr(localCharBuffer);
+  monitor.putStr((char *) "  Cycle:");
+  itoa(loopCount,localCharBuffer,10);
+  monitor.putStr(localCharBuffer);
+  monitor.putStr((char *) "\r\n");
 }

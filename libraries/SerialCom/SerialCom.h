@@ -69,7 +69,11 @@ class SerialCom
 #ifdef IntTxdTest
     void  showCounting(int delayCount);
 #endif
-    bool startTransmit(void);
+    bool  startTransmit(void);
+    void  putNL();
+    int   putStr(char *msg, bool eol);
+    int   putStr(char *msg, int n, bool newLine);
+    char  getC();
 
   // --------------------------------------------------------------------------
   // Methoden (Funktionen) für den Anwender
@@ -103,11 +107,14 @@ class SerialCom
     int   inCount(void);
     int   getRestChar(uint8_t tagChr, uint8_t *buffer, int len);
     int   getRestStr(char *tagStr, uint8_t *buffer, int len);
+    int   reqChkLine(char *req, char *rsp);
 
     void  setWriteBuffer(uint8_t *bufPtr, int size);
     int   putChr(int chr);
     int   putStr(char *msg);
     int   putStr(char *msg, int n);
+    int   putLine(char *msg);
+    int   putLine(char *msg, int n);
 
   // --------------------------------------------------------------------------
   // interne Methoden (Funktionen)
@@ -158,6 +165,9 @@ class SerialCom
     uint16_t  sbReadIdx;        // Read index
     uint16_t  sbWriteIdx;       // Write index
     uint16_t  sbSize;           // Buffer size
+
+    int       reqChkState;      // State of request/check procedure
+    int       tmpVal;           // Variable for temporary data storage
 
     //---------------------------------------------------------------------------//
     //Attribute

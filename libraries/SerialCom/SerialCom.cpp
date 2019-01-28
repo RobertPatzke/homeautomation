@@ -3,7 +3,7 @@
 // Datei:       SerialCom.h
 // Editor:      Robert Patzke
 // Erstellt:    29.08.2013
-// Bearbeitet:  26.01.2019
+// Bearbeitet:  28.01.2019
 // URI/URL:     www.mfp-portal.de
 //-----------------------------------------------------------------------------
 // Lizenz:      CC-BY-SA  (siehe Wikipedia: Creative Commons)
@@ -17,10 +17,8 @@
 prog_uchar scCopyRightMsg[] PROGMEM = {"MFP GmbH, 2013"};
 prog_uchar scTopicMsg[]     PROGMEM = {"USART auf Interrupt"};
 prog_uchar scAuthorMsg[]    PROGMEM = {"Dr.-Ing. Robert Patzke"};
-prog_uchar scVersionMsg[]   PROGMEM = {"Version 18.10.14.1"};
+prog_uchar scVersionMsg[]   PROGMEM = {"Version 19.01.28.0"};
 
-
-// include this library's description file
 // #define IntTxdTest
 #include  "SerialCom.h"
 
@@ -31,11 +29,10 @@ prog_uchar scVersionMsg[]   PROGMEM = {"Version 18.10.14.1"};
 
 SerialCom::SerialCom(int chn)
 {
-  // Beim Einrichten eines statischen Objektes muss die Konstruktion
-  // ueber den Aufruf der Funktion <init> erfolgen.
-  sndBuffer = NULL;
-  recBuffer = NULL;
+  sndBuffer   = NULL;
+  recBuffer   = NULL;
   condMaskCom = BM_SND_RINGBUF;
+  reqChkState = 0;
   init(chn);
 }
 
@@ -746,6 +743,14 @@ int SerialCom::getAll(uint8_t *buffer)
   return(count);
 }
 
+int SerialCom::inCount()
+{
+  int count = rbWriteIdx - rbReadIdx;
+  if(count < 0)
+    count += rbSize;
+  return(count);
+}
+
 int SerialCom::getCount(uint8_t *buffer, int len)
 {
   uint16_t  count, i;
@@ -774,6 +779,21 @@ int SerialCom::getCount(uint8_t *buffer, int len)
   }
 
   return(len);
+}
+
+char SerialCom::getC()
+{
+  char retC;
+
+  if(rbReadIdx == rbWriteIdx)
+    return(0);
+
+  retC = recBuffer[rbReadIdx];
+  rbReadIdx++;
+  if(rbReadIdx >= rbSize)
+    rbReadIdx = 0;
+
+  return(retC);
 }
 
 int SerialCom::getCount(char *buffer, int len)
@@ -826,15 +846,6 @@ int SerialCom::getLine(char *buffer)
 
   buffer[i] = 0;
   return(i);
-}
-
-
-int SerialCom::inCount()
-{
-  int count = rbWriteIdx - rbReadIdx;
-  if(count < 0)
-    count += rbSize;
-  return(count);
 }
 
 int SerialCom::getRestChar(uint8_t tagChr, uint8_t *buffer, int len)
@@ -963,6 +974,19 @@ void SerialCom::setWriteBuffer(uint8_t *bufPtr, int size)
   condMaskCom |= BM_SND_RINGBUF;
 }
 
+void SerialCom::putNL()
+{
+  sndBuffer[sbWriteIdx] = '\r';
+  sbWriteIdx++;
+  if(sbWriteIdx >= sbSize)
+    sbWriteIdx = 0;
+
+  sndBuffer[sbWriteIdx] = '\n';
+  sbWriteIdx++;
+  if(sbWriteIdx >= sbSize)
+    sbWriteIdx = 0;
+}
+
 int SerialCom::putChr(int chr)
 {
   int16_t   space;
@@ -1006,7 +1030,7 @@ int SerialCom::putChr(int chr)
   return(chr);
 }
 
-int SerialCom::putStr(char *msg)
+int SerialCom::putStr(char *msg, bool eol)
 {
   int16_t   space;
   int16_t   len;
@@ -1043,6 +1067,11 @@ int SerialCom::putStr(char *msg)
       sbWriteIdx = 0;
   }
 
+  if(eol)
+  {
+    putNL();
+  }
+
   if(!txiOn)
   {
     if(pidUsart == 8)
@@ -1060,7 +1089,17 @@ int SerialCom::putStr(char *msg)
   return(len);
 }
 
-int SerialCom::putStr(char *msg, int n)
+int SerialCom::putStr(char *msg)
+{
+  return putStr(msg, false);
+}
+
+int SerialCom::putLine(char *msg)
+{
+  return putStr(msg, true);
+}
+
+int SerialCom::putStr(char *msg, int n, bool eol)
 {
   int16_t   space;
   int16_t   len;
@@ -1098,6 +1137,9 @@ int SerialCom::putStr(char *msg, int n)
       sbWriteIdx = 0;
   }
 
+  if(eol)
+    putNL();
+
   if(!txiOn)
   {
     if(pidUsart == 8)
@@ -1114,6 +1156,65 @@ int SerialCom::putStr(char *msg, int n)
 
   return(len);
 }
+
+int SerialCom::putStr(char *msg, int n)
+{
+  return putStr(msg, n, false);
+}
+
+int SerialCom::putLine(char *msg, int n)
+{
+  return putStr(msg, n, true);
+}
+
+
+int   SerialCom::reqChkLine(char *req, char *rsp)
+{
+  int   i;
+  int   chkVal;
+  char  chkChar;
+
+  switch(reqChkState)
+  {
+    case 0:
+      rbReadIdx  = 0;
+      rbWriteIdx = 0;
+      chkVal = putLine(req);
+      if(chkVal <= 0)
+        return(EOF);
+      tmpVal = strlen(rsp);
+      reqChkState = 1;
+      return(0);
+
+    case 1:
+      chkVal = inCount();
+      if(chkVal <= tmpVal)
+        return(0);
+      chkVal = 0;
+
+      for(i = 0; i < tmpVal; i++)
+      {
+        chkChar = getC();
+        if(req[i] != chkChar)
+          chkVal = -100;
+        else
+          chkVal++;
+      }
+
+      while(recBuffer[rbReadIdx] == '\r' || recBuffer[rbReadIdx] == '\n' )
+      {
+        rbReadIdx++;
+        if(rbReadIdx >= rbSize)
+          rbReadIdx = 0;
+      }
+
+      reqChkState = 0;
+      return(chkVal);
+  }
+
+  return(-1000);    // internal error with <reqChkState>
+}
+
 
 
 // ----------------------------------------------------------------------------

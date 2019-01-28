@@ -204,6 +204,106 @@ void SerialCom::init(int chn)
   //condMaskCom = BM_REC_NOT_COND;
 }
 
+void SerialCom::start(int baud, uint32_t mode)
+{
+  Uart *uartPtr;
+
+  // Einschalten des Taktgenerators für den USART
+  //
+  REG_PMC_PCER0 = pmcPcerVal;
+
+  if(pidUsart == 8)
+  {
+    uartPtr = (Uart *) usartPtr;
+
+    // Abschalten des DMA-Betriebs
+    //
+    uartPtr->UART_PTCR =
+        UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
+
+    // Initialisierung des UART
+    //
+    uartPtr->UART_CR =
+        UART_CR_RSTRX | UART_CR_RSTTX | // Reset Receiver und Transmitter
+        UART_CR_RXDIS | UART_CR_TXDIS;  // und Stilllegen bis fertig hier
+
+    // Erst mal alle Interrupts sperren
+    //
+    uartPtr->UART_IDR = 0xFFFFFFFF;
+
+    //uartPtr->UART_MR  =  mode;
+    uartPtr->UART_MR =    // Alles Standard bis auf
+        UART_MR_PAR_NO;   // keine Paritaet
+
+
+    // Baudrate einstellen
+    //
+    uartPtr->UART_BRGR = (SystemCoreClock / baud) / 16 ;
+
+    // Interrupts freischalten
+    //
+    NVIC_EnableIRQ((IRQn_Type)pidUsart);
+
+    uartPtr->UART_IER =
+        UART_IER_RXRDY | UART_IER_OVRE | UART_IER_FRAME;
+    // | UART_IER_TXRDY;
+    // ACHTUNG, System arbeitet nicht mehr,
+    // sobald TX-Interrupt freigegeben wird
+    // Endlos-Schleife ueber Interrupt/IRQ-Handler
+
+    // UART freigeben fuer Senden und Empfangen
+    //
+    uartPtr->UART_CR = UART_CR_RXEN | UART_CR_TXEN;
+  }
+  else
+  {
+  // Abschalten des DMA-Betriebs
+  //
+  usartPtr->US_PTCR =
+    US_PTCR_RXTDIS | US_PTCR_TXTDIS ;
+
+  // Initialisierung des USART
+  //
+  usartPtr->US_CR =
+    US_CR_RSTRX | US_CR_RSTTX |     // Reset Receiver und Transmitter
+    US_CR_RXDIS | US_CR_TXDIS;      // und Stilllegen bis fertig hier
+
+  // Erst mal alle Interrupts sperren
+  //
+  usartPtr->US_IDR = 0xFFFFFFFF;
+
+  usartPtr->US_MR = mode;
+
+  // Baudrate einstellen
+  //
+  usartPtr->US_BRGR = (SystemCoreClock / baud) / 16 ;
+
+  // Interrupts freischalten
+  //
+  NVIC_EnableIRQ((IRQn_Type)pidUsart);
+  usartPtr->US_IER =
+  US_IER_RXRDY | US_IER_OVRE | US_IER_FRAME;
+  // | US_IER_TXRDY;
+  // ACHTUNG, System arbeitet nicht mehr,
+  // sobald TX-Interrupt freigegeben wird
+  // Endlos-Schleife ueber Interrupt/IRQ-Handler
+
+  // USART freigeben fuer Senden und Empfangen
+  //
+  usartPtr->US_CR = US_CR_RXEN | US_CR_TXEN;
+  }
+}
+
+
+void SerialCom::start(int baud)
+{
+  if(pidUsart == 8)
+    start(baud, ModPN);
+  else
+    start(baud, ModDB8 | ModPN);
+}
+
+/*
 void SerialCom::start(int baud)
 {
   Uart *uartPtr;
@@ -306,80 +406,8 @@ void SerialCom::start(int baud)
   usartPtr->US_CR = US_CR_RXEN | US_CR_TXEN;
   }
 }
+*/
 
-void SerialCom::start(int baud, int userDataBits, int stopBits, int paritaet, int msbf)
-{
-  switch(userDataBits)
-  {
-  //Setzen der DatenBits [CHRL] im US_MR_
-      case 5:
-        uartDataBits = US_MR_CHRL_5_BIT;
-        break;
-      case 6:
-        uartDataBits = US_MR_CHRL_6_BIT;
-        break;
-      case 7:
-        uartDataBits = US_MR_CHRL_7_BIT;
-        break;
-      case 8:
-        uartDataBits = US_MR_CHRL_8_BIT;
-        break;
-  }
-
-
-  switch(stopBits)
-  {
-  //Setzen der Stopbits [NBSTOP] im US_MR_
-      case 1:
-        uartStopBits = US_MR_NBSTOP_1_BIT;
-        break;
-      case 2:
-        uartStopBits = US_MR_NBSTOP_1_5_BIT;
-        break;
-      case 3:
-        uartStopBits = US_MR_NBSTOP_2_BIT;
-        break;
-  }
-
-  switch(paritaet)
-  {
-  //Setzen der paritaet [PAR] im US_MR_
-      case 1:
-        uartParitaet = US_MR_PAR_EVEN;
-        break;
-      case 2:
-        uartParitaet = US_MR_PAR_ODD;
-        break;
-      case 3:
-        uartParitaet = US_MR_PAR_SPACE;
-        break;
-      case 4:
-        uartParitaet = US_MR_PAR_MARK;
-        break;
-      case 5:
-        uartParitaet = US_MR_PAR_NO;
-        break;
-      case 6:
-        uartParitaet = US_MR_PAR_MULTIDROP;
-        break;
-  }
-
-  switch(msbf)
-  {
-  //Setze MSB/LSB [MSBF] im US_MR_
-      case 1:
-        uartmsbf = US_MR_MSBF;
-        //MSBFirst
-        break;
-      case 2:
-        uartmsbf = (0x0u << 16);
-        //LSBFirst
-        break;
-  }
-  customCom =true;
-  start(baud);
-
-}
 
 void SerialCom::stop()
 {
@@ -387,7 +415,7 @@ void SerialCom::stop()
   //
   NVIC_DisableIRQ((IRQn_Type)pidUsart);
 
-  // Ausschalten des Taktgenerators f�r den USART
+  // Ausschalten des Taktgenerators für den USART
   //
   REG_PMC_PCDR0 = pmcPcerVal;
 }
@@ -685,7 +713,7 @@ void SerialCom::read(uint8_t *rdPtr, int maxNrOfBytes, uint8_t endChr)
 // ----------------------------------------------------------------------------
 //
 
-void SerialCom::setReadBuffer(uint8_t *bufPtr, int size)
+void SerialCom::setReadBuffer(int size, uint8_t *bufPtr)
 {
   recBuffer = bufPtr;
   rbSize = size;
@@ -751,7 +779,7 @@ int SerialCom::inCount()
   return(count);
 }
 
-int SerialCom::getCount(uint8_t *buffer, int len)
+int SerialCom::getCount(int len, uint8_t *buffer)
 {
   uint16_t  count, i;
   int       tmpInt;
@@ -796,11 +824,11 @@ char SerialCom::getC()
   return(retC);
 }
 
-int SerialCom::getCount(char *buffer, int len)
+int SerialCom::getCount(int len, char *buffer)
 {
   int nrChar;
 
-  nrChar = getCount((uint8_t *) buffer, len);
+  nrChar = getCount(len, (uint8_t *) buffer);
   buffer[nrChar] = 0;
   return(nrChar);
 }
@@ -848,7 +876,7 @@ int SerialCom::getLine(char *buffer)
   return(i);
 }
 
-int SerialCom::getRestChar(uint8_t tagChr, uint8_t *buffer, int len)
+int SerialCom::getRestChar(uint8_t tagChr, int len, uint8_t *buffer)
 {
   uint16_t  count, i, j;
   uint8_t   inChr;
@@ -896,7 +924,7 @@ int SerialCom::getRestChar(uint8_t tagChr, uint8_t *buffer, int len)
   return(j);
 }
 
-int SerialCom::getRestStr(char *tagStr, uint8_t *buffer, int len)
+int SerialCom::getRestStr(char *tagStr, int len, uint8_t *buffer)
 {
   uint16_t  count, i, j, tmpIdx;
   uint8_t   inChr;
@@ -965,7 +993,7 @@ int SerialCom::getRestStr(char *tagStr, uint8_t *buffer, int len)
 
 
 
-void SerialCom::setWriteBuffer(uint8_t *bufPtr, int size)
+void SerialCom::setWriteBuffer(int size, uint8_t *bufPtr)
 {
   sndBuffer = bufPtr;
   sbSize = size;
@@ -1030,7 +1058,7 @@ int SerialCom::putChr(int chr)
   return(chr);
 }
 
-int SerialCom::putStr(char *msg, bool eol)
+int SerialCom::putStrB(int eol, char *msg)
 {
   int16_t   space;
   int16_t   len;
@@ -1091,15 +1119,15 @@ int SerialCom::putStr(char *msg, bool eol)
 
 int SerialCom::putStr(char *msg)
 {
-  return putStr(msg, false);
+  return putStrB(0, msg);
 }
 
 int SerialCom::putLine(char *msg)
 {
-  return putStr(msg, true);
+  return putStrB(1, msg);
 }
 
-int SerialCom::putStr(char *msg, int n, bool eol)
+int SerialCom::putStrB(int eol, int n, char *msg)
 {
   int16_t   space;
   int16_t   len;
@@ -1159,12 +1187,12 @@ int SerialCom::putStr(char *msg, int n, bool eol)
 
 int SerialCom::putStr(char *msg, int n)
 {
-  return putStr(msg, n, false);
+  return putStrB(0, n, msg);
 }
 
 int SerialCom::putLine(char *msg, int n)
 {
-  return putStr(msg, n, true);
+  return putStrB(1, n, msg);
 }
 
 

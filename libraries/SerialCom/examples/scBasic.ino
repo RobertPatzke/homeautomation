@@ -51,25 +51,25 @@ void setup()
   monitor.start(115200);
   // Start the communicator with defined speed
 
-  monitor.setWriteBuffer(sndBufferMonitor, SndBufMonitorSize);
+  monitor.setWriteBuffer(SndBufMonitorSize, sndBufferMonitor);
   // Give a buffer for the data to transmit
 
-  monitor.setReadBuffer(recBufferMonitor, RecBufMonitorSize);
+  monitor.setReadBuffer(RecBufMonitorSize, recBufferMonitor);
   // Give a buffer for received data
 
   monitor.putStr((char *)"Test number 1.\r\n");
 
   com1.start(9600);
-  com1.setWriteBuffer(sndBufCom1, 128);
-  com1.setReadBuffer(recBufCom1, 128);
+  com1.setWriteBuffer(128, sndBufCom1);
+  com1.setReadBuffer(128, recBufCom1);
 
   com2.start(9600);
-  com2.setWriteBuffer(sndBufCom2, 128);
-  com2.setReadBuffer(recBufCom2, 128);
+  com2.setWriteBuffer(128, sndBufCom2);
+  com2.setReadBuffer(128, recBufCom2);
 
   com3.start(9600);
-  com3.setWriteBuffer(sndBufCom3, 128);
-  com3.setReadBuffer(recBufCom3, 128);
+  com3.setWriteBuffer(128, sndBufCom3);
+  com3.setReadBuffer(128, recBufCom3);
 }
 
 // Forward references
@@ -121,7 +121,7 @@ void loop()
     monitor.putStr(localCharBuffer);
     monitor.putStr((char *) "\r\n");
 
-    monitor.getCount((uint8_t *) localCharBuffer, nrInChars);
+    monitor.getCount(nrInChars, (uint8_t *) localCharBuffer);
     // You can use your <localCharBuffer> again, because the content
     // was copied with <putStr> into the interrupt transmit buffer
 
@@ -171,7 +171,8 @@ void loop()
     {
       monitor.putStr((char *) "\r\nCOM1: [");
       comSub1(nrInChars);
-      com1.getCount(localCharBuffer, nrInChars);
+      //com1.getCount(localCharBuffer, nrInChars);
+      com1.getCount(nrInChars, (uint8_t *) localCharBuffer);
       comSub2();
     }
 
@@ -180,7 +181,8 @@ void loop()
     {
       monitor.putStr((char *) "\r\nCOM2: [");
       comSub1(nrInChars);
-      com2.getCount(localCharBuffer, nrInChars);
+      //com2.getCount(localCharBuffer, nrInChars);
+      com2.getCount(nrInChars, (uint8_t *) localCharBuffer);
       comSub2();
     }
 
@@ -189,7 +191,8 @@ void loop()
     {
       monitor.putStr((char *) "\r\nCOM3: [");
       comSub1(nrInChars);
-      com3.getCount(localCharBuffer, nrInChars);
+      //com3.getCount(localCharBuffer, nrInChars);
+      com3.getCount(nrInChars, (uint8_t *) localCharBuffer);
       comSub2();
    }
 
@@ -217,14 +220,16 @@ void loop()
     nrInChars = com1.inCount();
     if(nrInChars > 0)
     {
-      com1.getCount(localCharBuffer, nrInChars);
+      //com1.getCount(localCharBuffer, nrInChars);
+      com1.getCount(nrInChars, (uint8_t *) localCharBuffer);
       com1.putStr(localCharBuffer, nrInChars);
     }
 
     nrInChars = com2.inCount();
     if(nrInChars > 0)
     {
-      com2.getCount(localCharBuffer, nrInChars);
+      //com2.getCount(localCharBuffer, nrInChars);
+      com2.getCount(nrInChars, (uint8_t *) localCharBuffer);
       com2.putStr(localCharBuffer, nrInChars);
     }
 
@@ -233,12 +238,14 @@ void loop()
     {
       monitor.putStr((char *) "\r\nCOM3: [");
       comSub1(nrInChars);
-      com3.getCount(localCharBuffer, nrInChars);
+      //com3.getCount(localCharBuffer, nrInChars);
+      com3.getCount(nrInChars, (uint8_t *) localCharBuffer);
       comSub2();
    }
 
     loopCtrl = 2;
   }
+
 
   // --------------------------------------------------------------------------
   // Test 3: Enter /3 and send with Serial Monitor View
@@ -285,7 +292,6 @@ void loop()
 
     loopCtrl = 3;
   }
-
 
 
 }

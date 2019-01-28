@@ -29,6 +29,19 @@
 #define DueCom3     3
 #define DueComX     2
 
+#define ModPE       0
+#define ModPO       (0x1u << 9)
+#define ModPN       (0x4u << 9)
+
+#define ModDB5      0
+#define ModDB6      (0x1u << 6)
+#define ModDB7      (0x2u << 6)
+#define ModDB8      (0x3u << 6)
+
+#define ModSB1      0
+#define ModSB15     (0x1u << 12)
+#define ModSB2      (0x2u << 12)
+
 
 #ifdef IntTxdTest
 // -----------------------------------------
@@ -71,8 +84,8 @@ class SerialCom
 #endif
     bool  startTransmit(void);
     void  putNL();
-    int   putStr(char *msg, bool eol);
-    int   putStr(char *msg, int n, bool newLine);
+    int   putStrB(int newLine, char *msg);
+    int   putStrB(int newLine, int nrChr, char *msg);
     char  getC();
 
   // --------------------------------------------------------------------------
@@ -87,6 +100,7 @@ class SerialCom
     // Starten der Schnittstelle mit Uebrtragungsparametern
     //
     void  start(int baud);
+    void  start(int baud, uint32_t mode);
     void  start(int baud, int userDataBits, int stopBits, int paritaet, int msbf);
     void  stop();
 
@@ -97,19 +111,19 @@ class SerialCom
     void  read(uint8_t *rdPtr, int nrOfBytes);
     void  read(uint8_t *rdPtr, int maxNrOfBytes, uint8_t endChr);
 
-    void  setReadBuffer(uint8_t *bufPtr, int size);
+    void  setReadBuffer(int size, uint8_t *bufPtr);
     int   getChr(void);
     void  clrRecBuf();
     int   getAll(uint8_t *buffer);
-    int   getCount(uint8_t *buffer, int count);
-    int   getCount(char *buffer, int count);
+    int   getCount(int count, uint8_t *buffer);
+    int   getCount(int count, char *buffer);
     int   getLine(char *buffer);
     int   inCount(void);
-    int   getRestChar(uint8_t tagChr, uint8_t *buffer, int len);
-    int   getRestStr(char *tagStr, uint8_t *buffer, int len);
+    int   getRestChar(uint8_t tagChr, int len, uint8_t *buffer);
+    int   getRestStr(char *tagStr, int len, uint8_t *buffer);
     int   reqChkLine(char *req, char *rsp);
 
-    void  setWriteBuffer(uint8_t *bufPtr, int size);
+    void  setWriteBuffer(int size, uint8_t *bufPtr);
     int   putChr(int chr);
     int   putStr(char *msg);
     int   putStr(char *msg, int n);

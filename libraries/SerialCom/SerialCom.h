@@ -3,7 +3,7 @@
 // Datei:       SerialCom.h
 // Editor:      Robert Patzke
 // Erstellt:    29.08.2013
-// Bearbeitet:  26.01.2019
+// Bearbeitet:  28.01.2019
 // URI/URL:     www.mfp-portal.de
 //-----------------------------------------------------------------------------
 // Lizenz:      CC-BY-SA  (siehe Wikipedia: Creative Commons)
@@ -118,6 +118,7 @@ class SerialCom
     int   getCount(int count, uint8_t *buffer);
     int   getCount(int count, char *buffer);
     int   getLine(char *buffer);
+    int   getLine(int *intValue);
     int   inCount(void);
     int   getRestChar(uint8_t tagChr, int len, uint8_t *buffer);
     int   getRestStr(char *tagStr, int len, uint8_t *buffer);

@@ -303,111 +303,6 @@ void SerialCom::start(int baud)
     start(baud, ModDB8 | ModPN);
 }
 
-/*
-void SerialCom::start(int baud)
-{
-  Uart *uartPtr;
-
-  // Einschalten des Taktgenerators für den USART
-  //
-  REG_PMC_PCER0 = pmcPcerVal;
-
-  if(pidUsart == 8)
-  {
-    uartPtr = (Uart *) usartPtr;
-
-    // Abschalten des DMA-Betriebs
-    //
-    uartPtr->UART_PTCR =
-        UART_PTCR_RXTDIS | UART_PTCR_TXTDIS;
-
-    // Initialisierung des UART
-    //
-    uartPtr->UART_CR =
-        UART_CR_RSTRX | UART_CR_RSTTX | // Reset Receiver und Transmitter
-        UART_CR_RXDIS | UART_CR_TXDIS;  // und Stilllegen bis fertig hier
-
-    // Erst mal alle Interrupts sperren
-    //
-    uartPtr->UART_IDR = 0xFFFFFFFF;
-
-  if(customCom)uartPtr->UART_MR =   // Alles Standard bis auf
-    uartDataBits  |       // DatenBits
-    uartStopBits  |       // StopBits
-    uartParitaet  |       // Paritaet
-    uartmsbf;           // MSBFirst
-
-    uartPtr->UART_MR =    // Alles Standard bis auf
-        UART_MR_PAR_NO;   // keine Paritaet
-
-
-    // Baudrate einstellen
-    //
-    uartPtr->UART_BRGR = (SystemCoreClock / baud) / 16 ;
-
-    // Interrupts freischalten
-    //
-    NVIC_EnableIRQ((IRQn_Type)pidUsart);
-
-    uartPtr->UART_IER =
-        UART_IER_RXRDY | UART_IER_OVRE | UART_IER_FRAME;
-    // | UART_IER_TXRDY;
-    // ACHTUNG, System arbeitet nicht mehr,
-    // sobald TX-Interrupt freigegeben wird
-    // Endlos-Schleife ueber Interrupt/IRQ-Handler
-
-    // UART freigeben fuer Senden und Empfangen
-    //
-    uartPtr->UART_CR = UART_CR_RXEN | UART_CR_TXEN;
-  }
-  else
-  {
-  // Abschalten des DMA-Betriebs
-  //
-  usartPtr->US_PTCR =
-    US_PTCR_RXTDIS | US_PTCR_TXTDIS ;
-
-  // Initialisierung des USART
-  //
-  usartPtr->US_CR =
-    US_CR_RSTRX | US_CR_RSTTX |     // Reset Receiver und Transmitter
-    US_CR_RXDIS | US_CR_TXDIS;      // und Stilllegen bis fertig hier
-
-  // Erst mal alle Interrupts sperren
-  //
-  usartPtr->US_IDR = 0xFFFFFFFF;
-
-  if(customCom)usartPtr->US_MR =                    // Alles Standard bis auf
-      uartDataBits  |       // DatenBits
-      uartStopBits  |       // StopBits
-      uartParitaet  |       // Paritaet
-      uartmsbf;           // MSBFirst
-
-  usartPtr->US_MR =                 // Alles Standard bis auf
-    US_MR_CHRL_8_BIT |              // 8-Bit
-    US_MR_PAR_NO;                   // keine Paritaet
-
-  // Baudrate einstellen
-  //
-  usartPtr->US_BRGR = (SystemCoreClock / baud) / 16 ;
-
-  // Interrupts freischalten
-  //
-  NVIC_EnableIRQ((IRQn_Type)pidUsart);
-  usartPtr->US_IER =
-  US_IER_RXRDY | US_IER_OVRE | US_IER_FRAME;
-  // | US_IER_TXRDY;
-  // ACHTUNG, System arbeitet nicht mehr,
-  // sobald TX-Interrupt freigegeben wird
-  // Endlos-Schleife ueber Interrupt/IRQ-Handler
-
-  // USART freigeben fuer Senden und Empfangen
-  //
-  usartPtr->US_CR = US_CR_RXEN | US_CR_TXEN;
-  }
-}
-*/
-
 
 void SerialCom::stop()
 {
@@ -836,7 +731,7 @@ int SerialCom::getCount(int len, char *buffer)
 int SerialCom::getLine(char *buffer)
 {
   bool      eol;
-  uint16_t  count, i;
+  int       count, i;
   int       tmpInt;
 
   if(!(condMaskCom & BM_REC_RINGBUF))
@@ -875,6 +770,72 @@ int SerialCom::getLine(char *buffer)
   buffer[i] = 0;
   return(i);
 }
+
+int SerialCom::getLine(int *intVal)
+{
+  bool      eol, inVal;
+  int       count, i, j;
+  int       tmpInt;
+  char      c;
+  char      buffer[32];
+
+  if(!(condMaskCom & BM_REC_RINGBUF))
+    return(EOF);
+  if(rbReadIdx == rbWriteIdx)
+    return(0);
+
+  tmpInt = rbWriteIdx - rbReadIdx;
+  if(tmpInt < 0)
+    count = tmpInt + rbSize;
+  else
+    count = tmpInt;
+
+  if(count > 30)
+    count = 30;
+
+  eol = false;
+
+  j = 0;
+  inVal = false;
+
+  for(i = 0; i < count; i++)
+  {
+    c = recBuffer[rbReadIdx];
+    if(!inVal)
+    {
+      if(c > '9')
+      {
+        rbReadIdx++;
+        if(rbReadIdx >= rbSize)
+          rbReadIdx = 0;
+        continue;
+      }
+      inVal = true;
+    }
+
+    if(!eol)
+    {
+    if(c == '\r' || c == '\n')
+      eol = true;
+    }
+    else
+    {
+      if(c != '\r' && c != '\n')
+        break;
+    }
+    rbReadIdx++;
+    if(rbReadIdx >= rbSize)
+      rbReadIdx = 0;
+    buffer[j++] = c;
+  }
+
+  if(!eol) return(0);
+
+  buffer[j] = 0;
+  *intVal = atoi(buffer);
+  return(i);
+}
+
 
 int SerialCom::getRestChar(uint8_t tagChr, int len, uint8_t *buffer)
 {

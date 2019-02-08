@@ -33,6 +33,7 @@ SerialCom::SerialCom(int chn)
   recBuffer   = NULL;
   condMaskCom = BM_SND_RINGBUF;
   reqChkState = 0;
+  loopCount   = 0;
   init(chn);
 }
 
@@ -393,6 +394,8 @@ void SerialCom::IrqHandler()
     {
       // -----------------------------------------
       inByte = uartPtr->UART_RHR;
+
+      if(status & UART_SR_FRAME) return;
 
       if(condMaskCom & BM_REC_RINGBUF)
       {
@@ -838,6 +841,160 @@ int SerialCom::getLine(int *intVal)
   return(i);
 }
 
+int   SerialCom::chkLine(char *rsp)
+{
+  int   i;
+  int   chkVal;
+  char  chkChar;
+
+  chkVal = inCount();
+  if(chkVal <= strlen(rsp))
+    return(0);
+
+  chkVal = 0;
+
+  for(i = 0; i < strlen(rsp); i++)
+  {
+    chkChar = getC();
+    if(rsp[i] != chkChar)
+      chkVal = -100;
+    else
+      chkVal++;
+  }
+
+  while( (recBuffer[rbReadIdx] == '\r' || recBuffer[rbReadIdx] == '\n' )
+  		   && (rbReadIdx != rbWriteIdx))
+  {
+    rbReadIdx++;
+    if(rbReadIdx >= rbSize)
+      rbReadIdx = 0;
+  }
+
+  return(chkVal);
+}
+
+
+int   SerialCom::chkBuf(char *rsp)
+{
+  int      i;
+  size_t   chkVal;
+  char     chkChar;
+
+  chkVal = inCount();
+  if(chkVal < strlen(rsp))
+    return(0);
+
+  chkVal = 0;
+
+  for(i = 0; i < strlen(rsp); i++)
+  {
+    chkChar = getC();
+    if(rsp[i] != chkChar)
+      chkVal = -100;
+    else
+      chkVal++;
+  }
+
+  return(chkVal);
+}
+
+int   SerialCom::waitChkBuf(int waitLoop, char *rsp)
+{
+  int   i;
+  int   chkVal;
+  char  chkChar;
+
+  if(loopCount == 0)
+  {
+    tmpVal = strlen(rsp);
+  }
+
+  chkVal = inCount();
+  if(chkVal < tmpVal)
+  {
+    loopCount++;
+    if(loopCount < waitLoop)
+      return(0);
+    else
+    {
+      loopCount = 0;
+      return(-10);
+    }
+  }
+
+  chkChar = getC();
+
+  if(rsp[0] != chkChar)
+    return(0);
+
+  if(tmpVal == 1)
+  {
+     loopCount = 0;
+     return(1);
+  }
+
+  chkVal = 1;
+
+  for(i = 1; i < tmpVal; i++)
+  {
+    chkChar = getC();
+    if(rsp[i] != chkChar)
+      return(0);
+    else
+      chkVal++;
+  }
+
+  loopCount = 0;
+  return(chkVal);
+}
+
+int SerialCom::waitLine(int waitLoop, char *buffer)
+{
+  char inChar;
+  bool eol;
+
+  if(loopCount == 0)
+  {
+    tmpIdx = 0;
+  }
+
+  tmpVal = inCount();
+  if(tmpVal < 1)
+  {
+    loopCount++;
+    if(loopCount < waitLoop)
+      return(0);
+    else
+    {
+      loopCount = 0;
+      return(-10);
+    }
+  }
+
+  eol = false;
+
+  for(int i = 0; i < tmpVal; i++)
+  {
+    inChar = getC();
+    buffer[tmpIdx++] = inChar;
+    if(inChar == '\r' || inChar == '\n')
+    {
+      eol = true;
+      break;
+    }
+  }
+
+  if(eol)
+  {
+    buffer[tmpIdx] = 0;
+    loopCount = 0;
+    return(tmpIdx);
+  }
+
+  return(0);
+
+}
+
 
 int SerialCom::getRestChar(uint8_t tagChr, int len, uint8_t *buffer)
 {
@@ -1186,13 +1343,14 @@ int   SerialCom::reqChkLine(char *req, char *rsp)
       for(i = 0; i < tmpVal; i++)
       {
         chkChar = getC();
-        if(req[i] != chkChar)
+        if(rsp[i] != chkChar)
           chkVal = -100;
         else
           chkVal++;
       }
 
-      while(recBuffer[rbReadIdx] == '\r' || recBuffer[rbReadIdx] == '\n' )
+      while(     (recBuffer[rbReadIdx] == '\r' || recBuffer[rbReadIdx] == '\n')
+    		  && (rbReadIdx != rbWriteIdx) )
       {
         rbReadIdx++;
         if(rbReadIdx >= rbSize)

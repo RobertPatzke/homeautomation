@@ -119,6 +119,12 @@ class SerialCom
     int   getCount(int count, char *buffer);
     int   getLine(char *buffer);
     int   getLine(int *intValue);
+    int   waitLine(int waitLoop, char *buffer);
+    int   waitLine(int waitLoop, int *intValue);
+    int   chkLine(char *rsp);
+    int   chkBuf(char *rsp);
+    int   waitAll(int waitLoop, uint8_t *buffer);
+    int   waitChkBuf(int waitLoop, char *rsp);
     int   inCount(void);
     int   getRestChar(uint8_t tagChr, int len, uint8_t *buffer);
     int   getRestStr(char *tagStr, int len, uint8_t *buffer);
@@ -158,10 +164,6 @@ class SerialCom
     int       pidUsart;         // Berechnung des Identifier
     bool      txInt;            // Set true by IRQ-handler
     bool      customCom;        // Set true by start for custom Com settings
-    int       uartDataBits;     // Variablen zum Start von
-    int       uartStopBits;     // Sercom
-    int       uartParitaet;     //
-    int       uartmsbf;         //
 
     // Lesen und Schreiben von Zeichen (Bytes)
     //
@@ -181,45 +183,10 @@ class SerialCom
     uint16_t  sbWriteIdx;       // Write index
     uint16_t  sbSize;           // Buffer size
 
+    int       loopCount;        // For internal time out checking
     int       reqChkState;      // State of request/check procedure
     int       tmpVal;           // Variable for temporary data storage
-
-    //---------------------------------------------------------------------------//
-    //Attribute
-    //---------------------------------------------------------------------------//
-    //
-  public:
-            typedef enum
-            { //Anzahl Datenbits
-              CHRL_5  = 5,
-              CHRL_6  = 6,
-              CHRL_7  = 7,
-              CHRL_8  = 8
-            } mp_UART_MR_CHRL;
-
-            typedef enum
-            { //Anzahl Stopbits
-              NBSTP_1   = 1,
-              NBSTP_1_5   = 2,
-              NBSTP_2   = 3
-            } mp_UART_MR_NBSTP;
-
-            typedef enum
-            { //Paritaet
-              PAR_EVEN  = 1,
-              PAR_ODD   = 2,
-              PAR_SPACE = 3,
-              PAR_MARK  = 4,
-              PAR_NO    = 5
-            } mp_UART_MR_PAR;
-
-            typedef enum
-            { //MSB / LSB first
-              MSBF  = 1,
-              LSBF  = 2,
-            } mp_UART_MR_MSBF;
-
-    //---------------------------------------------------------------------------//
+    int       tmpIdx;           // Variable for temporary array index
 
 
 #ifdef IntTxdTest

@@ -494,6 +494,8 @@ void SerialCom::IrqHandler()
       // -----------------------------------------
       inByte = usartPtr->US_RHR;
 
+      if(status & US_CSR_FRAME) return;
+
       if(condMaskCom & BM_REC_RINGBUF)
       {
         recBuffer[rbWriteIdx] = inByte;

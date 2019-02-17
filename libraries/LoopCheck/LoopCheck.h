@@ -19,6 +19,19 @@
 #endif
 
 #define NrOfTimerTasks      10
+
+#define lcTimer0  0
+#define lcTimer1  1
+#define lcTimer2  2
+#define lcTimer3  3
+#define lcTimer4  4
+#define lcTimer5  5
+#define lcTimer6  6
+#define lcTimer7  7
+#define lcTimer8  8
+#define lcTimer9  9
+
+
 #define NrOfOnceTasks       4
 #define NrOfToggleTasks     4
 #define CalcAverageDepth    32

@@ -110,19 +110,19 @@ void loop()
   loopCheck.begin();    // mandatory call at loop beginning to use LoopCheck
   // -------------------------------------------------------------------------
 
-  if(loopCheck.timerMilli(0, AutCycleTime, 0))  // clock for the state machine
+  if(loopCheck.timerMilli(lcTimer0, AutCycleTime, 0)) // clock of state machine
   {
     automat.run();      // switching to the next state (defined by passed state)
   }
 
-  if(loopCheck.timerMilli(1, 2, 0))
+  if(loopCheck.timerMilli(lcTimer1, 2, 0))
     devTwitter.run(500);   // giving the CPU to devTwitter for its tasks
   //
   // This happens every 2 milliseconds, which is a frequency of 500 Hz.
   // Twitter.run needs the frequency to calculate the twitter cycle time
 
 
-  if(loopCheck.timerMicro(2, 10, 0))
+  if(loopCheck.timerMicro(lcTimer2, 10, 0))
     socManNet.run();        // giving the CPU to socManNet for its tasks
   //
   // This may happen every 10 microseconds. But we should expect,

@@ -95,8 +95,15 @@ void  KeyMatrix::run()
       else
       {                                     // if key was up before
         keyList[keyIdx].down = true;        // mark key down now
-        keyList[keyIdx].edgeFall = true;    // and mark as falling edge
-        keyList[keyIdx].edgeRise = false;   // clear rising edge
+        if(keyList[keyIdx].upCount >= minUpCount)
+        {                                     // if upCount was beyond
+          keyList[keyIdx].pastUpCount =       // minUpCount (bouncing)
+            keyList[keyIdx].upCount;          // save up count value
+          keyList[keyIdx].edgeFall = true;    // and mark falling edge
+          keyList[keyIdx].edgeRise = false;   // and clear rising edge
+        }
+        else                              // too short up times before
+          keyList[keyIdx].upCount = 0;    // are seen as bouncing
       }
     }
     else
@@ -104,7 +111,10 @@ void  KeyMatrix::run()
       // key is up (released)
       // --------------------------------------------------------------
       if(!keyList[keyIdx].down)         // if key was up before
-        keyList[keyIdx].upCount++;      // count key up time
+      {
+        if(keyList[keyIdx].upCount < maxUpCount)  // respect limit
+          keyList[keyIdx].upCount++;        // count key up time
+      }
       else
       {                                     // if key was down before
         keyList[keyIdx].down = false;       // mark key up now

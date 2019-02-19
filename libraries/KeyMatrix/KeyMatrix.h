@@ -21,6 +21,11 @@
   #include "Arduino.h"
 #endif
 
+#define DefaultFinUpTime    500
+#define DefaultMaxUpTime    60000
+#define DefaultMinUpTime    100
+#define DefaultMinDownTime  100
+
 // Test for type definitions of SAM3X
 //
 #ifndef PIO_PER_P0
@@ -36,10 +41,10 @@ typedef struct
 {
   char    value;
   bool    down;
-  int     timeDown;
-  int     pastTimeDown;
-  int     timeUp;
-  int     pastTimeUp;
+  int     downCount;
+  int     pastDownCount;
+  int     upCount;
+  int     pastUpCount;
   bool    edgeRise;
   bool    edgeFall;
 } Key, *KeyPtr;
@@ -61,13 +66,18 @@ private:
   // local variables
   // -------------------------------------------------------------------------
   //
-  int   *rowList;
-  int   *colList;
-  int   rowCount;
-  int   colCount;
-  Key   *keyList;
+  int   *rowList;         // Array of DIO-Numbers (Arduino)
+  int   *colList;         // Array of DIO-Numbers (Arduino)
+  int   rowCount;         // Number of rows
+  int   colCount;         // Number of columns
+  Key   *keyList;         // Array of key descriptors
 
-  int   rowIdx;
+  int   rowIdx;           // current row under test
+
+  int   maxUpCount;       // maximum value for key up (limit)
+  int   minUpCount;       // minimum value to validate up
+  int   finUpCount;       // value for key action finish
+  int   minDownCount;     // minimum value to validate down
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -82,12 +92,15 @@ public:
   //
 
   // -------------------------------------------------------------------------
-  // constructors and initializations
+  // constructors and initialisations
   // -------------------------------------------------------------------------
   //
-  KeyMatrix(int rowArray[], int nrRows, int colArray[], int nrCols, Key matrix[]);
+  KeyMatrix(int rowArray[], int nrRows,
+            int colArray[], int nrCols,
+            Key matrix[], int cycleTime);
 
   void initPins();
+  void initMeasures(int cycleTime);
 
   // -------------------------------------------------------------------------
   // user functions

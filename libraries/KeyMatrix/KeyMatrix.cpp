@@ -12,10 +12,12 @@
 #include "KeyMatrix.h"
 
 // -------------------------------------------------------------------------
-// constructors and initializations
+// constructors and initialisations
 // -------------------------------------------------------------------------
 //
-KeyMatrix::KeyMatrix(int rowArray[], int nrRows, int colArray[], int nrCols, Key matrix[])
+KeyMatrix::KeyMatrix(int rowArray[], int nrRows,
+                     int colArray[], int nrCols,
+                     Key matrix[], int cycleTime)
 {
   rowList   = rowArray;
   colList   = colArray;
@@ -23,6 +25,18 @@ KeyMatrix::KeyMatrix(int rowArray[], int nrRows, int colArray[], int nrCols, Key
   colCount  = nrCols;
   keyList   = matrix;
   initPins();
+  initMeasures(cycleTime);
+}
+
+void KeyMatrix::initMeasures(int cycleTime)
+{
+  int  calcCycle = cycleTime * rowCount;
+
+  rowIdx = 0;
+  maxUpCount    = DefaultMaxUpTime / calcCycle;
+  minUpCount    = DefaultMinUpTime / calcCycle;
+  finUpCount    = DefaultFinUpTime / calcCycle;
+  minDownCount  = DefaultMinDownTime / calcCycle;
 }
 
 void KeyMatrix::initPins()
@@ -77,7 +91,7 @@ void  KeyMatrix::run()
       // key is down (hit)
       // --------------------------------------------------------------
       if(keyList[keyIdx].down)          // if key was down before
-        keyList[keyIdx].timeDown++;     // count key down time
+        keyList[keyIdx].downCount++;    // count key down time
       else
       {                                     // if key was up before
         keyList[keyIdx].down = true;        // mark key down now
@@ -90,22 +104,33 @@ void  KeyMatrix::run()
       // key is up (released)
       // --------------------------------------------------------------
       if(!keyList[keyIdx].down)         // if key was up before
-        keyList[keyIdx].timeUp++;       // count key up time
+        keyList[keyIdx].upCount++;      // count key up time
       else
       {                                     // if key was down before
         keyList[keyIdx].down = false;       // mark key up now
-        keyList[keyIdx].edgeFall = false;   // and clear as falling edge
-        keyList[keyIdx].edgeRise = true;    // mark rising edge
+        if(keyList[keyIdx].downCount >= minDownCount)
+        {                                     // if downCount was beyond
+          keyList[keyIdx].pastDownCount =     // minDownCount (bouncing)
+            keyList[keyIdx].downCount;        // save down count value
+          keyList[keyIdx].edgeFall = false;   // and clear falling edge
+          keyList[keyIdx].edgeRise = true;    // and mark rising edge
+        }
+        else                              // too short down times before
+          keyList[keyIdx].downCount = 0;  // are seen as bouncing
       }
     }
-  }
+  } // for
 
 #ifdef ArduinoFunc
 
+  digitalWrite(rowList[rowIdx], HIGH);
+  rowIdx++;
+  if(rowIdx >= rowCount)
+    rowIdx = 0;
+  digitalWrite(rowList[rowIdx], LOW);
 
 #else
     realize direct port access for different microcontrollers
 #endif
-
 
 }

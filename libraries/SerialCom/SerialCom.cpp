@@ -843,9 +843,9 @@ int SerialCom::getLine(int *intVal)
 
 int   SerialCom::chkLine(char *rsp)
 {
-  int   i;
-  int   chkVal;
-  char  chkChar;
+  size_t  i;
+  size_t  chkVal;
+  char    chkChar;
 
   chkVal = inCount();
   if(chkVal <= strlen(rsp))
@@ -876,7 +876,7 @@ int   SerialCom::chkLine(char *rsp)
 
 int   SerialCom::chkBuf(char *rsp)
 {
-  int      i;
+  size_t   i;
   size_t   chkVal;
   char     chkChar;
 
@@ -1178,7 +1178,7 @@ int SerialCom::putChr(int chr)
   return(chr);
 }
 
-int SerialCom::putStrB(int eol, char *msg)
+int SerialCom::putStrB(int eol, char c, char *msg)
 {
   int16_t   space;
   int16_t   len;
@@ -1215,6 +1215,14 @@ int SerialCom::putStrB(int eol, char *msg)
       sbWriteIdx = 0;
   }
 
+  if(c != '\0')
+  {
+    sndBuffer[sbWriteIdx] = c;
+    sbWriteIdx++;
+    if(sbWriteIdx >= sbSize)
+      sbWriteIdx = 0;
+  }
+
   if(eol)
   {
     putNL();
@@ -1239,13 +1247,20 @@ int SerialCom::putStrB(int eol, char *msg)
 
 int SerialCom::putStr(char *msg)
 {
-  return putStrB(0, msg);
+  return putStrB(0, '\0', msg);
 }
 
 int SerialCom::putLine(char *msg)
 {
-  return putStrB(1, msg);
+  return putStrB(1, '\0', msg);
 }
+
+int SerialCom::putLine(char *msg, char c)
+{
+  return putStrB(1, c, msg);
+}
+
+
 
 int SerialCom::putStrB(int eol, int n, char *msg)
 {

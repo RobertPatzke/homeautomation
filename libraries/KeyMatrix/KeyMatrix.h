@@ -3,7 +3,7 @@
 // File:    KeyMatrix.h
 // Editor:  Robert Patzke
 // Created: 18. February 2019
-// Changed: 18. February 2019
+// Changed: 20. February 2019
 // URI/URL: www.mfp-portal.de  / homeautomation.x-api.de
 //-----------------------------------------------------------------------------
 // Licence: CC-BY-SA  (see Wikipedia: Creative Commons)
@@ -13,11 +13,12 @@
 #define _KeyMatrix_h
 //-----------------------------------------------------------------------------
 
-#ifndef smnNoArduinoLibs
-  #define smnArduino
-#endif
+#define ArduinoFunc
+#define kmVersion "Version 1.0.0"
+// Version 1.0 only supports key clicks (key down followed by key up)
+// and fixed time gaps to ignore bouncing
 
-#ifdef smnArduino
+#ifdef ArduinoFunc
   #include "Arduino.h"
 #endif
 
@@ -26,21 +27,15 @@
 #define DefaultMinUpTime    100
 #define DefaultMinDownTime  100
 
-// Test for type definitions of SAM3X
-//
-#ifndef PIO_PER_P0
-  #define Pio void
-#endif
+#define MaxSavedKeyEvents   16
 
-#include "environment.h"
-
-#define ArduinoFunc
 
 
 typedef struct
 {
   char    value;
   bool    down;
+  int     event;
   int     downCount;
   int     pastDownCount;
   int     upCount;
@@ -48,6 +43,17 @@ typedef struct
   bool    edgeRise;
   bool    edgeFall;
 } Key, *KeyPtr;
+
+#define KeyEvtUp        0x0001
+#define KeyEvtDown      0x0002
+#define KeyEvtEdgeRise  0x0004
+#define KeyEvtEdgeFall  0x0008
+
+typedef struct
+{
+  int     event;
+  KeyPtr  keyRef;
+} KeyEvent, *KeyEventPtr;
 
 // ---------------------------------------------------------------------------
 // class KeyMatrix
@@ -79,10 +85,18 @@ private:
   int   finUpCount;       // value for key action finish
   int   minDownCount;     // minimum value to validate down
 
+  KeyEvent  eventList[MaxSavedKeyEvents];   // List of key events
+
+  int   keWrIdx;          // write index of cyclic buffer
+  int   keRdIdx;          // read index of cyclic buffer
+  int   keyEvtMask;       // key event mask (bits)
+
+
   // -------------------------------------------------------------------------
   // local functions/methods
   // -------------------------------------------------------------------------
   //
+  void setKeyEvent(KeyPtr keyPtr, int keyEvent);
 
 
 public:
@@ -106,7 +120,9 @@ public:
   // user functions
   // -------------------------------------------------------------------------
   //
-  void  run();                      // has to be cyclic called
+  void    run();                      // has to be cyclic called
+  KeyPtr  checkKeyPressed();          // check if a key is still pressed
+  KeyPtr  waitKeyClick();             // return key if clicked, otherwise NULL
 
 };
 

@@ -84,7 +84,7 @@ class SerialCom
 #endif
     bool  startTransmit(void);
     void  putNL();
-    int   putStrB(int newLine, char *msg);
+    int   putStrB(int newLine, char c, char *msg);
     int   putStrB(int newLine, int nrChr, char *msg);
     char  getC();
 
@@ -135,6 +135,7 @@ class SerialCom
     int   putStr(char *msg);
     int   putStr(char *msg, int n);
     int   putLine(char *msg);
+    int   putLine(char *msg, char c);
     int   putLine(char *msg, int n);
 
   // --------------------------------------------------------------------------

@@ -3,7 +3,7 @@
 // File:    KeyMatrix.cpp
 // Editor:  Robert Patzke
 // Created: 18. February 2019
-// Changed: 18. February 2019
+// Changed: 20. February 2019
 // URI/URL: www.mfp-portal.de  / homeautomation.x-api.de
 //-----------------------------------------------------------------------------
 // Licence: CC-BY-SA  (see Wikipedia: Creative Commons)
@@ -24,6 +24,9 @@ KeyMatrix::KeyMatrix(int rowArray[], int nrRows,
   rowCount  = nrRows;
   colCount  = nrCols;
   keyList   = matrix;
+
+  keyEvtMask  = KeyEvtDown | KeyEvtUp;
+
   initPins();
   initMeasures(cycleTime);
 }
@@ -32,7 +35,10 @@ void KeyMatrix::initMeasures(int cycleTime)
 {
   int  calcCycle = cycleTime * rowCount;
 
-  rowIdx = 0;
+  rowIdx    = 0;
+  keRdIdx   = 0;
+  keWrIdx   = 0;
+
   maxUpCount    = DefaultMaxUpTime / calcCycle;
   minUpCount    = DefaultMinUpTime / calcCycle;
   finUpCount    = DefaultFinUpTime / calcCycle;
@@ -47,11 +53,13 @@ void KeyMatrix::initPins()
 
   for(i = 0; i < rowCount; i++)
   {
-    pinMode(rowList[i], OUTPUT);
     if(i == 0)
+    {
+      pinMode(rowList[i], OUTPUT);
       digitalWrite(rowList[i], LOW);
+    }
     else
-      digitalWrite(rowList[i], HIGH);
+      pinMode(rowList[i], INPUT_PULLUP);
   }
 
   for(i = 0; i < colCount; i++)
@@ -65,8 +73,45 @@ void KeyMatrix::initPins()
 }
 
 // -------------------------------------------------------------------------
-// user functions
+// local functions/methods
 // -------------------------------------------------------------------------
+//
+
+void KeyMatrix::setKeyEvent(KeyPtr keyPtr, int keyEvent)
+{
+  // Do not store the same event twice
+  //
+  if(keyPtr->event == keyEvent) return;
+
+  int nrIn = keWrIdx - keRdIdx;             // Calculate number of free
+  if(nrIn < 0) nrIn += MaxSavedKeyEvents;   // places in event buffer
+  int free = MaxSavedKeyEvents - nrIn;      // for use below
+
+  eventList[keWrIdx].event  = keyEvent;     // store event
+  eventList[keWrIdx].keyRef = keyPtr;       // and object pointer
+
+  keyPtr->event = keyEvent;
+
+  keWrIdx++;                                // switch to next storage
+  if(keWrIdx >= MaxSavedKeyEvents)          // respect wrap around length
+    keWrIdx = 0;                            // of cycle buffer
+
+  if(free < 1)              // if buffer is full
+  {                         // the oldest contained event
+    keRdIdx++;              // is deleted
+    if(keRdIdx >= MaxSavedKeyEvents)
+      keRdIdx = 0;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// user functions
+// ----------------------------------------------------------------------------
+//
+
+// -----------------------------------------------
+// run
+// -----------------------------------------------
 //
 void  KeyMatrix::run()
 {
@@ -91,7 +136,14 @@ void  KeyMatrix::run()
       // key is down (hit)
       // --------------------------------------------------------------
       if(keyList[keyIdx].down)          // if key was down before
+      {
         keyList[keyIdx].downCount++;    // count key down time
+        if(keyList[keyIdx].downCount >= minDownCount)
+        {
+          if(keyEvtMask & KeyEvtDown)
+            setKeyEvent(&keyList[keyIdx], KeyEvtDown);
+        }
+      }
       else
       {                                     // if key was up before
         keyList[keyIdx].down = true;        // mark key down now
@@ -101,6 +153,9 @@ void  KeyMatrix::run()
             keyList[keyIdx].upCount;          // save up count value
           keyList[keyIdx].edgeFall = true;    // and mark falling edge
           keyList[keyIdx].edgeRise = false;   // and clear rising edge
+
+          if(keyEvtMask & KeyEvtEdgeFall)
+            setKeyEvent(&keyList[keyIdx], KeyEvtEdgeRise);  // EVENT
         }
         else                              // too short up times before
           keyList[keyIdx].upCount = 0;    // are seen as bouncing
@@ -114,6 +169,11 @@ void  KeyMatrix::run()
       {
         if(keyList[keyIdx].upCount < maxUpCount)  // respect limit
           keyList[keyIdx].upCount++;        // count key up time
+        if(keyList[keyIdx].upCount >= minUpCount)
+        {
+          if(keyEvtMask & KeyEvtUp)
+            setKeyEvent(&keyList[keyIdx], KeyEvtUp);
+        }
       }
       else
       {                                     // if key was down before
@@ -124,6 +184,9 @@ void  KeyMatrix::run()
             keyList[keyIdx].downCount;        // save down count value
           keyList[keyIdx].edgeFall = false;   // and clear falling edge
           keyList[keyIdx].edgeRise = true;    // and mark rising edge
+
+          if(keyEvtMask & KeyEvtEdgeRise)
+              setKeyEvent(&keyList[keyIdx], KeyEvtEdgeRise);  // EVENT
         }
         else                              // too short down times before
           keyList[keyIdx].downCount = 0;  // are seen as bouncing
@@ -133,14 +196,57 @@ void  KeyMatrix::run()
 
 #ifdef ArduinoFunc
 
-  digitalWrite(rowList[rowIdx], HIGH);
-  rowIdx++;
-  if(rowIdx >= rowCount)
+  pinMode(rowList[rowIdx], INPUT_PULLUP); // set current row inactive
+  rowIdx++;                               // switch to next row
+  if(rowIdx >= rowCount)                  // loop index around length
     rowIdx = 0;
-  digitalWrite(rowList[rowIdx], LOW);
+  pinMode(rowList[rowIdx], OUTPUT);       //
+  digitalWrite(rowList[rowIdx], LOW);     // set next row active
 
 #else
     realize direct port access for different microcontrollers
 #endif
 
+}  // run
+
+
+// -----------------------------------------------
+// check the key event list
+// -----------------------------------------------
+//
+
+KeyPtr KeyMatrix::checkKeyPressed()
+{
+  int nrIn = keWrIdx - keRdIdx;
+  if(nrIn < 0) nrIn += MaxSavedKeyEvents;
+  if(nrIn != 1) return (NULL);
+
+  KeyEvent ke = eventList[keRdIdx];       // get oldest key event
+  if(ke.event != KeyEvtDown) return (NULL);
+  return(ke.keyRef);
 }
+
+KeyPtr KeyMatrix::waitKeyClick()
+{
+  int nrIn = keWrIdx - keRdIdx;
+  if(nrIn < 0) nrIn += MaxSavedKeyEvents;
+  if(nrIn < 2) return (NULL);
+
+  KeyEvent ke1 = eventList[keRdIdx];       // get oldest key event
+  keRdIdx++;
+  if(keRdIdx >= MaxSavedKeyEvents)
+    keRdIdx = 0;
+
+  KeyEvent ke2 = eventList[keRdIdx];       // get next younger key event
+  keRdIdx++;
+  if(keRdIdx >= MaxSavedKeyEvents)
+    keRdIdx = 0;
+
+  if(ke1.keyRef != ke2.keyRef) return (NULL);
+
+  if(ke1.event != KeyEvtDown) return (NULL);
+  if(ke2.event != KeyEvtUp)   return (NULL);
+  return(ke1.keyRef);
+}
+
+

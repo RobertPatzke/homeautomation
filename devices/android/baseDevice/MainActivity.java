@@ -277,13 +277,13 @@ public class MainActivity extends AppCompatActivity
         simFloat01 = 1000f;
         simFloat02 = 0.001f;
 
-        simText01  = "Hello world";
+        simText01  = "Hello, here TestTwitter";
 
         // Initialising Twitter to send 3 Integer values, 2 Float values and
         // 1 text string with normal speed (every second a message)
         // and the object name "TestTwitter"
         //
-        devTwitter.init("BaseAndroid", 3, 2, 1, Twitter.Speed.normal);
+        devTwitter.init("TestTwitter", 3, 2, 1, Twitter.Speed.normal);
 
         // If there is an error with initialisation of twitter
         // we will go to error state with the next timer tick

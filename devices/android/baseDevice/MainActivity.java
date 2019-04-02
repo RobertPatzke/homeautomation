@@ -277,13 +277,13 @@ public class MainActivity extends AppCompatActivity
         simFloat01 = 1000f;
         simFloat02 = 0.001f;
 
-        simText01  = "Hello world";
+        simText01  = "Hello, here TestTwitter";
 
         // Initialising Twitter to send 3 Integer values, 2 Float values and
         // 1 text string with normal speed (every second a message)
         // and the object name "TestTwitter"
         //
-        devTwitter.init("BaseAndroid", 3, 2, 1, Twitter.Speed.normal);
+        devTwitter.init("TestTwitter", 3, 2, 1, Twitter.Speed.normal);
 
         // If there is an error with initialisation of twitter
         // we will go to error state with the next timer tick
@@ -385,17 +385,17 @@ public class MainActivity extends AppCompatActivity
       case InitFollower:              // Initialisation of Follower
       // ---------------------------------------------------------------------
 
-        devFollower = new Follower("Regal1");
-        // Following any baseDevice from the Arduino environment
+        devFollower = new Follower("MyFirstCommObj");
+        // Following BaseDevice Twitter Arduino
 
         intMan1 = devFollower.getIntegerValueInst(0);
         intMan2 = devFollower.getIntegerValueInst(1);
         intMan3 = devFollower.getIntegerValueInst(2);
 
-        //floatMan1 = devFollower.getFloatValueInst(0);
-        //floatMan2 = devFollower.getFloatValueInst(1);
+        floatMan1 = devFollower.getFloatValueInst(0);
+        floatMan2 = devFollower.getFloatValueInst(1);
 
-        //textMan1  = devFollower.getTextValueInst(0);
+        textMan1  = devFollower.getTextValueInst(0);
 
         // If there is an error with initialisation of follower
         // we will go to error state with the next timer tick
@@ -505,14 +505,13 @@ public class MainActivity extends AppCompatActivity
         devFollower.getValue(intMan1);
         devFollower.getValue(intMan2);
         devFollower.getValue(intMan3);
-        //devFollower.getValue(floatMan1);
-        //devFollower.getValue(floatMan2);
-        //devFollower.getValue(textMan1);
+        devFollower.getValue(floatMan1);
+        devFollower.getValue(floatMan2);
+        devFollower.getValue(textMan1);
 
-        //if(textMan1.newValue)
-          //info(textMan1.value);
-
-        if(intMan1.newPdu)
+        if(textMan1.newValue)
+          info(textMan1.value);
+        else if(intMan1.newValue)
         {
           String recVal = "Empfang Int1 = " + intMan1.value;
           info(recVal);

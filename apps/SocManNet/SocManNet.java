@@ -99,6 +99,7 @@ public class SocManNet
         if(checkedIfc.isLoopback()) continue;
         if(!checkedIfc.isUp()) continue;
         if(checkedIfc.getName().startsWith("p2p")) continue;
+        if(checkedIfc.getName().startsWith("dummy")) continue;
         localInterface = checkedIfc;
         break;
       }

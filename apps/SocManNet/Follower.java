@@ -571,6 +571,7 @@ public class Follower
       String pduStr = new String(receivedData, 0, nrIn-3);
       pduElements = pduStr.split(";");
       pduHeader = pduElements[0].split(":");
+      if(pduElements.length < SocManNet.pduHdObject) return;
       portFollowList.enterPDU(pduHeader[SocManNet.pduHdObject], pduHeader, pduElements);
     }
     

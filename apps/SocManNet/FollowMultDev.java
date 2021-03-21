@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
+import static android.os.SystemClock.elapsedRealtime;
 
 public class FollowMultDev
 {
@@ -112,47 +113,61 @@ public class FollowMultDev
   // Einzelbehandlung verschiedener Geräte mit demselben Twitter
   // -------------------------------------------------------------------------
   //
+
+  public class DeviceDHA
+  {
+    int idx;
+
+    long        recTime;
+    long        lastRecTime;
+    int         devLagCount;
+
+    public int      userInt;
+    public long     userLong;
+
+    public String   macAdrStr;
+    public String   ipAdrStr;
+
+    public  int     oldPduCount;
+    public  int     pduCount;
+    public  int     lostPduCount;
+
+    public  int     intCount;
+    public  int     floatCount;
+    public  int     textCount;
+
+    public int      applicationKey;
+    public int      deviceKey;
+    public int      deviceState;
+    public String   deviceName;
+
+    public int      posX;
+    public int      posY;
+    public int      posZ;
+    public int      baseState;
+    public int      baseMode;
+
+    int[]       intArray;
+    float[]     floatArray;
+    String[]    stringArray;
+  }
+
   public class DeviceList
   {
-    public class Device
-    {
-      int idx;
-
-      int         pduCount;
-      int         intCount;
-      int         floatCount;
-      int         textCount;
-
-      public int    applicationKey;
-      public int    deviceKey;
-      public int    deviceState;
-      public String deviceName;
-
-      public int    posX;
-      public int    posY;
-      public int    posZ;
-      public int    baseState;
-      public int    baseMode;
-
-      int[]       intArray;
-      float[]     floatArray;
-      String[]    stringArray;
-    }
-
-    List<Device>  itemList;
+    List<DeviceDHA>  itemList;
 
     public DeviceList()
     {
       itemList = new ArrayList<>();
     }
 
-    public Device getDevice(int devKey)
+    public DeviceDHA getDevice(int devKey)
     {
-      Device dev;
+      DeviceDHA dev;
 
       if(itemList.isEmpty())
       {
-        dev = new Device();
+        dev = new DeviceDHA();
         dev.deviceKey = devKey;
         itemList.add(dev);
         return (dev);
@@ -167,13 +182,13 @@ public class FollowMultDev
           return(dev);
       }
 
-      dev = new Device();
+      dev = new DeviceDHA();
       dev.deviceKey = devKey;
       itemList.add(dev);
       return(dev);
     }
 
-    public Device item(int idx)
+    public DeviceDHA item(int idx)
     {
       if(idx < 0 || idx >= itemList.size())
         return(null);
@@ -186,9 +201,46 @@ public class FollowMultDev
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Zugriffe auf die Geräteliste
+  // -------------------------------------------------------------------------
+
   public int deviceCount()
   {
     return deviceList.count();
+  }
+
+  public long  deviceInputLag(int devIdx)
+  {
+    return (elapsedRealtime() - deviceList.item(devIdx).recTime);
+  }
+
+  public int devInputLagCount(int devIdx, long toVal)
+  {
+    int devLagVal;
+    devLagVal = deviceList.item(devIdx).devLagCount;
+    long recVal = deviceList.item(devIdx).recTime;
+    long distVal = elapsedRealtime() - recVal;
+    if(distVal < toVal) return(devLagVal);
+    if(deviceList.item(devIdx).lastRecTime == recVal) return(devLagVal);
+    deviceList.item(devIdx).lastRecTime = recVal;
+    devLagVal++;
+    deviceList.item(devIdx).devLagCount = devLagVal;
+    return(devLagVal);
+  }
+
+  public DeviceDHA  getDevice(int devIdx)
+  {
+    return(deviceList.item(devIdx));
+  }
+
+  public void clearErrors()
+  {
+    for(int i = 0; i < deviceList.count(); i++)
+    {
+      DeviceDHA dev = deviceList.item(i);
+      dev.lostPduCount = 0;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -201,9 +253,24 @@ public class FollowMultDev
     int   intIdx, floatIdx, textIdx, elementIdx, deviceKey;
 
     deviceKey       = Integer.parseInt(elements[SocManNet.pduElDevKey]);
-    DeviceList.Device dev = deviceList.getDevice(deviceKey);
+    DeviceDHA dev   = deviceList.getDevice(deviceKey);
 
+    dev.recTime     = elapsedRealtime();
+    dev.macAdrStr   = new String(header[SocManNet.pduHdMac]);
+    dev.ipAdrStr    = new String(header[SocManNet.pduHdIp]);
+
+    dev.oldPduCount = dev.pduCount;
     dev.pduCount    = Integer.parseInt(header[SocManNet.pduHdCount]);
+
+    if(dev.oldPduCount != 0)
+    {
+      if (dev.pduCount < dev.oldPduCount)
+      {
+        dev.oldPduCount = 0;
+      }
+      dev.lostPduCount += dev.pduCount - dev.oldPduCount - 1;
+    }
+
     dev.intCount    = Integer.parseInt(elements[SocManNet.pduElTwNrInt]);
     dev.floatCount  = Integer.parseInt(elements[SocManNet.pduElTwNrFloat]);
     dev.textCount   = Integer.parseInt(elements[SocManNet.pduElTwNrText]);
@@ -298,7 +365,7 @@ public class FollowMultDev
   {
     public int                value;
     public int                oldValue = Integer.MAX_VALUE;
-    public DeviceList.Device  device;
+    public DeviceDHA  device;
 
     public IntegerValue(int inValIdx, int inDevIdx)
     {
@@ -314,7 +381,7 @@ public class FollowMultDev
     return(integerValue);
   }
 
-  public boolean getIntStatus(ReceivedValue intVal, DeviceList.Device dev)
+  public boolean getIntStatus(ReceivedValue intVal, DeviceDHA dev)
   {
     if(dev == null) return true;
 
@@ -365,13 +432,13 @@ public class FollowMultDev
 
   public boolean getIntStatus(ReceivedValue intVal, int devIdx)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
+    DeviceDHA dev = deviceList.item(devIdx);
 
     return getIntStatus(intVal, dev);
   }
 
 
-  public void getValue(IntegerValue intVal, DeviceList.Device dev)
+  public void getValue(IntegerValue intVal, DeviceDHA dev)
   {
     boolean fin;
 
@@ -389,7 +456,7 @@ public class FollowMultDev
 
   public void getValue(IntegerValue intVal, int devIdx)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
+    DeviceDHA dev = deviceList.item(devIdx);
     getValue(intVal, dev);
   }
 
@@ -439,7 +506,7 @@ public class FollowMultDev
       IntegerValue iVal = intValList.item(i);
       if(iVal == null) break;
 
-      DeviceList.Device dev = iVal.device;
+      DeviceDHA dev = iVal.device;
       getValue(iVal, dev);
       if(iVal.newPdu) intValList.anyNewPdu = true;
       if(iVal.newValue) intValList.anyNewVal = true;
@@ -452,9 +519,9 @@ public class FollowMultDev
   //
   public class FloatValue extends ReceivedValue
   {
-    public float              value;
-    public float              oldValue = Float.MAX_VALUE;
-    public DeviceList.Device  device;
+    public float      value;
+    public float      oldValue = Float.MAX_VALUE;
+    public DeviceDHA  device;
 
     public FloatValue(int inValIdx, int inDevIdx)
     {
@@ -470,7 +537,7 @@ public class FollowMultDev
     return(floatValue);
   }
 
-  public boolean getFloatStatus(ReceivedValue floatVal, DeviceList.Device dev)
+  public boolean getFloatStatus(ReceivedValue floatVal, DeviceDHA dev)
   {
     if(dev.floatArray == null || dev.floatArray.length < dev.floatCount)
     {
@@ -519,11 +586,11 @@ public class FollowMultDev
 
   public boolean getFloatStatus(ReceivedValue floatVal, int devIdx)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
+    DeviceDHA dev = deviceList.item(devIdx);
     return getFloatStatus(floatVal, dev);
   }
 
-  public void getValue(FloatValue floatVal, DeviceList.Device dev)
+  public void getValue(FloatValue floatVal, DeviceDHA dev)
   {
     boolean fin;
 
@@ -541,7 +608,7 @@ public class FollowMultDev
 
   public void getValue(FloatValue floatVal, int devIdx)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
+    DeviceDHA dev = deviceList.item(devIdx);
     getValue(floatVal, dev);
   }
 
@@ -592,7 +659,7 @@ public class FollowMultDev
       FloatValue fVal = fltValList.item(i);
       if(fVal == null) break;
 
-      DeviceList.Device dev = fVal.device;
+      DeviceDHA dev = fVal.device;
       getValue(fVal, dev);
       if(fVal.newPdu) fltValList.anyNewPdu = true;
       if(fVal.newValue) fltValList.anyNewVal = true;
@@ -607,7 +674,7 @@ public class FollowMultDev
   public class TextValue extends ReceivedValue
   {
     public String             value;
-    public DeviceList.Device  device;
+    public DeviceDHA  device;
 
     public TextValue(int inValIdx, int inDevIdx)
     {
@@ -623,7 +690,7 @@ public class FollowMultDev
     return (retVal);
   }
 
-  public boolean getTextStatus(ReceivedValue textVal, DeviceList.Device dev)
+  public boolean getTextStatus(ReceivedValue textVal, DeviceDHA dev)
   {
     if(dev.stringArray == null || dev.stringArray.length < dev.textCount)
     {
@@ -672,11 +739,11 @@ public class FollowMultDev
 
   public boolean getTextStatus(ReceivedValue textVal, int devIdx)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
+    DeviceDHA dev = deviceList.item(devIdx);
     return getTextStatus(textVal, dev);
   }
 
-  public void getValue(TextValue textVal, DeviceList.Device dev)
+  public void getValue(TextValue textVal, DeviceDHA dev)
   {
     boolean fin;
 
@@ -694,7 +761,7 @@ public class FollowMultDev
 
   public void getValue(TextValue textVal, int devIdx)
   {
-    DeviceList.Device dev = deviceList.item(devIdx);
+    DeviceDHA dev = deviceList.item(devIdx);
     getValue(textVal, dev);
   }
 
@@ -745,7 +812,7 @@ public class FollowMultDev
       TextValue tVal = txtValList.item(i);
       if(tVal == null) break;
 
-      DeviceList.Device dev = tVal.device;
+      DeviceDHA dev = tVal.device;
       getValue(tVal, dev);
       if(tVal.newPdu) txtValList.anyNewPdu = true;
       if(tVal.newValue) txtValList.anyNewVal = true;

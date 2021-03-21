@@ -277,6 +277,7 @@ void Follower::getValue(IntegerValue * intVal)
   if(fin) return;
 
   intVal->newPdu = true;
+  allNewPdu = true;
 
   //---------------------------------------------------------------------------
   // Wert lesen
@@ -289,6 +290,7 @@ void Follower::getValue(IntegerValue * intVal)
     intVal->value = value;
     intVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
     intVal->newValue = true;
+    allNewValue = true;
   }
 }
 
@@ -307,6 +309,7 @@ void Follower::getValue(FloatValue * floatVal)
   if(fin) return;
 
   floatVal->newPdu = true;
+  allNewPdu = true;
 
   //---------------------------------------------------------------------------
   // Wert lesen
@@ -320,6 +323,7 @@ void Follower::getValue(FloatValue * floatVal)
     floatVal->value = value;
     floatVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
     floatVal->newValue = true;
+    allNewValue = true;
   }
 }
 
@@ -338,6 +342,7 @@ void Follower::getValue(TextValue * textVal)
   if(fin) return;
 
   textVal->newPdu = true;
+  allNewPdu = true;
 
   //---------------------------------------------------------------------------
   // Wert lesen
@@ -349,8 +354,16 @@ void Follower::getValue(TextValue * textVal)
     strncpy(textVal->value, &textArray[idx][0], sizeof(textVal->value));
     textVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
     textVal->newValue = true;
+    allNewValue = true;
   }
 }
+
+void  Follower::resetAllValueFlags()
+{
+  allNewPdu = false;
+  allNewValue = false;
+}
+
 
 // ----------------------------------------------------------------------------
 // Funktionen zur Verarbeitung des eingegangenen Telegramms
@@ -1090,7 +1103,7 @@ int Follower::storeDataMsg2(char * msg, unsigned int msgLen)
     } // for
 
     // idxValueChar zeigt jetzt auf ;
-    idxValueStr = idxValueChar + 1;   // idxValueStr auf n�chstes Wertfeld
+    idxValueStr = idxValueChar + 1;   // idxValueStr auf nächstes Wertfeld
 
   } // if(locIntCount > 0)
 

@@ -72,7 +72,7 @@ Twitter::Twitter(SocManNet * inNetHnd, char *commObject)
 
 void Twitter::init(SocManNet *  inNetHnd,
                    const char * ptrDateTimePdu,
-                   char *       commObject,
+                   const char * commObject,
                    int          nrInt,
                    int          nrFloat,
                    int          nrText,

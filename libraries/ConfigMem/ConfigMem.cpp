@@ -1,8 +1,10 @@
 //-----------------------------------------------------------------------------
-// Thema:   Configuration Memory / Upload/Download and Management
-// Datei:   ConfigMem.cpp
-// Editor:  Robert Patzke
-// URI/URL: www.mfp-portal.de
+// Thema:       Configuration Memory
+// Datei:       ConfigMem.cpp
+// Editors:     Robert Patzke,
+// Start:       09. Februar 2018
+// Last change: 10. Februar 2021
+// URI/URL:     www.mfp-portal.de
 //-----------------------------------------------------------------------------
 // Lizenz:  CC-BY-SA  (siehe Wikipedia: Creative Commons)
 //
@@ -27,11 +29,14 @@ char cmds_char[33];
 // ---------------------------------------------------------------------------
 //
 
-ConfigMem::ConfigMem(){;}
+ConfigMem::ConfigMem(){;} // @suppress("Class members should be properly initialized")
 
 void ConfigMem::begin(int nrOfPages)
 {
-  int     memSize;
+  int           memSize;
+  unsigned long startMics;
+
+  startMics = micros();
 
   memSize = nrOfPages * PageSizeNVR;
   if(memSize > SizeNVR)
@@ -40,6 +45,8 @@ void ConfigMem::begin(int nrOfPages)
 #if defined(smnESP32) || defined(smnESP8266)
   EEPROM.begin(memSize);
 #endif
+
+  durBegin = micros() - startMics;
 }
 
 // -------------------------------------------------------------------------
@@ -62,6 +69,19 @@ unsigned short  ConfigMem::getWordProm(int adr)
   return(retv);
 }
 
+void  ConfigMem::setWordProm(int adr, unsigned short value, bool save)
+{
+  byte  val;
+
+  val = (byte) (value >> 8);
+  EEPROM.write(adr, val);
+  val = (byte) (value & 0x0FF);
+  EEPROM.write(adr+1, val);
+
+  if(save)
+    commitIncCounter();
+}
+
 unsigned long ConfigMem::getDwordProm(int adr)
 {
   unsigned long retv;
@@ -70,6 +90,24 @@ unsigned long ConfigMem::getDwordProm(int adr)
           ((unsigned long)EEPROM.read(adr+2) << 8) + EEPROM.read(adr+3);
   return(retv);
 }
+
+void  ConfigMem::setDwordProm(int adr, unsigned long value, bool save)
+{
+  byte  val;
+
+  val = (byte) (value >> 24);
+  EEPROM.write(adr, val);
+  val = (byte) (value >> 16);
+  EEPROM.write(adr+1, val);
+  val = (byte) (value >> 8);
+  EEPROM.write(adr+2, val);
+  val = (byte) (value & 0x0FF);
+  EEPROM.write(adr+3, val);
+
+  if(save)
+    commitIncCounter();
+}
+
 
 void ConfigMem::copyProg(int adr, const byte *src, int cnt)
 {
@@ -156,28 +194,28 @@ bool ConfigMem::promHasData()
   dpl("Debug ConfigMem.promHasData");
 #endif
 
-  promVal = EEPROM.read(0x90);
+  promVal = EEPROM.read(cdaCoVeDa);
 #ifdef ConfigMemDebug
   dp(promVal); dp(" ");
   dpl((char) promVal);
 #endif
   if(promVal != 'V') return(false);
 
-  promVal = EEPROM.read(0x9D);
+  promVal = EEPROM.read(cdaCoVeDa + 0x0D);
 #ifdef ConfigMemDebug
   dp(promVal); dp(" ");
   dpl((char) promVal);
 #endif
   if(promVal != 'M') return(false);
 
-  promVal = EEPROM.read(0x9E);
+  promVal = EEPROM.read(cdaCoVeDa + 0x0E);
 #ifdef ConfigMemDebug
   dp(promVal); dp(" ");
   dpl((char) promVal);
 #endif
   if(promVal != 'F') return(false);
 
-  promVal = EEPROM.read(0x9F);
+  promVal = EEPROM.read(cdaCoVeDa + 0x0F);
 #ifdef ConfigMemDebug
   dp(promVal); dp(" ");
   dpl((char) promVal);
@@ -188,13 +226,22 @@ bool ConfigMem::promHasData()
 
 void ConfigMem::promClear()
 {
+  unsigned long startMics;
+
+  startMics = micros();
+
   for(int i = 0; i < 256; i++)
     EEPROM.write(i, 0);
+
+  durClear = micros() - startMics;
 }
 
 void ConfigMem::promInit()
 {
-  int  promAdr = 0;
+  unsigned long startMics;
+  int           promAdr = 0;
+
+  startMics = micros();
 
 #ifdef ConfigMemDebug
   dpl(" Debug ConfigMem.promInit()");
@@ -296,7 +343,7 @@ void ConfigMem::promInit()
 #endif
   promAdr += 2;
 
-  copyProg(promAdr,confReserve2, 8);
+  copyProg(promAdr,confPerPins, 8);
 #ifdef ConfigMemDebug
   cmdPrintData(promAdr, (char *) "confReserve2     ");
 #endif
@@ -356,24 +403,18 @@ void ConfigMem::promInit()
 #endif
 
 #if defined(smnESP32) || defined(smnESP8266)
-  EEPROM.commit();
+  commitIncCounter();
 #endif
+
+  durInit = micros() - startMics;
 }
 
-
-int   ConfigMem::getApplicationKey()
-{
-  int retv;
-
-  retv = getWordProm(0x2E);
-  return(retv);
-}
 
 void  ConfigMem::getIpAddress(byte *bList)
 {
   for(int i = 0; i < 4; i++)
-    bList[i] = EEPROM.read(0x50 + i);
-  bList[4] = EEPROM.read(0x5A);
+    bList[i] = EEPROM.read(cdaCoIPA + i);   // IP-Address
+  bList[4] = EEPROM.read(cdaCoIPA + 0x0A);  // Gateway-Address (Device)
 
 #ifdef ConfigMemDebug
   sprintf(cmds,"ConfigMem.getIpAddress: %d.%d.%d.%d  %d",bList[0],bList[1],bList[2],bList[3],bList[4]);
@@ -384,13 +425,13 @@ void  ConfigMem::getIpAddress(byte *bList)
 void  ConfigMem::getMacAddress(byte *bList)
 {
   for(int i = 0; i < 6; i++)
-    bList[i] = EEPROM.read(0x54 + i);
+    bList[i] = EEPROM.read(cdaCoIPA + 0x04 + i);
 }
 
 
 bool ConfigMem::getDhcp()
 {
-  byte val = EEPROM.read(0x5B);
+  byte val = EEPROM.read(cdaCoIPA + 0x0B);
   if(val == 0)
     return (false);
   else
@@ -401,7 +442,7 @@ bool ConfigMem::getDhcp()
 void  ConfigMem::getPorts(byte *bList)
 {
   for(int i = 0; i < 8; i++)
-    bList[i] = EEPROM.read(0x60 + i);
+    bList[i] = EEPROM.read(cdaCoPoLi + i);
 }
 
 void ConfigMem::getNetName(byte *bList)
@@ -410,7 +451,7 @@ void ConfigMem::getNetName(byte *bList)
 
   for(int i = 0; i < 16; i++)
   {
-    val = EEPROM.read(0xA0 + i);
+    val = EEPROM.read(cdaCoNet + i);
     if(val != ' ')
       bList[i] = val;
     else
@@ -427,7 +468,7 @@ void ConfigMem::getNetPass(byte *bList)
 
   for(int i = 0; i < 16; i++)
   {
-    val = EEPROM.read(0xB0 + i);
+    val = EEPROM.read(cdaCoPass + i);
     if(val != ' ')
       bList[i] = val;
     else
@@ -445,7 +486,7 @@ void ConfigMem::getDevTwitterName(byte *bList)
 
   for(int i = 0; i < 16; i++)
   {
-    val = EEPROM.read(0xE0 + i);
+    val = EEPROM.read(cdaCoDevTw + i);
     if(val != ' ')
       bList[i] = val;
     else
@@ -463,7 +504,7 @@ void ConfigMem::getDeviceName(byte *bList)
 
   for(int i = 0; i < 16; i++)
   {
-    val = EEPROM.read(0x00 + i);
+    val = EEPROM.read(cdaCoDeNa + i);
     if(val != ' ')
       bList[i] = val;
     else
@@ -478,14 +519,105 @@ long   ConfigMem::getPos(int xyz)
 {
   long retv;
 
-  int adr = 0x20 + (xyz << 2);
+  int adr = cdaCoLoPo + (xyz << 2);
   retv = getDwordProm(adr);
   return(retv);
+}
+
+int   ConfigMem::getConfPin()
+{
+  byte  val;
+
+  val = EEPROM.read(cdaCoPoLi + 0x0A);
+  if(val == 0x0FF)
+    return(-1);
+  else
+    return(val);
+}
+
+bool ConfigMem::getAppKey(int * appKey)
+{
+  byte  val;
+  val = EEPROM.read(cdaCoIPA + 0x5C);
+  if(val == 0)
+    return(false);
+  *appKey = getWordProm(cdaCoLoPo + 0x0E);
+  return(true);
+}
+
+
+void  ConfigMem::incOperCounter(bool save)
+{
+  unsigned long val;
+
+  val = getDwordProm(cdaCoStats);
+  val++;
+  setDwordProm(cdaCoStats, val, save);
+}
+
+void  ConfigMem::setOperCounter(unsigned long value, bool save)
+{
+  setDwordProm(cdaCoStats, value, save);
+}
+
+unsigned long ConfigMem::getOperCounter()
+{
+  return(getDwordProm(cdaCoStats));
+}
+
+
+void  ConfigMem::incOnOffCounter(bool save)
+{
+  unsigned short val;
+
+  val = getWordProm(cdaCoStats+4);
+  val++;
+  setWordProm(cdaCoStats+4, val, save);
+}
+
+void  ConfigMem::setOnOffCounter(unsigned short value, bool save)
+{
+  setWordProm(cdaCoStats+4, value, save);
+}
+
+unsigned short  ConfigMem::getOnOffCounter()
+{
+  return(getWordProm(cdaCoStats+4));
+}
+
+void  ConfigMem::incOnOffValue(bool save)
+{
+  unsigned short val;
+
+  val = getWordProm(cdaCoStats+6);
+  val++;
+  setWordProm(cdaCoStats+6, val, save);
+}
+
+void  ConfigMem::setOnOffValue(unsigned short value, bool save)
+{
+  setDwordProm(cdaCoStats+6, value, save);
+}
+
+int  ConfigMem::getOnOffValue()
+{
+  return(getWordProm(cdaCoStats+6));
+}
+
+
+void  ConfigMem::commitIncCounter()
+{
+  unsigned long val;
+
+  val = getDwordProm(cdaCoStats+8);
+  val++;
+  setDwordProm(cdaCoStats+8, val, false);
+  EEPROM.commit();
 }
 
 
 
 int ConfigMem::startServer()
 {
-
+  return(0);
 }

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="60sp"
+        android:background="@color/steelblue"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:layout_width="48sp"
+            android:layout_height="48sp"
+            android:layout_marginLeft="6sp"
+            android:layout_marginTop="6sp"
+            android:src="@drawable/iconbasesmiley"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_marginLeft="6sp"
+            android:layout_marginRight="48sp"
+            android:layout_height="60sp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvSystem"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4sp"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:text="@string/devSystem" />
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-4sp"
+                android:gravity="center"
+                android:textColor="@color/white"
+                android:textSize="28sp"
+                android:text="@string/devTitle" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/llHome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/cfgInfoPageFG"
+        android:padding="5sp"
+        android:orientation="horizontal">
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="22sp"
+            android:onClick="onClickBtnHome"
+            android:text="@string/home"/>
+
+    </LinearLayout>
+
+
+    <!-- *****************************************************************
+                            Start-Seite
+    *******************************************************************-->
+    <include
+        android:id="@+id/incStart"
+        layout="@layout/page_start"
+        android:visibility="visible"/>
+
+    <!-- *****************************************************************
+                            Info-Seite
+    *******************************************************************-->
+    <include
+        android:id="@+id/incInfo"
+        layout="@layout/page_info"
+        android:visibility="gone"/>
+
+    <!-- *****************************************************************
+                            Pos-Seite
+    *******************************************************************-->
+    <include
+        android:id="@+id/incPos"
+        layout="@layout/page_pos"
+        android:visibility="gone"/>
+
+    <!-- *****************************************************************
+                            Wlan-Seite
+    *******************************************************************-->
+    <include
+        android:id="@+id/incWlan"
+        layout="@layout/page_wlan"
+        android:visibility="gone"/>
+
+    <!-- *****************************************************************
+                            Log-Seite
+    *******************************************************************-->
+    <include
+        android:id="@+id/incLog"
+        layout="@layout/page_log"
+        android:visibility="gone"/>
+
+</LinearLayout>

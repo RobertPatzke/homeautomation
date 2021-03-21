@@ -46,7 +46,7 @@
     #define smnSloeber
     #define smnESP32_DEV
     #define smnESP32
-
+    #define smnSerial Serial
   #endif
 
   #ifdef smnSLOEDUE
@@ -58,7 +58,7 @@
     #define smnArduinoDUE
     #define smnArduinoShieldEth
     #define smnSAM3X
-
+    #define smnSerial Serial
   #endif
 
 #else
@@ -94,6 +94,7 @@
 //#define smnArduinoDUE
 //#define smnArduinoShieldEth
 //#define smnArduinoShieldWiFi
+#define smnSerial Serial
 
 // Prozessoren, Microcontroller, Betriebssysteme, etc.
 // ---------------------------------------------------------------------------

@@ -94,7 +94,7 @@ class Twitter
 
     void init(SocManNet *   inNetHnd,
               const char *  ptrDateTimePdu,
-              char *        commObject,
+              const char *  commObject,
               int           nrInt,
               int           nrFloat,
               int           nrString,

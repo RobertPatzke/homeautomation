@@ -2,7 +2,7 @@
 // File:        StateMachine.cpp
 // Editors:     Robert Patzke,
 // Start:       07. February 2018
-// Last change: 07. February 2018
+// Last change: 22. February 2021
 // URI/URL:     www.mfp-portal.de, homeautomation.x-api.de
 // Licence:     Creative Commons CC-BY-SA
 // ---------------------------------------------------------------------------
@@ -15,11 +15,26 @@
 // ---------------------------------------------------------------------------
 //
 
-int  StateMachine_InstCounter;
-// This should be a static variable inside the class, but the C/C++ compiler
-// of ESP8266 (did not test any other) does not handle it correctly.
+int  StateMachine::StateMachine_InstCounter;
+
+StateMachine::StateMachine(){;} // @suppress("Class members should be properly initialized")
 
 StateMachine::StateMachine(StatePtr firstState, StatePtr anyState, int cycle)
+{
+  begin(firstState, anyState, cycle);
+}
+
+StateMachine::StateMachine(StatePtr firstState, StatePtr anyState, int cycle, MicsecFuPtr micsecFu)
+{
+  begin(firstState, anyState, cycle, micsecFu);
+}
+
+void StateMachine::begin(StatePtr firstState, StatePtr anyState, int cycle)
+{
+  begin(firstState, anyState, cycle, NULL);
+}
+
+void StateMachine::begin(StatePtr firstState, StatePtr anyState, int cycle, MicsecFuPtr micsecFu)
 {
   nextState     = firstState;
   doAlways      = anyState;
@@ -28,9 +43,11 @@ StateMachine::StateMachine(StatePtr firstState, StatePtr anyState, int cycle)
   delay         = 0;
   delaySet      = 0;
   repeatDelay   = false;
+  userStatus    = 0;
 
   StateMachine_InstCounter++;
   instNumber    = StateMachine_InstCounter;
+  micsFuPtr     = micsecFu;
 }
 
 // ---------------------------------------------------------------------------
@@ -39,6 +56,8 @@ StateMachine::StateMachine(StatePtr firstState, StatePtr anyState, int cycle)
 //
 void StateMachine::run()
 {
+  unsigned long startMics = 0, diffMics;
+
   runCounter++;
 
   if(timeOutCounter > 0)
@@ -83,7 +102,48 @@ void StateMachine::run()
   }
 
   if(nextState != NULL)
+  {
+    if(micsFuPtr != NULL)
+      startMics = micsFuPtr();
+
     nextState();
+
+    if(micsFuPtr != NULL)
+    {
+      diffMics = micsFuPtr() - startMics;
+      curStateRuntime = diffMics;
+
+      if(diffMics > maxStateRuntime[0])
+      {
+        maxStateRuntime[0]  = diffMics;
+        maxRuntimeNumber[0] = curStateNumber;
+      }
+      else if(diffMics > maxStateRuntime[1])
+      {
+        if(curStateNumber != maxRuntimeNumber[0])
+        {
+          maxStateRuntime[1]  = diffMics;
+          maxRuntimeNumber[1] = curStateNumber;
+        }
+      }
+      else if(diffMics > maxStateRuntime[2])
+      {
+        if(curStateNumber != maxRuntimeNumber[1])
+        {
+          maxStateRuntime[2]  = diffMics;
+          maxRuntimeNumber[2] = curStateNumber;
+        }
+      }
+      else if(diffMics > maxStateRuntime[3])
+      {
+        if(curStateNumber != maxRuntimeNumber[2])
+        {
+          maxStateRuntime[3]  = diffMics;
+          maxRuntimeNumber[3] = curStateNumber;
+        }
+      }
+    }
+  }
   else
     noStateCounter++;
 
@@ -198,6 +258,17 @@ void StateMachine::enterVia(StatePtr next, StatePtr then)
   futureState   = then;
 }
 
+// calling state
+//
+void StateMachine::call(StatePtr next)
+{
+  if(stayHere()) return;
+
+  pastState     = nextState;
+  futureState   = nextState;
+  nextState     = next;
+}
+
 // setting state and state after with delay
 //
 void StateMachine::enterVia(StatePtr next, StatePtr after, int delayTime)
@@ -211,6 +282,21 @@ void StateMachine::enterVia(StatePtr next, StatePtr after, int delayTime)
   nextState     = next;
   futureState   = after;
 }
+
+// calling state
+//
+void StateMachine::call(StatePtr next, int delayTime)
+{
+  if(stayHere()) return;
+
+  delay = (delayTime * frequency) / 1000;
+  repeatDelay = false;
+
+  pastState     = nextState;
+  futureState   = nextState;
+  nextState     = next;
+}
+
 
 // setting state to state list (program)
 //
@@ -308,6 +394,37 @@ bool StateMachine::toggle()
   return(markToggle);
 }
 
+// Doing only once
+//
+bool StateMachine::oneShot()
+{
+  if(!markOneShot) return(false);
+
+  markOneShot = false;
+  return (true);
+}
+
+void StateMachine::setOneShot()
+{
+  markOneShot = true;
+}
+
+
+// Setable number of returning TRUE
+//
+void  StateMachine::setCondCounter(unsigned int condVal)
+{
+  condCounter = condVal;
+}
+
+bool  StateMachine::condOpen()
+{
+  if(condCounter == 0)
+    return(false);
+  condCounter--;
+  return(true);
+}
+
 // set the time-out value (milliseconds)
 //
 void StateMachine::setTimeOut(int toValue)
@@ -333,6 +450,13 @@ void StateMachine::startTimeMeasure()
 }
 
 int StateMachine::getTimeMeasure(bool stop)
+{
+  if(stop)
+    timeMeasureOn = false;
+  return(cycleTime * timeMeasureCounter);
+}
+
+unsigned long StateMachine::getExtTimeMeasure(bool stop)
 {
   if(stop)
     timeMeasureOn = false;

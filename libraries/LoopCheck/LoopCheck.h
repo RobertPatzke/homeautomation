@@ -126,6 +126,8 @@ class LoopCheck
     bool            firstRun;
     unsigned long   startCount;
     unsigned long   runCounter;
+    unsigned long   delayCounter;
+    unsigned long   ticks;
     unsigned int    repCounter;
   } TimerTask;
 
@@ -205,6 +207,8 @@ private:
 
   unsigned long measureTimeSet;         // Mikrosekunden-Offset Zeitmessung
 
+  unsigned long measureRuntime;         // Laufzeit seit Start in Sekunden
+
 private:
   // -------------------------------------------------------------------------
   // Lokale Funktionen
@@ -236,6 +240,7 @@ public:
                     // werden.
 
   bool timerMicro(int taskIdx, unsigned long repeatTime, unsigned int repetitions);
+  bool timerMicro(int taskIdx, unsigned long repeatTime, unsigned int repetitions, unsigned long delay);
   // Diese Funktion muss als Bedingung (if) aufgerufen werden, um den
   // nachfolgenden Block {} mit der Wiederholzeit <repeatTime> auszuführen
   // Für jede Taskschleife muss ein anderer Index <taskIdx> aus dem Bereich
@@ -244,6 +249,7 @@ public:
   // Der Wert 0 gibt an, dass der Task für immer läuft
 
   bool timerMilli(int taskIdx, unsigned long repeatTime, unsigned int repetitions);
+  bool timerMilli(int taskIdx, unsigned long repeatTime, unsigned int repetitions, unsigned long delay);
 
   bool once(int taskIdx, unsigned int nrOfLoops);
   // Diese Funktion liefert nur einmal den Wert <true>
@@ -254,6 +260,12 @@ public:
 
   unsigned long timerCycle(int taskIdx);
   // Rückgabe des aktuellen Timerablaufes (startet ab 0).
+
+  bool timerCycleMod(int taskIdx, int modulo);
+  // Liefert alle <modulo> Timerabläufe den Wert <true>
+
+  unsigned long tick(int taskIdx);
+  // Rückgabe des aktuellen Zählwertes in Mikrosekunden
 
   unsigned long operationTime(OpHourMeter *opHourMeter);
   // Die Zeit ab Start der CPU
@@ -281,6 +293,9 @@ public:
 
   unsigned long getTimeMeasure();
   // Zeitmesswert holen
+
+  unsigned long getRuntime();
+  // Laufzeit in Sekunden
 
 
   // -------------------------------------------------------------------------

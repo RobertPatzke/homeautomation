@@ -31,6 +31,7 @@ class StateMachine
   // -------------------------------------------------------------------------
   //
   typedef void (*StatePtr)(void);
+  typedef unsigned long (*MicsecFuPtr)(void);
 
 private:
   // -------------------------------------------------------------------------
@@ -44,20 +45,25 @@ private:
   bool      useVarState;        // breaking the fixed sequence of states by
                                 // using a variable state (in futureState)
 
-  bool      useProgList;            // control progList usage
-  bool      loopProgList;           // looping proglist
-  StatePtr  progList[NrOfSteps];    // dynamically created state run list
-  int       progIndex;              // Program counter (index to next state)
-  int       progEndIdx;             // Index to next empty progList entry
-  StatePtr  finProgState;           // State after using state list
+  bool        useProgList;            // control progList usage
+  bool        loopProgList;           // looping proglist
+  StatePtr    progList[NrOfSteps];    // dynamically created state run list
+  int         progIndex;              // Program counter (index to next state)
+  int         progEndIdx;             // Index to next empty progList entry
+  StatePtr    finProgState;           // State after using state list
+  MicsecFuPtr micsFuPtr;              // Pointer to micsec function
 
   bool      firstEnterToggle;       // Is set to true when state changes
   int       timeOutCounter;         // automatic decremented counter
-  int       timeMeasureCounter;     // triggered automatic incremented counter
-  bool      timeMeasureOn;          // control of the counter
+
+  bool            timeMeasureOn;          // control of the measurement counter
+  unsigned long   timeMeasureCounter;     // triggered automatic incremented counter
 
   int       callCycleCnt;           // For cycles inside a state
   bool      markToggle;             // For bit complements
+  bool      markOneShot;            // for doing only one time
+
+  unsigned int  condCounter;        // Counter for questionable conditions
 
   // -------------------------------------------------------------------------
   // local functions/methods
@@ -80,9 +86,16 @@ public:
 
   // statistic information
   //
-  int   noStateCounter;
-  int   instNumber;
-  int   runCounter;
+  static int   StateMachine_InstCounter;
+
+  int   noStateCounter;         // Counter for empty running of state machine
+  int   instNumber;             // Number of this instance
+  int   runCounter;             // Counter for running states
+  int   curStateNumber;         // Number of current state
+
+  unsigned long   curStateRuntime;      // run time of latest state
+  unsigned long   maxStateRuntime[4];   // Maximum run time of a state
+  unsigned long   maxRuntimeNumber[4];  // Number of the state of maximum runtime
 
   // error and debug support
   //
@@ -92,7 +105,11 @@ public:
   // constructors and initialisations
   // -------------------------------------------------------------------------
   //
+  StateMachine();
   StateMachine(StatePtr firstState, StatePtr anyState, int cycle);
+  void begin(StatePtr firstState, StatePtr anyState, int cycle);
+  StateMachine(StatePtr firstState, StatePtr anyState, int cycle, MicsecFuPtr micsecFu);
+  void begin(StatePtr firstState, StatePtr anyState, int cycle, MicsecFuPtr micsecFu);
 
   // -------------------------------------------------------------------------
   // user functions
@@ -109,6 +126,9 @@ public:
   void      enterRep(StatePtr state, int count);    // repeat next state
   void      enterRep(StatePtr state, int count, int delayTime);
 
+  void      call(StatePtr state);                   // set next state and return
+  void      call(StatePtr state, int delayTime);    // ... delayed
+
   void      enterVia(StatePtr next, StatePtr future);       // next and then
   void      enterVia(StatePtr next, StatePtr future, int delayTime);
 
@@ -122,11 +142,18 @@ public:
   bool      cycle(int cnt);     // true only, if called <cnt> times
   bool      cycleSec();         // true only, if a second passed
   bool      toggle();           // alternating return true and false
+  bool      oneShot();          // only one time true for a call
+  void      setOneShot();       // preparing oneShot to be true
 
   void      setTimeOut(int toValue);        // Set time-out counter
   bool      timeOut();                      // Check time-out counter
   void      startTimeMeasure();             // Start time measurement
   int       getTimeMeasure(bool stop);      // Time in milliseconds
+
+  unsigned long getExtTimeMeasure(bool stop);     // Time in milliseconds
+
+  void      setCondCounter(unsigned int cntVal);  // Set condition counter
+  bool      condOpen();                           // Ask for open conditions
 
   // -------------------------------------------------------------------------
   // debug functions

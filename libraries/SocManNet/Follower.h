@@ -136,13 +136,15 @@ class Follower
     void getValue(FloatValue * floatVal);
     void getValue(TextValue * textVal);
 
+    void  resetAllValueFlags();
+
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
   // --------------------------------------------------------------------------
     unsigned int getStatistic(char * strPtr);
 
   // -------------------------------------------------------------------------
-  // Globale Variablen f�r die Anwendung
+  // Globale Variablen für die Anwendung
   // -------------------------------------------------------------------------
   //
   public:
@@ -175,6 +177,9 @@ class Follower
     int         intArray[MAXNRINT];
     double      floatArray[MAXNRFLOAT];
     char        textArray[MAXNRTEXT][TEXTVAL_LEN_MAX];
+
+    bool        allNewPdu;
+    bool        allNewValue;
 
   // -------------------------------------------------------------------------
   // Verarbeitung des eingegangenen Telegramms

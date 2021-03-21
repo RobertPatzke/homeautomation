@@ -51,7 +51,9 @@
     sec     = 0;
     msec    = 0;
 
-    calcAvgCounter          = 0;
+    measureRuntime = 0;
+
+    calcAvgCounter = 0;
   }
 
   void LoopCheck::initTasks()
@@ -130,6 +132,7 @@
       {
         msec -= 1000;
         sec++;
+        measureRuntime++;
 
         if(sec == 60)
         {
@@ -343,23 +346,35 @@
   }
 
   bool LoopCheck::timerMicro
-    (int taskIdx, unsigned long repeatTime, unsigned int repetitions)
+    (int taskIdx, unsigned long repeatTime, unsigned int repetitions, unsigned long delay)
   {
-    TimerTask *ctrlPtr;
+    TimerTask     *ctrlPtr;
+    unsigned long calcMics;
 
+    // Test the limit of enabled timers
+    //
     if(taskIdx < 0) return(false);
     if(taskIdx >= NrOfTimerTasks) return(false);
 
+    // Get the reference to timer data for the selected timer
+    //
     ctrlPtr = &timerTaskList[taskIdx];
 
+    // If the timer task has finished, we are ready here
+    //
     if(ctrlPtr->finished == true) return(false);
 
+    // If it is the first run (initialisation 1)
+    //
     if(ctrlPtr->firstRun == true)
     {
       ctrlPtr->firstRun     = false;
       ctrlPtr->repCounter   = repetitions;
+      ctrlPtr->delayCounter = delay;
     }
 
+    // If counting is not started yet (initialisation 2)
+    //
     if(ctrlPtr->counterStarted == false)
     {
       ctrlPtr->startCount = loopStartMicros;
@@ -367,15 +382,45 @@
       return(false);
     }
 
+    // If another count task has happened in this loop, we have to wait
+    //
     if(taskHappened == true) return(false);
 
-    if((loopStartMicros - ctrlPtr->startCount) < repeatTime)
+    // Calculate the number of microseconds since the start of the counter
+    //
+    calcMics = loopStartMicros - ctrlPtr->startCount;
+    ctrlPtr->ticks = calcMics;
+
+    // If there is a delay, wait the delay time
+    //
+    if(ctrlPtr->delayCounter > 0)
+    {
+      if(calcMics < ctrlPtr->delayCounter)
+        return(false);
+      else
+      {
+        ctrlPtr->delayCounter = 0;                // delay finished
+        ctrlPtr->startCount = loopStartMicros;    // reset counter
+      }
       return(false);
+    }
 
-    taskHappened            = true;
-    ctrlPtr->counterStarted = false;
-    ctrlPtr->runCounter++;
+    // There is no delay (or delay is finished)
+    // If repeatTime is not passed, leave with FALSE
+    //
+    if(calcMics < repeatTime)
+    {
+      return(false);
+    }
 
+    // One counter period finished
+    //
+    taskHappened            = true;               // disable other timers in this loop
+    ctrlPtr->counterStarted = false;              // prepare resetting the counter
+    ctrlPtr->runCounter++;                        // count the timer events
+
+    // If the number of periods is limited finish in time
+    //
     if(ctrlPtr->repCounter > 0)
     {
       ctrlPtr->repCounter--;
@@ -386,10 +431,23 @@
     return(true);
   }
 
+  bool LoopCheck::timerMicro
+    (int taskIdx, unsigned long repeatTime, unsigned int repetitions)
+  {
+    return(timerMicro(taskIdx, repeatTime, repetitions, 0));
+  }
+
+
+  bool LoopCheck::timerMilli
+    (int taskIdx, unsigned long repeatTime, unsigned int repetitions, unsigned long delay)
+  {
+    return(timerMicro(taskIdx, repeatTime * 1000, repetitions, delay * 1000));
+  }
+
   bool LoopCheck::timerMilli
     (int taskIdx, unsigned long repeatTime, unsigned int repetitions)
   {
-    return(timerMicro(taskIdx,repeatTime * 1000,repetitions));
+    return(timerMicro(taskIdx,repeatTime * 1000,repetitions,0));
   }
 
   bool LoopCheck::once(int taskIdx, unsigned int nrOfLoops)
@@ -434,6 +492,26 @@
     if(taskIdx < 0) return(0);
     if(taskIdx >= NrOfTimerTasks) return(0);
     return(timerTaskList[taskIdx].runCounter);
+  }
+
+  bool LoopCheck::timerCycleMod(int taskIdx, int modulo)
+  {
+    div_t divResult;
+
+    if(taskIdx < 0) return(0);
+    if(taskIdx >= NrOfTimerTasks) return(0);
+    divResult   = DIV(timerTaskList[taskIdx].runCounter,modulo);
+    if(divResult.rem == 0)
+      return(true);
+    else
+      return(false);
+  }
+
+  unsigned long LoopCheck::tick(int taskIdx)
+  {
+    if(taskIdx < 0) return(0);
+    if(taskIdx >= NrOfTimerTasks) return(0);
+    return(timerTaskList[taskIdx].ticks);
   }
 
   unsigned long LoopCheck::operationTime(OpHourMeter *opHourMeter)
@@ -658,6 +736,11 @@
   unsigned long LoopCheck::getTimeMeasure()
   {
     return(SYSMICSEC - measureTimeSet);
+  }
+
+  unsigned long LoopCheck::getRuntime()
+  {
+    return(measureRuntime);
   }
 
   // -------------------------------------------------------------------------

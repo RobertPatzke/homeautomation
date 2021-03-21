@@ -70,8 +70,8 @@ public class SocManNet
   static byte[]            macBytes;
   static byte[]            ipBytes;
   static byte[]            bcBytes;
-  static String            localIP;
-  static String            localMAC;
+  public static String     localIP;
+  public static String     localMAC;
   static String            hostName;
 
   static boolean           initDone = false;
@@ -99,7 +99,9 @@ public class SocManNet
         if(checkedIfc.isLoopback()) continue;
         if(!checkedIfc.isUp()) continue;
         if(checkedIfc.getName().startsWith("p2p")) continue;
-        if(checkedIfc.getName().startsWith("dummy")) continue;
+        if(checkedIfc.getName().startsWith("dum")) continue;
+        if(checkedIfc.getName().startsWith("r_r")) continue;
+        if(checkedIfc.getName().startsWith("rmn")) continue;
         localInterface = checkedIfc;
         break;
       }

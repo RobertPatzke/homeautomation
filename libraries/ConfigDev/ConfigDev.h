@@ -43,7 +43,6 @@ private:
 
   static  ConfigMem       *cfmPtr;
   static  SocManNet       *smnPtr;
-  static  Twitter         *twPtr;
   static  Follower        *foPtr;
   static  StateMachine    *stmPtr;
   static  LoopCheck       *lchkPtr;
@@ -114,6 +113,7 @@ public:
   // user variables
   // -------------------------------------------------------------------------
   //
+  static  Twitter         *twPtr;
 
 };
 

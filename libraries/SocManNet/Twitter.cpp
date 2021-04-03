@@ -756,8 +756,11 @@ int Twitter::createPDU()
         {
           srcPtr = textValArray[loopIdx];
 
+          if(srcPtr != NULL)
+          {
           while(*srcPtr != '\0')
             pduMsg[pduIdx++] = *srcPtr++;
+          }
         }
 
         pduMsg[pduIdx++] = ';';
@@ -1007,4 +1010,95 @@ void  Twitter::getName(char *dest)
   strncpy(dest, objectName, TWITTER_OBJ_NAME_LEN);}
 
 
+// --------------------------------------------------------------------------
+// Hilfsklassen
+// --------------------------------------------------------------------------
+//
+Twitter::TwInt::TwInt(int idx)
+{
+  index = idx;
+  value = 1;
+  twitPtr = NULL;
+}
+
+void Twitter::TwInt::update()
+{
+  if(twitPtr != NULL)
+    twitPtr->setIntValue(index, value);
+}
+
+void   Twitter::TwInt::operator=(int inVal)
+{
+  value = inVal;
+  update();
+}
+
+Twitter::TwFloat::TwFloat(int idx)
+{
+  index = idx;
+  value = 0;
+  twitPtr = NULL;
+}
+
+void    Twitter::TwFloat::update()
+{
+  if(twitPtr != NULL)
+    twitPtr->setFloatValue(index, value);
+}
+
+void   Twitter::TwFloat::operator=(double inVal)
+{
+  value = inVal;
+  update();
+}
+
+Twitter::TwText::TwText(int idx)
+{
+  index = idx;
+  value[0] = 0;
+  twitPtr = NULL;
+}
+
+void    Twitter::TwText::update()
+{
+  if(twitPtr != NULL)
+    twitPtr->setTextValue(index, value);
+}
+
+void   Twitter::TwText::operator=(const char* inVal)
+{
+  for(int i = 0; i < 32; i++)
+  {
+    value[i] = inVal[i];
+    if(value[i] == 0)
+      break;
+  }
+  update();
+}
+
+void   Twitter::TwText::set(const char* inVal)
+{
+  for(int i = 0; i < 32; i++)
+  {
+    value[i] = inVal[i];
+    if(value[i] == 0)
+      break;
+  }
+  update();
+}
+
+void  Twitter::initVar(TwInt *intVar)
+{
+  intVar->twitPtr = this;
+}
+
+void  Twitter::initVar(TwFloat *floatVar)
+{
+  floatVar->twitPtr = this;
+}
+
+void  Twitter::initVar(TwText *textVar)
+{
+  textVar->twitPtr = this;
+}
 

@@ -41,6 +41,22 @@ TextValue       ConfigDev::foStr1, ConfigDev::foStr2, ConfigDev::foStr3, ConfigD
 bool            ConfigDev::useAppKey;    // Separation in one Network
 int             ConfigDev::appKey;       // App identification
 
+Twitter::TwInt    twInt01(0);
+Twitter::TwInt    twInt02(1);
+Twitter::TwInt    twInt03(2);
+Twitter::TwInt    twInt04(3);
+
+Twitter::TwFloat  twFloat01(0);
+Twitter::TwFloat  twFloat02(1);
+Twitter::TwFloat  twFloat03(2);
+Twitter::TwFloat  twFloat04(3);
+
+Twitter::TwText   twStr01(0);
+Twitter::TwText   twStr02(1);
+Twitter::TwText   twStr03(2);
+Twitter::TwText   twStr04(3);
+
+
 void ConfigDev::begin(ConfigMem *cfm, SocManNet *smn, Twitter *twi,
                       Follower *fol, StateMachine *sm, LoopCheck *lchk)
 {
@@ -50,13 +66,28 @@ void ConfigDev::begin(ConfigMem *cfm, SocManNet *smn, Twitter *twi,
   foPtr   = fol;
   stmPtr  = sm;
   lchkPtr = lchk;
+
+  twPtr->initVar(&twInt01);
+  twPtr->initVar(&twInt02);
+  twPtr->initVar(&twInt03);
+  twPtr->initVar(&twInt03);
+
+  twPtr->initVar(&twFloat01);
+  twPtr->initVar(&twFloat02);
+  twPtr->initVar(&twFloat03);
+  twPtr->initVar(&twFloat04);
+
+  twPtr->initVar(&twStr01);
+  twPtr->initVar(&twStr02);
+  twPtr->initVar(&twStr03);
+  twPtr->initVar(&twStr04);
 }
 
 // -------------------------------------------------------------------------
 // local functions
 // -------------------------------------------------------------------------
 //
-
+/*
 // refresh twitter values
 //
 void ConfigDev::updateTwitter()
@@ -96,6 +127,35 @@ void ConfigDev::clearTwitter()
   strcpy(twStr3,"C");
   strcpy(twStr4,"D");
  }
+*/
+
+// refresh twitter values
+//
+void ConfigDev::updateTwitter()
+{
+  ;
+}
+
+// set empty/default values for twitter
+//
+void ConfigDev::clearTwitter()
+{
+  twInt01 = 1;
+  twInt02 = 2;
+  twInt03 = 3;
+  twInt04 = 4;
+
+  twFloat01 = 0.1;
+  twFloat02 = 0.2;
+  twFloat03 = 0.3;
+  twFloat04 = 0.4;
+
+  twStr01 = "A";
+  twStr02 = "B";
+  twStr03 = "C";
+  twStr04 = "D";
+ }
+
 
 // set parameters for follower value structures
 //

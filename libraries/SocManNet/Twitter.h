@@ -84,6 +84,49 @@ BurstMode;
 
 class Twitter
 {
+
+  // --------------------------------------------------------------------------
+  // Hilfsklassen
+  // --------------------------------------------------------------------------
+  //
+public:
+  struct  TwInt
+  {
+    int       index;
+    int       value;
+    Twitter   *twitPtr;
+
+    TwInt(int idx);
+    void  set(int);
+    void  update();
+    void  operator=(int);
+  };
+
+  struct  TwFloat
+  {
+    int       index;
+    double    value;
+    Twitter   *twitPtr;
+
+    TwFloat(int idx);
+    void  set(double);
+    void  update();
+    void  operator=(double);
+  };
+
+  struct  TwText
+  {
+    int       index;
+    char      value[32];
+    Twitter   *twitPtr;
+
+    TwText(int idx);
+    void  set(const char *);
+    void  update();
+    void  operator=(const char *);
+  };
+
+
   // --------------------------------------------------------------------------
   // Methoden (Funktionen) für den Anwender
   // --------------------------------------------------------------------------
@@ -137,6 +180,10 @@ class Twitter
     //
     bool      pduSent(unsigned int *refCounter);
     void      getName(char *dest);
+
+    void      initVar(TwInt   *intVar);
+    void      initVar(TwFloat *floatVar);
+    void      initVar(TwText  *textVar);
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
@@ -258,6 +305,7 @@ class Twitter
   //
   private:
     void writeDebug(char * str);
+
 };
 
 #endif

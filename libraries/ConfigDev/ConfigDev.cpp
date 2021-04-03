@@ -442,6 +442,7 @@ void ConfigDev::smInitTwitter()
   updateTwitter();
 
   // Start twitter
+  twPtr->setBurst(burst3,0);
   twPtr->enabled = true;
 
   NEXT(smInitFollower)

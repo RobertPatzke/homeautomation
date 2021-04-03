@@ -185,8 +185,9 @@ void Twitter::run(int SecFactor)
 
 void Twitter::run(int secFactor, int delay)
 {
-  int  fin;
-  size_t msgLen;
+  int     fin;
+  int     retv;
+  size_t  msgLen;
   unsigned int sendLen;
 
   //-------------------------------------------------------------------------
@@ -211,6 +212,7 @@ void Twitter::run(int secFactor, int delay)
   //-------------------------------------------------------------------------
   // Je nach Zustand verzweigen
   //-------------------------------------------------------------------------
+  /*
   switch(runStatus)
   {
     // ------------------------------------------------------------------ //
@@ -291,6 +293,142 @@ void Twitter::run(int secFactor, int delay)
       runStatus = rsWait;
       break;
   }
+  */
+
+  switch(runStatus)
+   {
+     // ------------------------------------------------------------------ //
+     case rsInit:
+     // ------------------------------------------------------------------ //
+       speedCounter = 1;
+       if(speed == highSpeed)
+         speedLimit = secFactor/10;
+       else if(speed == lowSpeed)
+         speedLimit = secFactor * 10;
+       else
+         speedLimit = secFactor;
+
+       if(bMode != noBurst)
+       {
+         if(bDelay == 0)
+         {
+           burstCounter  = 1;
+           burstLimit    = ((speedLimit - 18) / bMode) - 1;
+         }
+         else
+         {
+           burstCounter = 0;
+           burstLimit = bDelay;
+         }
+         burstLoop     = bMode;
+       }
+
+       runStatus = rsCreate;
+       break;
+
+     // ------------------------------------------------------------------ //
+     case rsCreate:
+     // ------------------------------------------------------------------ //
+       // Telegramm aufbauen
+       fin = createPDU();
+       speedCounter++;
+
+       if(fin == 1)
+       {
+         runStatus = rsSend;
+       }
+        break;
+
+     // ------------------------------------------------------------------ //
+     case rsSend:
+     // ------------------------------------------------------------------ //
+       retv = 1;
+
+       msgLen = strlen(pduMsg);
+       if(msgLen > 0)
+       {
+         sendLen = msgLen + 1; // String-Terminator beruecksichtigen
+
+         retv = netHnd->send((uint8_t *)pduMsg, sendLen);
+
+         if(retv >= 0)
+           cntSendMsg++;
+       }
+
+       speedCounter++;
+       if(bDelay == 0)
+         burstCounter++;
+
+       if(speedCounter > speedLimit)
+       {
+         overflow = true;
+         markOverflow = true;
+         overflowCounter++;
+       }
+
+       if(retv < 0)
+         break;
+
+       if(bMode == noBurst)
+         runStatus = rsWait;
+       else
+         runStatus = rsBurst;
+       break;
+
+     // ------------------------------------------------------------------ //
+     case rsBurst:
+     // ------------------------------------------------------------------ //
+       speedCounter++;
+       burstCounter++;
+
+       if((burstLoop > 1) && (burstCounter < burstLimit))
+         break;
+
+       burstLoop--;
+       if(burstLoop <= 0)
+       {
+         runStatus = rsWait;
+         break;
+       }
+
+       burstCounter = 0;
+       runStatus = rsSend;
+       break;
+
+
+     // ------------------------------------------------------------------ //
+     case rsWait:
+     // ------------------------------------------------------------------ //
+       speedCounter++;
+
+       if(speedCounter >= speedLimit)
+       {
+         speedCounter    = 1;
+         if(bDelay == 0)
+           burstCounter  = 1;
+         else
+           burstCounter  = 0;
+         burstLoop       = bMode;
+         errorCode       = 0;
+         overflow        = false;
+         runStatus       = rsCreate;
+       }
+
+       break;
+
+     // ------------------------------------------------------------------ //
+     case rsError:
+     // ------------------------------------------------------------------ //
+       // Fehlerzustand
+       break;
+
+     // ------------------------------------------------------------------ //
+     default:
+     // ------------------------------------------------------------------ //
+       runStatus = rsWait;
+       break;
+   }
+
 }
 
 int Twitter::createPDU()
@@ -728,6 +866,19 @@ int Twitter::pduFromTime(char * timeStr)
   //---------------------------------------------------------------------------
   return 0;
 }
+
+// ----------------------------------------------------------------------------
+// Besonderheiten und Laufzeitparameter
+// ----------------------------------------------------------------------------
+//
+
+void Twitter::setBurst(BurstMode bm, int delay)
+{
+  bMode     = bm;
+  bDelay    = delay;
+  runStatus = rsInit;
+}
+
 
 // ----------------------------------------------------------------------------
 // Geräteparameter festlegen / ändern

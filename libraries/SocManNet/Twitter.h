@@ -31,6 +31,7 @@ typedef enum _RunStatus
   rsInit,
   rsCreate,
   rsSend,
+  rsBurst,
   rsWait,
   rsError,
   rsNrOfStates
@@ -70,6 +71,15 @@ typedef enum _Speed
   nrOfSpeeds
 }
 Speed;
+
+typedef enum _BurstMode
+{
+  noBurst = 0,
+  burst2  = 2,
+  burst3  = 3,
+  burst5  = 5
+}
+BurstMode;
 
 
 class Twitter
@@ -118,6 +128,10 @@ class Twitter
     void      setIntValue(int idx, int value);
     void      setFloatValue(int idx, double value);
     void      setTextValue(int idx, char *value);
+
+    // Besonderheiten und Laufzeitparameter
+    //
+    void      setBurst(BurstMode bm, int delay);
 
     // Statistische und Betriebsinformationen
     //
@@ -203,6 +217,13 @@ class Twitter
     int       pduIdx;
     int       loopIdx;
     int       speedLimit;
+
+    BurstMode bMode;
+    int       bDelay;
+    int       burstCounter;
+    int       burstLimit;
+    int       burstLoop;
+
 
     RunStatus runStatus;
     RunStatus runError;

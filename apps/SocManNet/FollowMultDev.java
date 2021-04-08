@@ -22,7 +22,7 @@ public class FollowMultDev
   static public boolean           monitorMode;
 
   DeviceList        deviceList;
-  
+
   // Globale Variablen für die Anwendung
   //
   public int        defaultPort = 4100;
@@ -41,7 +41,7 @@ public class FollowMultDev
   DatagramSocket    localSocket;
   SocketAddress     localAdr;
   LocalReceiver     recBroadcast;
-  
+
   //--------------------------------------------------------------------------
   //region Konstruktoren und Initialisierungen
   //--------------------------------------------------------------------------
@@ -68,7 +68,7 @@ public class FollowMultDev
     errorCode = SocManNet.errorCode;
     resultMsg = SocManNet.resultMsg;
     if(errorCode != 0) return;
-    
+
     broadcastAdr  = SocManNet.broadcastAdr;
     broadcastPort = port;
     localBuffer   = new byte[1024];
@@ -85,7 +85,7 @@ public class FollowMultDev
     }
     else
       portFollowList = new PortFollowList();
-    
+
     try
     {
       localChannel  = DatagramChannel.open();
@@ -93,7 +93,7 @@ public class FollowMultDev
       localAdr      = new InetSocketAddress(broadcastAdr, broadcastPort);
       localSocket.bind(localAdr);
       localChannel.configureBlocking(false);
-      
+
     }
     catch(Exception exc)
     {
@@ -128,9 +128,11 @@ public class FollowMultDev
     public String   macAdrStr;
     public String   ipAdrStr;
 
+    public  int     lastPduCount;
     public  int     oldPduCount;
     public  int     pduCount;
     public  int     lostPduCount;
+    public  int     burstPduCount;
 
     public  int     intCount;
     public  int     floatCount;
@@ -259,16 +261,24 @@ public class FollowMultDev
     dev.macAdrStr   = new String(header[SocManNet.pduHdMac]);
     dev.ipAdrStr    = new String(header[SocManNet.pduHdIp]);
 
-    dev.oldPduCount = dev.pduCount;
-    dev.pduCount    = Integer.parseInt(header[SocManNet.pduHdCount]);
+    dev.lastPduCount  = dev.pduCount;
+    dev.pduCount      = Integer.parseInt(header[SocManNet.pduHdCount]);
 
-    if(dev.oldPduCount != 0)
+    if(dev.oldPduCount == dev.pduCount)
     {
-      if (dev.pduCount < dev.oldPduCount)
+      dev.burstPduCount++;
+      return;
+    }
+
+    dev.oldPduCount = dev.pduCount;
+
+    if(dev.lastPduCount != 0)
+    {
+      if (dev.pduCount < dev.lastPduCount)
       {
-        dev.oldPduCount = 0;
+        dev.lastPduCount = 0;
       }
-      dev.lostPduCount += dev.pduCount - dev.oldPduCount - 1;
+      dev.lostPduCount += dev.pduCount - dev.lastPduCount - 1;
     }
 
     dev.intCount    = Integer.parseInt(elements[SocManNet.pduElTwNrInt]);
@@ -287,10 +297,10 @@ public class FollowMultDev
     dev.baseMode    = Integer.parseInt(elements[SocManNet.pduElMode]);
 
     elementIdx = SocManNet.pduElTwValue;
-    
+
     if((elements.length - elementIdx) < (dev.intCount + dev.floatCount + dev.textCount))
       return;
-    
+
     if(dev.intCount > 0)
     {
       if(dev.intArray == null || dev.intArray.length < dev.intCount)
@@ -302,39 +312,39 @@ public class FollowMultDev
         elementIdx++;
       }
     }
-    
-    
+
+
     if(dev.floatCount > 0)
     {
       if(dev.floatArray == null || dev.floatArray.length < dev.floatCount)
         dev.floatArray = new float[dev.floatCount];
-    
+
       for(floatIdx = 0; floatIdx < dev.floatCount; floatIdx++)
       {
         dev.floatArray[floatIdx] = Float.parseFloat(elements[elementIdx]);
         elementIdx++;
       }
     }
-    
+
     if(dev.textCount > 0)
     {
       if(dev.stringArray == null || dev.stringArray.length < dev.textCount)
         dev.stringArray = new String[dev.textCount];
-    
+
       for(textIdx = 0; textIdx < dev.textCount; textIdx++)
       {
         dev.stringArray[textIdx] = elements[elementIdx];
         elementIdx++;
       }
     }
-    
+
   }
 
   // -------------------------------------------------------------------------
   // Auslesen der Werte durch den Anwender
   // -------------------------------------------------------------------------
   //
-  
+
   public static class ValueStatus
   {
     public final static int    newVal   = 0;     // Es liegt ein neuer Wert vor
@@ -346,7 +356,7 @@ public class FollowMultDev
 
     public final static int    length   = 8;     // Die L�nge des Bitfeldes
   }
-  
+
   public class ReceivedValue
   {
     public int          valIdx;
@@ -700,7 +710,7 @@ public class FollowMultDev
       textVal.status.set(ValueStatus.empty);
       return true;
     }
-    
+
     if(dev.textCount < 1)
     {
       textVal.status.clear();
@@ -709,7 +719,7 @@ public class FollowMultDev
       textVal.status.set(ValueStatus.none);
       return true;
     }
-    
+
     if(textVal.pduCount == dev.pduCount)
     {
       textVal.status.clear();
@@ -727,14 +737,14 @@ public class FollowMultDev
       textVal.status.set(ValueStatus.idx);
       return true;
     }
-    
+
     textVal.status.clear();
     textVal.status.set(ValueStatus.newPdu);
     textVal.newPdu = true;
     textVal.newValue = false;
     if((dev.pduCount - textVal.pduCount) > 1)
       textVal.status.set(ValueStatus.lostPdu);
-    return false;    
+    return false;
   }
 
   public boolean getTextStatus(ReceivedValue textVal, int devIdx)
@@ -749,7 +759,7 @@ public class FollowMultDev
 
     fin = getTextStatus(textVal, dev);
     if(fin) return;
-    
+
     String value = dev.stringArray[textVal.valIdx];
     if(!value.equals(textVal.value))
     {
@@ -824,7 +834,10 @@ public class FollowMultDev
   // Empfänger für die Rundruftelegramme
   // -------------------------------------------------------------------------
   //
+  public static int allReceiveCounter = 0;
   public int  receiveCounter = 0;
+
+  public static int allParseCounter = 0;
   public int  pduParseCounter = 0;
 
 
@@ -836,7 +849,7 @@ public class FollowMultDev
     ByteBuffer      receiveBuffer;
     String[]        pduHeader;
     String[]        pduElements;
-    
+
     public LocalReceiver(byte[] ipBytes, DatagramChannel inChannel)
     {
       channel       = inChannel;
@@ -844,14 +857,14 @@ public class FollowMultDev
       receiveBuffer = ByteBuffer.wrap(receivedData);
       ipMask        = ipBytes;
     }
-    
+
     public boolean doRun = true;
-    
+
     public void run()
     {
       InetSocketAddress recAdr;
       int               waitMillisec;
-      
+
       while(doRun)
       {
         receiveBuffer.clear();
@@ -865,13 +878,13 @@ public class FollowMultDev
           recAdr = null;
           waitMillisec = 10;
         }
-        
+
         if(recAdr == null)
         {
           try
           {
-          Thread.sleep(waitMillisec);
-          continue;
+            Thread.sleep(waitMillisec);
+            continue;
           }
           catch (Exception exc)
           {
@@ -880,7 +893,8 @@ public class FollowMultDev
         }
 
         receiveCounter++;
-        
+        allReceiveCounter++;
+
         // Prüfen der Adresse
         //
         InetAddress inetAdr = recAdr.getAddress();
@@ -892,22 +906,23 @@ public class FollowMultDev
     private void parsePdu(ByteBuffer recBuf)
     {
       pduParseCounter++;
+      allParseCounter++;
 
       if(portFollowList == null) return;
-      
+
       int nrIn = recBuf.position();
       String pduStr = new String(receivedData, 0, nrIn-3);
       pduElements = pduStr.split(";");
       pduHeader = pduElements[0].split(":");
       portFollowList.enterPDU(pduHeader[SocManNet.pduHdObject], pduHeader, pduElements);
     }
-    
+
   }
 
   // -------------------------------------------------------------------------
   // Verwaltung der verschiedenen Follower-Instanzen
   // -------------------------------------------------------------------------
-  
+
   // -------------------------------------------------------
   // Port und die Liste angeschlossener Follower
   // -------------------------------------------------------
@@ -923,16 +938,16 @@ public class FollowMultDev
       String          commObject;
       FollowMultDev   follower;
     }
-    
+
     public int port;
     public List<FollowElement> commObjectList;
-    
+
     public PortFollowMult(int inPort)
     {
       port = inPort;
       commObjectList = new ArrayList<>();
     }
-    
+
     public void add(String commObject, FollowMultDev follower)
     {
       FollowElement fe = new FollowElement();
@@ -940,12 +955,12 @@ public class FollowMultDev
       fe.follower = follower;
       commObjectList.add(fe);
     }
-    
+
     public FollowElement getElement(String commObject)
     {
       FollowElement followElement;
       int idxEnd = commObjectList.size();
-      
+
       for(int idx = 0; idx < idxEnd; idx++)
       {
         followElement = commObjectList.get(idx);
@@ -956,7 +971,7 @@ public class FollowMultDev
       return(null);
     }
   }
-  
+
   // -------------------------------------------------------
   // Liste der Ports mit ihren Followern
   // -------------------------------------------------------
@@ -964,28 +979,28 @@ public class FollowMultDev
   public class PortFollowList
   {
     List<PortFollowMult> itemList;
-    
+
     public PortFollowList()
     {
       itemList = new ArrayList<>();
     }
-    
+
     public int size()
     {
       return(itemList.size());
     }
-    
+
     public void add(PortFollowMult portFollow)
     {
       itemList.add(portFollow);
     }
-    
+
     public PortFollowMult getPortFollow(int port)
     {
       PortFollowMult portFollow;
-      
+
       int idxEnd = itemList.size();
-      
+
       for(int idx = 0; idx < idxEnd; idx++)
       {
         portFollow = itemList.get(idx);
@@ -1015,9 +1030,9 @@ public class FollowMultDev
     {
       PortFollowMult portFollow;
       FollowElement  followElement;
-      
+
       int idxEnd = itemList.size();
-      
+
       for(int idx = 0; idx < idxEnd; idx++)
       {
         portFollow = itemList.get(idx);
@@ -1027,7 +1042,7 @@ public class FollowMultDev
           if(followElement.follower.enabled)
             followElement.follower.handleInput(header, elements);
         }
-        else if(monitorMode == true)
+        else if(monitorMode)
         {
           FollowMultDev tmpFollower = new FollowMultDev(commObject);
           tmpFollower.enabled = true;
@@ -1043,6 +1058,5 @@ public class FollowMultDev
       }
     }
   }
-  
-}
 
+}

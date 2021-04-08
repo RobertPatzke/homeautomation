@@ -40,6 +40,7 @@ RunStatus;
 
 typedef enum _CrPDUStatus
 {
+  cpsUpdate,
   cpsHeader,
   cpsCounter,
   cpsApplicationKey,
@@ -90,37 +91,40 @@ class Twitter
   // --------------------------------------------------------------------------
   //
 public:
-  struct  TwInt
+  struct  Int
   {
     int       index;
     int       value;
     Twitter   *twitPtr;
 
-    TwInt(int idx);
+    Int(int idx);
+    Int(int idx,Twitter twPtr);
     void  set(int);
     void  update();
     void  operator=(int);
   };
 
-  struct  TwFloat
+  struct  Float
   {
     int       index;
     double    value;
     Twitter   *twitPtr;
 
-    TwFloat(int idx);
+    Float(int idx);
+    Float(int idx,Twitter twPtr);
     void  set(double);
     void  update();
     void  operator=(double);
   };
 
-  struct  TwText
+  struct  Text
   {
     int       index;
     char      value[32];
     Twitter   *twitPtr;
 
-    TwText(int idx);
+    Text(int idx);
+    Text(int idx,Twitter twPtr);
     void  set(const char *);
     void  update();
     void  operator=(const char *);
@@ -181,9 +185,9 @@ public:
     bool      pduSent(unsigned int *refCounter);
     void      getName(char *dest);
 
-    void      initVar(TwInt   *intVar);
-    void      initVar(TwFloat *floatVar);
-    void      initVar(TwText  *textVar);
+    void      pinVar(Int   *intVar);
+    void      pinVar(Float *floatVar);
+    void      pinVar(Text  *textVar);
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
@@ -211,26 +215,30 @@ public:
     bool       overflow;
     // Aufruffrequenz zu gering, Zeitrahmen nicht haltbar
 
-    int        overflowCounter;
+    int         overflowCounter;
 
-    int        posX;
-    int        posY;
-    int        posZ;
-    int        baseState;
-    int        baseMode;
+    int         posX;
+    int         posY;
+    int         posZ;
+    int         deviceState;
+    int         baseState;
+    int         baseMode;
 
-    int        intValArray[MAXNRINT];
-    double     floatValArray[MAXNRFLOAT];
-    char       *textValArray[MAXNRTEXT];
+    int         intValArray[MAXNRINT];
+    double      floatValArray[MAXNRFLOAT];
+    char        *textValArray[MAXNRTEXT];
+
+    int         intValStore[MAXNRINT];
+    double      floatValStore[MAXNRFLOAT];
 
 //    RTC_clock * rtcClockHnd;
 
   // --------------------------------------------------------------------------
   //  globale Variablen fuer Debugzwecke
   // --------------------------------------------------------------------------
- public:
-  bool debugOn;  // Verwaltung der Debug-Ausgabe
-  unsigned int cntRun;
+  public:
+    bool          debugOn;  // Verwaltung der Debug-Ausgabe
+    unsigned int  cntRun;
 
   // --------------------------------------------------------------------------
   // lokale Variablen zur Steuerung
@@ -258,7 +266,6 @@ public:
     bool      keySetByApp;
     int       applicationKey;
     int       deviceKey;
-    int       deviceState;
     char      deviceName[DEV_NAME_LEN];
 
     int       pduIdx;
@@ -294,10 +301,11 @@ public:
   // --------------------------------------------------------------------------
   //
   private:
-    int createPDU();
-    void createMsgHeader(void);
-    void createDeviceHeader(void);
-    int pduFromTime(char * timeStr);
+    void  setup();
+    int   createPDU();
+    void  createMsgHeader(void);
+    void  createDeviceHeader(void);
+    int   pduFromTime(char * timeStr);
 
   // --------------------------------------------------------------------------
   // lokale Funktionen fuer Debugzwecke

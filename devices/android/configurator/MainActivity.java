@@ -639,6 +639,12 @@ public class MainActivity extends AppCompatActivity
             devTwitter.setIntValue(0,dut.deviceKey);
           }
 
+          if(curPage == incInfo)
+          {
+            smh.enter(SmState.Evaluate);
+            break;
+          }
+
 
           break;
 

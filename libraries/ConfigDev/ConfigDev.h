@@ -70,8 +70,7 @@ private:
   // local functions
   // -------------------------------------------------------------------------
   //
-  static  void  updateTwitter();  // refresh twitter memory
-  static  void  clearTwitter();   // set empty values for twitter
+  static  void  presetTwitter();  // set empty values for twitter
   static  void  updateFollower(); // refresh follower value structures
   static  void  initFollower();   // setting follower structurea
 

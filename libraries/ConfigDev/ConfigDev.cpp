@@ -41,20 +41,20 @@ TextValue       ConfigDev::foStr1, ConfigDev::foStr2, ConfigDev::foStr3, ConfigD
 bool            ConfigDev::useAppKey;    // Separation in one Network
 int             ConfigDev::appKey;       // App identification
 
-Twitter::TwInt    twInt01(0);
-Twitter::TwInt    twInt02(1);
-Twitter::TwInt    twInt03(2);
-Twitter::TwInt    twInt04(3);
+Twitter::Int    twInt01(0);
+Twitter::Int    twInt02(1);
+Twitter::Int    twInt03(2);
+Twitter::Int    twInt04(3);
 
-Twitter::TwFloat  twFloat01(0);
-Twitter::TwFloat  twFloat02(1);
-Twitter::TwFloat  twFloat03(2);
-Twitter::TwFloat  twFloat04(3);
+Twitter::Float  twFloat01(0);
+Twitter::Float  twFloat02(1);
+Twitter::Float  twFloat03(2);
+Twitter::Float  twFloat04(3);
 
-Twitter::TwText   twStr01(0);
-Twitter::TwText   twStr02(1);
-Twitter::TwText   twStr03(2);
-Twitter::TwText   twStr04(3);
+Twitter::Text   twStr01(0);
+Twitter::Text   twStr02(1);
+Twitter::Text   twStr03(2);
+Twitter::Text   twStr04(3);
 
 
 void ConfigDev::begin(ConfigMem *cfm, SocManNet *smn, Twitter *twi,
@@ -67,78 +67,29 @@ void ConfigDev::begin(ConfigMem *cfm, SocManNet *smn, Twitter *twi,
   stmPtr  = sm;
   lchkPtr = lchk;
 
-  twPtr->initVar(&twInt01);
-  twPtr->initVar(&twInt02);
-  twPtr->initVar(&twInt03);
-  twPtr->initVar(&twInt03);
+  twPtr->pinVar(&twInt01);
+  twPtr->pinVar(&twInt02);
+  twPtr->pinVar(&twInt03);
+  twPtr->pinVar(&twInt03);
 
-  twPtr->initVar(&twFloat01);
-  twPtr->initVar(&twFloat02);
-  twPtr->initVar(&twFloat03);
-  twPtr->initVar(&twFloat04);
+  twPtr->pinVar(&twFloat01);
+  twPtr->pinVar(&twFloat02);
+  twPtr->pinVar(&twFloat03);
+  twPtr->pinVar(&twFloat04);
 
-  twPtr->initVar(&twStr01);
-  twPtr->initVar(&twStr02);
-  twPtr->initVar(&twStr03);
-  twPtr->initVar(&twStr04);
+  twPtr->pinVar(&twStr01);
+  twPtr->pinVar(&twStr02);
+  twPtr->pinVar(&twStr03);
+  twPtr->pinVar(&twStr04);
 }
 
 // -------------------------------------------------------------------------
 // local functions
 // -------------------------------------------------------------------------
 //
-/*
-// refresh twitter values
-//
-void ConfigDev::updateTwitter()
-{
-  twPtr->setIntValue(0, twInt1);
-  twPtr->setIntValue(1, twInt2);
-  twPtr->setIntValue(2, twInt3);
-  twPtr->setIntValue(3, twInt4);
-
-  twPtr->setFloatValue(0, twFloat1);
-  twPtr->setFloatValue(1, twFloat2);
-  twPtr->setFloatValue(2, twFloat3);
-  twPtr->setFloatValue(3, twFloat4);
-
-  twPtr->setTextValue(0, twStr1);
-  twPtr->setTextValue(1, twStr2);
-  twPtr->setTextValue(2, twStr3);
-  twPtr->setTextValue(3, twStr4);
-}
-
 // set empty/default values for twitter
 //
-void ConfigDev::clearTwitter()
-{
-  twInt1 = 1;
-  twInt2 = 2;
-  twInt3 = 3;
-  twInt4 = 4;
-
-  twFloat1 = 0.1;
-  twFloat2 = 0.2;
-  twFloat3 = 0.3;
-  twFloat4 = 0.4;
-
-  strcpy(twStr1,"A");
-  strcpy(twStr2,"B");
-  strcpy(twStr3,"C");
-  strcpy(twStr4,"D");
- }
-*/
-
-// refresh twitter values
-//
-void ConfigDev::updateTwitter()
-{
-  ;
-}
-
-// set empty/default values for twitter
-//
-void ConfigDev::clearTwitter()
+void ConfigDev::presetTwitter()
 {
   twInt01 = 1;
   twInt02 = 2;
@@ -498,8 +449,7 @@ void ConfigDev::smInitTwitter()
 
   // Giving some default values for your twitter variables
   //
-  clearTwitter();
-  updateTwitter();
+  presetTwitter();
 
   // Start twitter
   twPtr->setBurst(burst3,0);
@@ -572,12 +522,11 @@ void ConfigDev::smStartWLAN()
 
   // Set Twitter for WLAN configuration
   //
-  twPtr->baseState = cmWLAN;          // Basis-Status setzen
+  twPtr->baseState = cmWLAN;            // Basis-Status setzen
 
   cfmPtr->getNetName((byte *) twStr1);  // Net name from ConfigMem
   cfmPtr->getNetPass((byte *) twStr2);  // Net password from ConfigMem
 
-  updateTwitter();
   NEXT(smWaitWLAN)
 }
 
@@ -613,6 +562,9 @@ void ConfigDev::smStartPOS()
 
   if(stmPtr->firstEnter())
   {
+#ifdef DebConfigDev
+    smnSerial.println("CD:StartPOS");
+#endif
   }
 
   // Set Twitter for POS configuration
@@ -622,9 +574,7 @@ void ConfigDev::smStartPOS()
   twPtr->posX = cfmPtr->getPos(0);
   twPtr->posY = cfmPtr->getPos(1);
   twPtr->posZ = cfmPtr->getPos(2);
-
-  updateTwitter();
-
+  NEXT(smWaitPOS)
 }
 
 

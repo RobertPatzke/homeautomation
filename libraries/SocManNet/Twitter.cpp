@@ -16,39 +16,7 @@
 
 Twitter::Twitter()
 {
-	baseMode 		= 0;
-	baseState 		= 0;
-	cntSendMsg 		= 0;
-	crPDUStatus 	= cpsHeader;
-	debugOn 		= false;
-	delayCounter 	= 0;
-	deviceKey 		= 0;
-	applicationKey  = 0;
-	keySetByApp     = false;
-	deviceState 	= 0;
-	enabled 		= false;
-	errorCode 		= 0;
-	errorMsg 		= (char *) "noError";
-	netHnd 			= 0;
-	nrFloatValues   = 0;
-	nrIntValues 	= 0;
-	nrTextValues 	= 0;
-	posX 			= 0;
-	posY 			= 0;
-	posZ 			= 0;
-	resultMsg 		= (char *) "noMsg";
-	runError        = rsInit;
-	runStatus       = rsInit;
-	speed           = normalSpeed;
-	speedCounter    = 0;
-	refDateTimePdu  = "2017-10-09T18:00:00.000+00:00";
-	pduCounter      = 0;
-	pduIdx          = 0;
-	loopIdx         = 0;
-	speedLimit      = 0;
-	overflow        = false;
-	markOverflow    = false;
-	overflowCounter = 0;
+  setup();
 }
 
 
@@ -60,14 +28,59 @@ Twitter::Twitter(SocManNet *    inNetHnd,
                  int            nrTextVal,
                  Speed          inSpeed)
 {
+  setup();
   init(inNetHnd, ptrDateTimePdu, commObject,
        nrIntVal, nrFloatVal, nrTextVal, inSpeed);
 }
 
 Twitter::Twitter(SocManNet * inNetHnd, char *commObject)
 {
+  setup();
   init(inNetHnd, refDateTimePdu,
        commObject, 4, 4, 4, normalSpeed);
+}
+
+void Twitter::setup()
+{
+  baseMode        = 0;
+  baseState       = 0;
+  cntSendMsg      = 0;
+  crPDUStatus     = cpsUpdate;
+  debugOn         = false;
+  delayCounter    = 0;
+  deviceKey       = 0;
+  applicationKey  = 0;
+  keySetByApp     = false;
+  deviceState     = 0;
+  enabled         = false;
+  errorCode       = 0;
+  errorMsg        = (char *) "noError";
+  netHnd          = 0;
+  nrFloatValues   = 0;
+  nrIntValues     = 0;
+  nrTextValues    = 0;
+  posX            = 0;
+  posY            = 0;
+  posZ            = 0;
+  resultMsg       = (char *) "noMsg";
+  runError        = rsInit;
+  runStatus       = rsInit;
+  speed           = normalSpeed;
+  speedCounter    = 0;
+  refDateTimePdu  = "2021-04-04T09:30:00.000+00:00";
+  pduCounter      = 0;
+  pduIdx          = 0;
+  loopIdx         = 0;
+  speedLimit      = 0;
+  overflow        = false;
+  markOverflow    = false;
+  overflowCounter = 0;
+  cntRun          = 0;
+  bMode           = noBurst;
+  burstCounter    = 0;
+  burstLimit      = 0;
+  bDelay          = 0;
+  burstLoop       = 0;
 }
 
 void Twitter::init(SocManNet *  inNetHnd,
@@ -99,6 +112,8 @@ void Twitter::init(SocManNet *  inNetHnd,
   memset(intValArray, 0, sizeof(intValArray));
   memset(floatValArray, 0, sizeof(floatValArray));
   memset(textValArray, 0, sizeof(textValArray));
+  memset(intValStore, 0, sizeof(intValStore));
+  memset(floatValStore, 0, sizeof(floatValStore));
 
   //---------------------------------------------------------------------------
   // Globale Variablen fuer Debugzwecke
@@ -147,7 +162,7 @@ void Twitter::init(SocManNet *  inNetHnd,
   runStatus     = rsInit;
   runError      = rsNrOfStates;
 
-  crPDUStatus = cpsHeader;
+  crPDUStatus = cpsUpdate;
 
   // --------------------------------------------------------------------------
   // lokale Variablen fuer die Kommunikationsschnittstelle
@@ -451,6 +466,21 @@ int Twitter::createPDU()
   //-------------------------------------------------------------------------
   switch(crPDUStatus)
   {
+    // ------------------------------------------------------------------- //
+    case cpsUpdate:
+    // ------------------------------------------------------------------- //
+    // Aktuelle Daten (nur Integer und Float) übernehmen
+
+      for(int i = 0; i < nrIntValues; i++)
+      {
+        intValArray[i]    = intValStore[i];
+        floatValArray[i]  = floatValStore[i];
+      }
+
+      crPDUStatus = cpsHeader;
+      break;
+
+
     // ------------------------------------------------------------------- //
     case cpsHeader:
     // ------------------------------------------------------------------- //
@@ -784,11 +814,9 @@ crPduFin:
         ready = 1;
 
         // Naechsten Zustand setzen
-        crPDUStatus = cpsHeader;
+        crPDUStatus = cpsUpdate;
         break;
       }
-
-      break;
 
       break;
 
@@ -802,7 +830,7 @@ crPduFin:
       ready = 1;
 
       // Naechsten Zustand setzen
-      crPDUStatus = cpsHeader;
+      crPDUStatus = cpsUpdate;
       break;
   }
 
@@ -925,7 +953,7 @@ void Twitter::setIntValue(int idx, int value)
   if(idx < 0) return;
   if(idx >= nrIntValues) return;
   if(idx >= MAXNRINT) return;
-  intValArray[idx] = value;
+  intValStore[idx] = value;
 }
 
 void Twitter::setFloatValue(int idx, double value)
@@ -933,7 +961,7 @@ void Twitter::setFloatValue(int idx, double value)
   if(idx < 0) return;
   if(idx >= nrFloatValues) return;
   if(idx >= MAXNRFLOAT) return;
-  floatValArray[idx] = value;
+  floatValStore[idx] = value;
 }
 
 void Twitter::setTextValue(int idx, char  *value)
@@ -1014,58 +1042,71 @@ void  Twitter::getName(char *dest)
 // Hilfsklassen
 // --------------------------------------------------------------------------
 //
-Twitter::TwInt::TwInt(int idx)
+Twitter::Int::Int(int idx)
 {
   index = idx;
   value = 1;
   twitPtr = NULL;
 }
 
-void Twitter::TwInt::update()
+void Twitter::Int::update()
 {
   if(twitPtr != NULL)
     twitPtr->setIntValue(index, value);
 }
 
-void   Twitter::TwInt::operator=(int inVal)
+void   Twitter::Int::operator=(int inVal)
 {
   value = inVal;
   update();
 }
 
-Twitter::TwFloat::TwFloat(int idx)
+void   Twitter::Int::set(int inVal)
+{
+  value = inVal;
+  update();
+}
+
+
+Twitter::Float::Float(int idx)
 {
   index = idx;
   value = 0;
   twitPtr = NULL;
 }
 
-void    Twitter::TwFloat::update()
+void    Twitter::Float::update()
 {
   if(twitPtr != NULL)
     twitPtr->setFloatValue(index, value);
 }
 
-void   Twitter::TwFloat::operator=(double inVal)
+void   Twitter::Float::operator=(double inVal)
 {
   value = inVal;
   update();
 }
 
-Twitter::TwText::TwText(int idx)
+void   Twitter::Float::set(double inVal)
+{
+  value = inVal;
+  update();
+}
+
+Twitter::Text::Text(int idx)
 {
   index = idx;
   value[0] = 0;
   twitPtr = NULL;
 }
 
-void    Twitter::TwText::update()
+void    Twitter::Text::update()
 {
   if(twitPtr != NULL)
     twitPtr->setTextValue(index, value);
 }
 
-void   Twitter::TwText::operator=(const char* inVal)
+void   Twitter::Text::operator=(const char* inVal)
 {
   for(int i = 0; i < 32; i++)
   {
@@ -1076,7 +1117,7 @@ void   Twitter::TwText::operator=(const char* inVal)
   update();
 }
 
-void   Twitter::TwText::set(const char* inVal)
+void   Twitter::Text::set(const char* inVal)
 {
   for(int i = 0; i < 32; i++)
   {
@@ -1087,17 +1128,17 @@ void   Twitter::TwText::set(const char* inVal)
   update();
 }
 
-void  Twitter::initVar(TwInt *intVar)
+void  Twitter::pinVar(Int *intVar)
 {
   intVar->twitPtr = this;
 }
 
-void  Twitter::initVar(TwFloat *floatVar)
+void  Twitter::pinVar(Float *floatVar)
 {
   floatVar->twitPtr = this;
 }
 
-void  Twitter::initVar(TwText *textVar)
+void  Twitter::pinVar(Text *textVar)
 {
   textVar->twitPtr = this;
 }

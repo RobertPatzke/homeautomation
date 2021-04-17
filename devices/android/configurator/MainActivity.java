@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.Layout;
 import android.view.View;
 import android.view.Window;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,13 +16,18 @@ import java.util.TimerTask;
 
 import hsh.mplab.globals.GlobalDHA;
 
+import hsh.mplab.progtools.OutText;
+import hsh.mplab.progtools.RouiText;
+import hsh.mplab.progtools.StateMachineHelper;
+import hsh.mplab.progtools.SmState;
+import hsh.mplab.progtools.LabSpinner;
+
 import hsh.mplab.socmannet.*;
 import hsh.mplab.socmannet.FollowMultDev.IntegerValueList;
 import hsh.mplab.socmannet.FollowMultDev.FloatValueList;
 import hsh.mplab.socmannet.FollowMultDev.TextValueList;
 import hsh.mplab.socmannet.FollowMultDev.DeviceDHA;
 
-import hsh.mplab.configurator.StateMachineHelper.SmState;
 
 public class MainActivity extends AppCompatActivity
 {
@@ -140,6 +146,12 @@ public class MainActivity extends AppCompatActivity
     curPage = incStart;
   }
 
+  boolean butSetClicked = false;
+  public void onClickBtnSet(View v)
+  {
+    butSetClicked = true;
+  }
+
 
 
   // -------------------------------------------------------------------------
@@ -149,6 +161,14 @@ public class MainActivity extends AppCompatActivity
   OutText     nrDevVal,ipVal,macVal,log;
   LabSpinner  lsDevIpAdr, lsDevMacAdr, lsDevName, lsDevId, lsDevPos,
               lsDevBasStat, lsDevBasMod, lsDevTimeOut, lsDevLostPdu;
+
+  TextView    tvDevKeyVal, tvDevNameVal;
+  RouiText devKeyVal, devNameVal;
+
+  TextView    tvOldPosX, tvOldPosY, tvOldPosZ;
+  RouiText    oldPosX, oldPosY, oldPosZ;
+
+  EditText    etInPosX, etInPosY, etInPosZ;
 
   private void graphInit()
   {
@@ -178,7 +198,25 @@ public class MainActivity extends AppCompatActivity
     lsDevTimeOut.addToList();
     lsDevLostPdu  = findViewById(R.id.lsDevLostPdu);
     lsDevLostPdu.addToList();
+
+    tvDevKeyVal   = findViewById(R.id.tvDevKeyVal);
+    devKeyVal     = new RouiText(this,tvDevKeyVal);
+    tvDevNameVal  = findViewById(R.id.tvDevNameVal);
+    devNameVal    = new RouiText(this, tvDevNameVal);
+
+    tvOldPosX     = findViewById(R.id.tvOldPosX);
+    oldPosX       = new RouiText(this, tvOldPosX);
+    tvOldPosY     = findViewById(R.id.tvOldPosY);
+    oldPosY       = new RouiText(this, tvOldPosY);
+    tvOldPosZ     = findViewById(R.id.tvOldPosZ);
+    oldPosZ       = new RouiText(this, tvOldPosZ);
+
+    etInPosX      = findViewById(R.id.etInPosX);
+    etInPosY      = findViewById(R.id.etInPosY);
+    etInPosZ      = findViewById(R.id.etInPosZ);
+
   }
+
 
 
   // -------------------------------------------------------------------------
@@ -343,6 +381,7 @@ public class MainActivity extends AppCompatActivity
   int       newSelectedDevIdx = 0;
   int       lastSelectedDevIdx = -1;
   DeviceDHA dut;
+  String    inTextX, inTextY, inTextZ;
 
   // -------------------------------------------------------------------------
   // The state machine itself
@@ -569,10 +608,13 @@ public class MainActivity extends AppCompatActivity
           }
 
           dut = devFollower.getDevice(loopDevIdx);
+          // getDevice liefert null, wenn Idx zu groß für die Liste
           if(dut == null)
           {
             loopDevIdx = 0;
             nrOfDevices = devFollower.deviceCount();
+            // Anzahl der im Netz befindlichen Config-Twitter
+            // Die inzwischen ausgeschalteten werden mitgezählt, weil die Liste bleibt
             if(lastNrOfDevices != nrOfDevices)
             {
               lastNrOfDevices = nrOfDevices;
@@ -620,7 +662,17 @@ public class MainActivity extends AppCompatActivity
           loopDevIdx++;
 
           if(curPage == incPos)
+          {
+            dut = devFollower.getDevice(newSelectedDevIdx);
+            devTwitter.baseMode = GlobalDHA.cmPOS;
+            devTwitter.baseState = GlobalDHA.csStartPOS;
+            devTwitter.setIntValue(0,dut.deviceKey);
+
+            devKeyVal.print("" + dut.deviceKey);
+            devNameVal.print(dut.deviceName);
+
             smh.enter(SmState.ConfigPos);
+          }
           break;
 
 
@@ -633,10 +685,52 @@ public class MainActivity extends AppCompatActivity
             {
               log.println("ConfigPos");
             }
-            dut = devFollower.getDevice(newSelectedDevIdx);
-            devTwitter.baseMode = GlobalDHA.cmPOS;
-            devTwitter.baseState = GlobalDHA.csStartPOS;
-            devTwitter.setIntValue(0,dut.deviceKey);
+          }
+
+          oldPosX.print("" + dut.posX);
+          oldPosY.print("" + dut.posY);
+          oldPosZ.print("" + dut.posZ);
+
+          int pos;
+
+          if(butSetClicked)
+          {
+            inTextX = etInPosX.getText().toString();
+            inTextY = etInPosY.getText().toString();
+            inTextZ = etInPosZ.getText().toString();
+
+            try
+            {
+              pos = Integer.parseInt(inTextX);
+              devTwitter.setIntValue(1,pos);
+            }
+            catch (Exception e)
+            {
+              devTwitter.setIntValue(1,-1);
+            }
+
+            try
+            {
+              pos = Integer.parseInt(inTextY);
+              devTwitter.setIntValue(2, pos);
+            }
+            catch (Exception e)
+            {
+              devTwitter.setIntValue(2,-1);
+            }
+
+            try
+            {
+              pos = Integer.parseInt(inTextZ);
+              devTwitter.setIntValue(3, pos);
+            }
+            catch (Exception e)
+            {
+              devTwitter.setIntValue(3,-1);
+            }
+
+            devTwitter.baseState++;
+            butSetClicked = false;
           }
 
           if(curPage == incInfo)

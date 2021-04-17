@@ -277,7 +277,7 @@ void Follower::getValue(IntegerValue * intVal)
   if(fin) return;
 
   intVal->newPdu = true;
-  allNewPdu = true;
+  anyNewPduIn = true;
 
   //---------------------------------------------------------------------------
   // Wert lesen
@@ -290,7 +290,7 @@ void Follower::getValue(IntegerValue * intVal)
     intVal->value = value;
     intVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
     intVal->newValue = true;
-    allNewValue = true;
+    anyNewValueIn = true;
   }
 }
 
@@ -309,7 +309,7 @@ void Follower::getValue(FloatValue * floatVal)
   if(fin) return;
 
   floatVal->newPdu = true;
-  allNewPdu = true;
+  anyNewPduIn = true;
 
   //---------------------------------------------------------------------------
   // Wert lesen
@@ -323,7 +323,7 @@ void Follower::getValue(FloatValue * floatVal)
     floatVal->value = value;
     floatVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
     floatVal->newValue = true;
-    allNewValue = true;
+    anyNewValueIn = true;
   }
 }
 
@@ -342,7 +342,7 @@ void Follower::getValue(TextValue * textVal)
   if(fin) return;
 
   textVal->newPdu = true;
-  allNewPdu = true;
+  anyNewPduIn = true;
 
   //---------------------------------------------------------------------------
   // Wert lesen
@@ -354,15 +354,38 @@ void Follower::getValue(TextValue * textVal)
     strncpy(textVal->value, &textArray[idx][0], sizeof(textVal->value));
     textVal->recDsc.status |= STATUSVAL_BM_NEWVAL;
     textVal->newValue = true;
-    allNewValue = true;
+    anyNewValueIn = true;
   }
 }
 
-void  Follower::resetAllValueFlags()
+void  Follower::resetAnyFlags()
 {
-  allNewPdu = false;
-  allNewValue = false;
+  anyNewPduIn = false;
+  anyNewValueIn = false;
 }
+
+bool  Follower::anyNewPdu()
+{
+  if(anyNewPduIn)
+  {
+    anyNewPduIn = false;
+    return(true);
+  }
+
+  return(false);
+}
+
+bool  Follower::anyNewValue()
+{
+  if(anyNewValueIn)
+  {
+    anyNewValueIn = false;
+    return(true);
+  }
+
+  return(false);
+}
+
 
 
 // ----------------------------------------------------------------------------

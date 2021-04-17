@@ -167,6 +167,7 @@ public:
     void      setDeviceName(char * name);
     void      setDeviceKey(int key);
     void      setDeviceKey();
+    int       getDeviceKey();
     void      setApplicationKey(int key);
     void      setDeviceState(int state);
 

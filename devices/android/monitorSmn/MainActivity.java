@@ -1,12 +1,15 @@
 package hsh.mplab.monitorsmn;
 
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
+import hsh.mplab.progtools.RouiText;
+import hsh.mplab.progtools.SmState;
+import hsh.mplab.progtools.StateMachineHelper;
 import hsh.mplab.socmannet.*;
 import hsh.mplab.socmannet.Follower.IntegerValue;
 import hsh.mplab.socmannet.Follower.FloatValue;
@@ -24,8 +27,7 @@ public class MainActivity extends AppCompatActivity
     // ***********************************************************************
     // Added to the original source code created with Android Studio
     graphInit();
-    timerInit();
-    smnInit();
+    timerSmnInit();
     // ***********************************************************************
 
   }
@@ -63,42 +65,20 @@ public class MainActivity extends AppCompatActivity
   // Initialisation to use graphical elements in code
   // -------------------------------------------------------------------------
   //
-  TextView tvInfo;         // Reference to the text box
+  TextView  tvInfo;         // Reference to the text box
+  RouiText  info;
 
   private void graphInit()
   {
     tvInfo =
-      (TextView) findViewById(R.id.tvInfo);   // TextView has to be named in
-  }                                           // activity_main.xml (id)
-
-  // -------------------------------------------------------------------------
-  // Using graphical elements invoked by other threads (state machine)
-  // -------------------------------------------------------------------------
-  // Graphical elements may not be accessed in other threads than in main.
-  // Therefore it is necessary to provide a shell for other threads, which
-  // puts the request of threads onto the queue of the main thread.
-  //
-  String msgForTvInfo;    // A global variable, not to use a stack variable of
-                          // a method to store information for another thread
-
-  void info(String msg)
-  {
-    msgForTvInfo = msg;   // use global reference for the message
-
-    runOnUiThread
-    (
-      new Runnable()
-      {
-        @Override
-        public void run()   // will be called by UI-Thread
-        {
-          if(tvInfo == null) return;
-          tvInfo.setText(msgForTvInfo);
-        }
-      }
-    );
+      (TextView) findViewById(R.id.tvInfo);
+    info = new RouiText(this, tvInfo);
   }
 
+
+  private void smnInit()
+  {
+  }
 
   // -------------------------------------------------------------------------
   // Part of Twitter initialisation (needed for Timer task) [0]
@@ -109,23 +89,19 @@ public class MainActivity extends AppCompatActivity
   // (we are in onCreate() here, which is the main thread)
   // The rest of initialisation is done with the state machine.
   //
-  Twitter devTwitter;
-  // This is the reference to the twitter which is cyclic sending
-
-  private void smnInit()
-  {
-    devTwitter = new Twitter();  // Create instance (object) of the Twitter
-  }
-
   // -------------------------------------------------------------------------
   // Initialisation of a timer for running a state machine (automat)
   // -------------------------------------------------------------------------
   //
   Timer smnTimer;
   TimerTask smnTimerTask;
+  Twitter devTwitter;
+  // This is the reference to the twitter which is cyclic sending
+  StateMachineHelper  smh;
   int frequency;
 
-  private void timerInit()
+
+  private void timerSmnInit()
   {
     long smnTimerPeriod = 10;       // repetition time in milliseconds
     long smnTimerStartDelay = 500;  // start delay in milliseconds
@@ -135,6 +111,9 @@ public class MainActivity extends AppCompatActivity
     frequency = (int) (1000 / smnTimerPeriod);  // timer frequency is put to a
     // global variable for using it
     // in any environment
+
+    devTwitter = new Twitter();  // Create instance (object) of the Twitter
+    smh = new StateMachineHelper(hsh.mplab.progtools.SmState.Prepare, frequency);
 
     smnTimerTask = new TimerTask()
     {
@@ -150,7 +129,6 @@ public class MainActivity extends AppCompatActivity
     smnTimer = new Timer();
     smnTimer.scheduleAtFixedRate(smnTimerTask, smnTimerStartDelay, smnTimerPeriod);
     // Einrichten und Parametrieren eines Timers
-
   }
 
 
@@ -177,25 +155,6 @@ public class MainActivity extends AppCompatActivity
   }
 
   SmBaseState   smBaseState = SmBaseState.Init;    // Initialising basic state
-
-  // -------------------------------------------------------------------------
-  // Definitions for the state machine
-  // -------------------------------------------------------------------------
-  // We define the states of our state machine as needed from the internal
-  // view of our device
-
-  enum SmState          // Definition of possible internal states
-  {
-    InitTwitter,        // Our internal process is initialising
-    ConfigTwitter,      // Configuration of Twitter will be done here
-    InitFollower,       // next initialisation
-    DelayMsg,           // Delay an display Follower init result
-    Error,              // Error state if initialisation fails
-    Wait,               // Some Waiting time as part of the process
-    Simulate,           // Simulating value changes (for this example)
-    Evaluate,           // Do something with other Twitters values
-    CheckTwitter        // Check for any Twitter
-  }
 
   // Variables used for the state machine
   //
@@ -254,8 +213,14 @@ public class MainActivity extends AppCompatActivity
     // -----------------------------------------------------------------------
     //
 
-    switch(smState)
+    switch(smh.nextState)
     {
+      // ---------------------------------------------------------------------
+      case Prepare:                               // Preparation
+      // ---------------------------------------------------------------------
+        smh.enter(SmState.InitTwitter);
+        break;
+
       // ---------------------------------------------------------------------
       case InitTwitter:                          // Initialisation
       // ---------------------------------------------------------------------
@@ -304,8 +269,8 @@ public class MainActivity extends AppCompatActivity
         //
         if(oneShot)
         {
-          info(infoMsg);      // Display initialisation result message
-          oneShot = false;    // But only once (if we come again here)
+          info.print(infoMsg);      // Display initialisation result message
+          oneShot = false;          // But only once (if we come again here)
         }
 
         // -------------------------------------------------------------------
@@ -410,7 +375,7 @@ public class MainActivity extends AppCompatActivity
           break;                // decremented down to 0
         }
 
-        info(monFollower.resultMsg);  // Follower init result
+        info.print(monFollower.resultMsg);  // Follower init result
         monFollower.enabled = true;
 
         smState = SmState.Wait;       // Next state is Waiting (again)
@@ -503,7 +468,7 @@ public class MainActivity extends AppCompatActivity
         FollowMultDev.PortFollowMult followerList =
                 FollowMultDev.portFollowList.getPortFollow();
         tmpInt = followerList.commObjectList.size();
-        info("Anzahl unterschiedlicher Twitter = " + tmpInt);
+        info.print("Anzahl unterschiedlicher Twitter = " + tmpInt);
         waitCounter = inFreq;
         break;
 
@@ -515,7 +480,7 @@ public class MainActivity extends AppCompatActivity
         //
         if(oneShot)
         {
-          info(infoMsg);      // Display error message
+          info.print(infoMsg);      // Display error message
           oneShot = false;    // But only once
         }
         break;

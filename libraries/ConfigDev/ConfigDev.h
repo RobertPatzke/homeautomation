@@ -103,7 +103,8 @@ public:
   static void smWaitWLAN();       // wait for new values and set
 
   static void smStartPOS();       // start POS configuration
-  static void smWaitPOS();        // wait for new values and set
+  static void smWaitPOS();        // wait for new values
+  static void smProgPOS();        // store new values
 
 
 

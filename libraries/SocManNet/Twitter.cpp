@@ -938,10 +938,16 @@ void Twitter::setDeviceKey()
     keySetByApp = false;
 }
 
+int Twitter::getDeviceKey()
+{
+    return(deviceKey);
+}
+
 void Twitter::setDeviceState(int state)
 {
 	deviceState = state;
 }
+
 
 // ----------------------------------------------------------------------------
 // Werte eintragen

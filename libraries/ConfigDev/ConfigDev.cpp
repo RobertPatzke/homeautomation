@@ -132,7 +132,7 @@ void  ConfigDev::initFollower()
 //
 void  ConfigDev::updateFollower()
 {
-  foPtr->resetAllValueFlags();
+  foPtr->resetAnyFlags();
 
   foPtr->getValue(&foInt1);
   foPtr->getValue(&foInt2);
@@ -476,6 +476,8 @@ void ConfigDev::smInitFollower()
   NEXT(smWaitForConf)
 }
 
+int cfgMode   = 0;
+int cfgState  = 0;
 
 void ConfigDev::smWaitForConf()
 {
@@ -485,14 +487,15 @@ void ConfigDev::smWaitForConf()
   {
   }
 
-  updateFollower();             // get all follower data
-  if(!foPtr->allNewPdu)         // if there is no new pdu
+  updateFollower();                 // get all follower data
+  if(!foPtr->anyNewPdu())           // if there is no new pdu
   {
     stmPtr->call(smcCheckRuntime);  // over smcCheckRuntime
     return;                         // stay here
   }
 
-  switch(foPtr->baseMode)
+  cfgMode = foPtr->baseMode;
+  switch(cfgMode)
   {
     case cmWLAN:
       NEXT(smStartWLAN)
@@ -522,7 +525,7 @@ void ConfigDev::smStartWLAN()
 
   // Set Twitter for WLAN configuration
   //
-  twPtr->baseState = cmWLAN;            // Basis-Status setzen
+  twPtr->baseState = cmWLAN;            // set base state
 
   cfmPtr->getNetName((byte *) twStr1);  // Net name from ConfigMem
   cfmPtr->getNetPass((byte *) twStr2);  // Net password from ConfigMem
@@ -539,12 +542,18 @@ void ConfigDev::smWaitWLAN()
   {
   }
 
-  updateFollower();             // get all follower data
-  if(!foPtr->allNewPdu)         // if there is no new pdu
+  updateFollower();                 // get all follower data
+  if(!foPtr->anyNewPdu())           // if there is no new pdu
   {
-    stmPtr->call(smcCheckRuntime);
+    stmPtr->call(smcCheckRuntime);  // care for operation time
     return;
   }
+
+  if(foInt1.value != twPtr->getDeviceKey()) // wrong configurator
+    return;
+
+  if(foPtr->baseMode == cfgMode)    // new pdu but old mode
+    return;                         // nothing to do
 
 
 }
@@ -574,26 +583,74 @@ void ConfigDev::smStartPOS()
   twPtr->posX = cfmPtr->getPos(0);
   twPtr->posY = cfmPtr->getPos(1);
   twPtr->posZ = cfmPtr->getPos(2);
+#ifdef DebConfigDev
+  stmPtr->setOneShot();
+#endif
   NEXT(smWaitPOS)
 }
 
 
 void ConfigDev::smWaitPOS()
 {
+  bool  chkLogic;
+
   STNR(cmPOS + 2)
 
   if(stmPtr->firstEnter())
   {
   }
 
-  updateFollower();             // get all follower data
-  if(!foPtr->allNewPdu)         // if there is no new pdu
+#ifdef DebConfigDev
+    if(stmPtr->oneShot())
+      smnSerial.println("CD:WaitPOS");
+#endif
+
+  updateFollower();               // get all follower data
+
+  chkLogic = foPtr->anyNewPdu();
+
+#ifdef DebConfigDev
+  if(chkLogic)
+    smnSerial.println("NewPdu");
+#endif
+
+  if(!chkLogic)         // if there is no new pdu
   {
     stmPtr->call(smcCheckRuntime);
     return;
   }
 
+#ifdef DebConfigDev
+  smnSerial.println(foPtr->baseMode);
+#endif
+
+  if(foPtr->baseMode == cfgMode)    // new pdu but old mode
+    return;                         // nothing to do
+
+#ifdef DebConfigDev
+  smnSerial.println(foInt1.value);
+#endif
+
+  if(foInt1.value != twPtr->getDeviceKey()) // wrong configurator
+    return;
+
+  NEXT(smProgPOS)
 
 }
 
 
+void ConfigDev::smProgPOS()
+{
+  STNR(cmPOS + 2)
+
+  if(stmPtr->firstEnter())
+  {
+#ifdef DebConfigDev
+    smnSerial.println("CD:ProgPOS");
+#endif
+  }
+
+  //TEST
+  stmPtr->setOneShot();
+  NEXT(smWaitPOS)
+}

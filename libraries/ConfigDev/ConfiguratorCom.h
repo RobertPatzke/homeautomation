@@ -20,6 +20,9 @@
 
 #define   cmPOS       200
 // New Values for X,Y,Z Position
+
+// Configuration States (cs)
+//
 #define   csStartPOS  200
 
 //

@@ -136,7 +136,9 @@ class Follower
     void getValue(FloatValue * floatVal);
     void getValue(TextValue * textVal);
 
-    void  resetAllValueFlags();
+    void  resetAnyFlags();
+    bool  anyNewPdu();
+    bool  anyNewValue();
 
   // --------------------------------------------------------------------------
   //  Oeffentliche Funktionen fuer Debugzwecke
@@ -178,8 +180,6 @@ class Follower
     double      floatArray[MAXNRFLOAT];
     char        textArray[MAXNRTEXT][TEXTVAL_LEN_MAX];
 
-    bool        allNewPdu;
-    bool        allNewValue;
 
   // -------------------------------------------------------------------------
   // Verarbeitung des eingegangenen Telegramms
@@ -218,9 +218,13 @@ class Follower
     SocManNet * netHnd;
 
   // --------------------------------------------------------------------------
-  // Interne Variablen fuer Statistik
+  // Interne Variablen
   // --------------------------------------------------------------------------
-    unsigned int cntRecMsg;
+    unsigned int  cntRecMsg;
+
+    bool          anyNewPduIn;
+    bool          anyNewValueIn;
+
 
   // --------------------------------------------------------------------------
   // Funktionen zur Verarbeitung des eingegangenen Telegramms

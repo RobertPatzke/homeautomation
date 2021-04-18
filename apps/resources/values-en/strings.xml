@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="devSystem">Decentral Home Automation</string>
+    <string name="ipAdr">IP-Address</string>
+    <string name="macAdr">MAC-Address</string>
+    <string name="nrCfgDev">Number of\nConf-Devices</string>
+    <string name="infoHeader">Device Details and Selection</string>
+    <string name="devName">Device Name</string>
+    <string name="devId">Device ID</string>
+    <string name="devPos">Device Location</string>
+    <string name="devBasStat">Base Status</string>
+    <string name="devBasMod">Base Mode</string>
+    <string name="devStatError">Error</string>
+    <string name="devTimeOut">Cycle Timeout</string>
+    <string name="devLostPdu">Lost PDUs</string>
+    <string name="selectedDevice">Selected Device</string>
+</resources>

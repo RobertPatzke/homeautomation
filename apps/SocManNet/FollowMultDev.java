@@ -22,6 +22,7 @@ public class FollowMultDev
   static public boolean           monitorMode;
 
   DeviceList        deviceList;
+  MonTwitterList    monTwitterList;
 
   // Globale Variablen für die Anwendung
   //
@@ -109,6 +110,81 @@ public class FollowMultDev
     recBroadcast.start();
   }
 
+  public class MonTwitter
+  {
+    public  String    name;
+    List<DeviceDHA>   devList;
+
+    public MonTwitter()
+    {
+      devList = new ArrayList<>();
+    }
+
+    public void add(DeviceDHA dev)
+    {
+      int listCnt = devList.size();
+
+      if(listCnt > 0)
+      {
+        for (int i = 0; i < listCnt; i++)
+        {
+          if (devList.get(i) == dev) return;
+        }
+      }
+      devList.add(dev);
+    }
+  }
+
+  public class MonTwitterList
+  {
+    public  int       idx;
+    MonTwitter        monTwitter;
+    List<MonTwitter>  itemList;
+
+    public MonTwitterList()
+    {
+      itemList = new ArrayList<>();
+    }
+
+    public void add(DeviceDHA devDHA)
+    {
+      int listCnt = itemList.size();
+
+      if(listCnt > 0)
+      {
+        for (int i = 0; i < listCnt; i++)
+        {
+          monTwitter = itemList.get(i);
+          if(monTwitter.name.equals(devDHA.twitterName))
+          {
+            monTwitter.add(devDHA);
+            return;
+          }
+        }
+      }
+
+      monTwitter = new MonTwitter();
+      monTwitter.name = devDHA.twitterName;
+      itemList.add(monTwitter);
+    }
+
+    public int size()
+    {
+      return(itemList.size());
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Nur Monitor-Mode: Zugriff auf die Twitter-Liste
+  // -------------------------------------------------------------------------
+  //
+
+  public int twitterCount()
+  {
+    if(!monitorMode) return(0);
+    return(monTwitterList.size());
+  }
+
   // -------------------------------------------------------------------------
   // Einzelbehandlung verschiedener Geräte mit demselben Twitter
   // -------------------------------------------------------------------------
@@ -142,6 +218,7 @@ public class FollowMultDev
     public int      deviceKey;
     public int      deviceState;
     public String   deviceName;
+    public String   twitterName;    // only relevant in monitor mode
 
     public int      posX;
     public int      posY;
@@ -260,6 +337,13 @@ public class FollowMultDev
     dev.recTime     = elapsedRealtime();
     dev.macAdrStr   = new String(header[SocManNet.pduHdMac]);
     dev.ipAdrStr    = new String(header[SocManNet.pduHdIp]);
+    if(monitorMode)
+    {
+      dev.twitterName = new String(header[SocManNet.pduHdObject]);
+      if(monTwitterList == null)
+        monTwitterList = new MonTwitterList();
+      monTwitterList.add(dev);
+    }
 
     dev.lastPduCount  = dev.pduCount;
     dev.pduCount      = Integer.parseInt(header[SocManNet.pduHdCount]);
@@ -860,6 +944,7 @@ public class FollowMultDev
 
     public boolean doRun = true;
 
+
     public void run()
     {
       InetSocketAddress recAdr;
@@ -964,6 +1049,12 @@ public class FollowMultDev
       for(int idx = 0; idx < idxEnd; idx++)
       {
         followElement = commObjectList.get(idx);
+        if(monitorMode)
+        {
+          if(followElement != null)
+            return(followElement);
+        }
+        else
         if(followElement.commObject.equals(commObject))
           return(followElement);
       }
@@ -1042,6 +1133,7 @@ public class FollowMultDev
           if(followElement.follower.enabled)
             followElement.follower.handleInput(header, elements);
         }
+        /*
         else if(monitorMode)
         {
           FollowMultDev tmpFollower = new FollowMultDev(commObject);
@@ -1054,7 +1146,7 @@ public class FollowMultDev
               followElement.follower.handleInput(header, elements);
           }
         }
-
+        */
       }
     }
   }

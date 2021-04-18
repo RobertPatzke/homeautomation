@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dimensions for specific DHA-Devices -->
+    <!-- =================================== -->
+
+    <dimen name="mainPageButtonWidth">72sp</dimen>
+    <dimen name="mainPageButtonHeight">72sp</dimen>
+    <dimen name="mainPageButtonImg">48sp</dimen>
+    <dimen name="mainPageButtonMargin">15sp</dimen>
+
+</resources>

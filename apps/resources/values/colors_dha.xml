@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<resources>
+
+  <!-- Colors for specific DHA-Devices -->
+  <!-- =============================== -->
+
+    <!-- ******** C o n f i g u r a t o r ********** -->
+    <!-- =========================================== -->
+
+    <color name="cfgMainPageBG">@color/lightsteelblue</color>
+    <color name="cfgMainPageFG">@color/darksteelblue</color>
+
+    <color name="cfgInfoPageBG">@color/lightsteelblue</color>
+    <color name="cfgInfoHeadBG">@color/medlightsteelblue</color>
+    <color name="cfgInfoHeadFG">@color/whitesmoke</color>
+    <color name="cfgInfoViewBG">@color/lightlightgray</color>
+    <color name="cfgInfoPageFG">@color/darksteelblue</color>
+    <color name="cfgInfoStatTimeOut">@color/signred</color>
+    <color name="cfgInfoStatDefault">@color/black</color>
+    <color name="cfgInfoStatOk">@color/darksteelblue</color>
+    <color name="cfgInfoStatError">@color/orangered</color>
+
+</resources>
+

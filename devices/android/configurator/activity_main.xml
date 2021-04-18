@@ -7,48 +7,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="60sp"
-        android:background="@color/steelblue"
-        android:orientation="horizontal">
-
-        <ImageView
-            android:layout_width="48sp"
-            android:layout_height="48sp"
-            android:layout_marginLeft="6sp"
-            android:layout_marginTop="6sp"
-            android:src="@drawable/iconbasesmiley"/>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_marginLeft="6sp"
-            android:layout_marginRight="48sp"
-            android:layout_height="60sp"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tvSystem"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4sp"
-                android:gravity="center"
-                android:textColor="@color/white"
-                android:text="@string/devSystem" />
-
-            <TextView
-                android:id="@+id/tvTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="-4sp"
-                android:gravity="center"
-                android:textColor="@color/white"
-                android:textSize="28sp"
-                android:text="@string/devTitle" />
-
-        </LinearLayout>
-
-    </LinearLayout>
+    <include
+        android:id="@+id/incHeadDHA"
+        layout="@layout/head_dha"
+        android:visibility="visible"/>
 
     <LinearLayout
         android:id="@+id/llHome"

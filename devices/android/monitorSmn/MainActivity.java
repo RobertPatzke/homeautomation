@@ -22,6 +22,7 @@ public class MainActivity extends AppCompatActivity
   protected void onCreate(Bundle savedInstanceState)
   {
     super.onCreate(savedInstanceState);
+    getSupportActionBar().hide(); //hide the title bar
     setContentView(R.layout.activity_main);
 
     // ***********************************************************************
@@ -75,11 +76,6 @@ public class MainActivity extends AppCompatActivity
     info = new RouiText(this, tvInfo);
   }
 
-
-  private void smnInit()
-  {
-  }
-
   // -------------------------------------------------------------------------
   // Part of Twitter initialisation (needed for Timer task) [0]
   // -------------------------------------------------------------------------
@@ -120,8 +116,7 @@ public class MainActivity extends AppCompatActivity
       @Override                       // creating a timer task and overriding
       public void run()               // its run method with ower own run method
       {
-        devTwitter.run(frequency);       // cyclic calling run method of twitter
-
+        devTwitter.run(frequency);    // cyclic calling run method of twitter
         stateMachine(frequency);      // cyclic calling our state machine
       }
     };
@@ -158,7 +153,6 @@ public class MainActivity extends AppCompatActivity
 
   // Variables used for the state machine
   //
-  SmState   smState = SmState.InitTwitter;  // Initialising state machine
   int       globSeqCounter = 0;             // Counter for second interval
   int       waitCounter = 0;              // Counter for delays
   String    infoMsg;                      // Holding Messages
@@ -240,7 +234,7 @@ public class MainActivity extends AppCompatActivity
         // 1 text string with normal speed (every second a message)
         // and the object name "TestTwitter"
         //
-        devTwitter.init("BaseAndroid", 3, 2, 1, Twitter.Speed.normal);
+        devTwitter.init("Monitor", 3, 2, 1, Twitter.Speed.normal);
 
         // If there is an error with initialisation of twitter
         // we will go to error state with the next timer tick
@@ -249,17 +243,17 @@ public class MainActivity extends AppCompatActivity
         {
           infoMsg = devTwitter.errorMsg;  // to be displayed
           oneShot = true;
-          smState = SmState.Error;        // next in error state
+          smh.enter(SmState.Error);        // next in error state
           break;
         }
 
         // If there is no error, we inform about the network
         // and start configuration of twitter
         //
-        smBaseState = SmBaseState.Init;   // This is for the world outside
-        infoMsg = devTwitter.resultMsg;   // This for the display
+        smBaseState = SmBaseState.Init;     // This is for the world outside
+        infoMsg = devTwitter.resultMsg;     // This for the display
         oneShot = true;
-        smState = SmState.ConfigTwitter;  // next in configuration state
+        smh.enter(SmState.ConfigTwitter);   // next in configuration state
         break;
 
 
@@ -335,7 +329,7 @@ public class MainActivity extends AppCompatActivity
         devTwitter.enabled = true;    // Twitter may be started after
                                       // configuration
 
-        smState = SmState.InitFollower;
+        smh.enter(SmState.InitFollower);
         break;
 
       // ---------------------------------------------------------------------
@@ -345,8 +339,8 @@ public class MainActivity extends AppCompatActivity
         FollowMultDev.monitorMode = true;
         // Special use as monitor setting in static variable
 
-        monFollower = new FollowMultDev("MyFirstCommObj");
-        // First following any baseDevice from the Arduino environment
+        monFollower = new FollowMultDev("Monitor");
+        // Name is not relevant
 
         // If there is an error with initialisation of follower
         // we will go to error state with the next timer tick
@@ -355,11 +349,11 @@ public class MainActivity extends AppCompatActivity
         {
           infoMsg = monFollower.errorMsg;   // to be displayed
           oneShot = true;
-          smState = SmState.Error;          // next in error state
+          smh.enter(SmState.Error);          // next in error state
           break;
         }
 
-        smState = SmState.DelayMsg;   // Next state is Waiting and Display
+        smh.enter(SmState.DelayMsg);   // Next state is Waiting and Display
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
 
@@ -378,7 +372,7 @@ public class MainActivity extends AppCompatActivity
         info.print(monFollower.resultMsg);  // Follower init result
         monFollower.enabled = true;
 
-        smState = SmState.Wait;       // Next state is Waiting (again)
+        smh.enter(SmState.Wait);       // Next state is Waiting (again)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
 
@@ -391,7 +385,7 @@ public class MainActivity extends AppCompatActivity
         waitCounter--;
         if(waitCounter <= 0)              // if waitCounter finished
         {                                 // change state
-          smState = SmState.CheckTwitter; // to check for Twitters
+          smh.enter(SmState.CheckTwitter); // to check for Twitters
           waitCounter = inFreq;           // with delay
           smBaseState = SmBaseState.Run;  // tell the world we are running
           break;
@@ -442,7 +436,7 @@ public class MainActivity extends AppCompatActivity
 
         devTwitter.setTextValue(0, simText01);
 
-        smState = SmState.Wait;       // Next state is Waiting (delay)
+        smh.enter(SmState.Wait);       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
 
@@ -452,7 +446,7 @@ public class MainActivity extends AppCompatActivity
         // Get all management data for the external Twitter
         // followed by devFollower
 
-        smState = SmState.Wait;       // Next state is Waiting (delay)
+        smh.enter(SmState.Wait);       // Next state is Waiting (delay)
         waitCounter = 2 * inFreq;     // Delay time is 2 seconds
         break;
 
@@ -465,9 +459,10 @@ public class MainActivity extends AppCompatActivity
         if(waitCounter > 0)
           break;
 
-        FollowMultDev.PortFollowMult followerList =
-                FollowMultDev.portFollowList.getPortFollow();
-        tmpInt = followerList.commObjectList.size();
+
+        //tmpInt = monFollower.deviceCount();
+        //info.print("Anzahl Geräte = " + tmpInt);
+        tmpInt = monFollower.twitterCount();
         info.print("Anzahl unterschiedlicher Twitter = " + tmpInt);
         waitCounter = inFreq;
         break;

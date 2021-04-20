@@ -3,17 +3,25 @@ package hsh.mplab.monitorsmn;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
+import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
+import hsh.mplab.progtools.LabSpinner;
 import hsh.mplab.progtools.RouiText;
 import hsh.mplab.progtools.SmState;
 import hsh.mplab.progtools.StateMachineHelper;
+
 import hsh.mplab.socmannet.*;
+import hsh.mplab.socmannet.FollowMultDev;
+import hsh.mplab.socmannet.FollowMultDev.*;
+
+
 import hsh.mplab.socmannet.Follower.IntegerValue;
 import hsh.mplab.socmannet.Follower.FloatValue;
 import hsh.mplab.socmannet.Follower.TextValue;
+
 
 public class MainActivity extends AppCompatActivity
 {
@@ -24,6 +32,7 @@ public class MainActivity extends AppCompatActivity
     super.onCreate(savedInstanceState);
     getSupportActionBar().hide(); //hide the title bar
     setContentView(R.layout.activity_main);
+    setRequestedOrientation(SCREEN_ORIENTATION_PORTRAIT);
 
     // ***********************************************************************
     // Added to the original source code created with Android Studio
@@ -66,14 +75,41 @@ public class MainActivity extends AppCompatActivity
   // Initialisation to use graphical elements in code
   // -------------------------------------------------------------------------
   //
-  TextView  tvInfo;         // Reference to the text box
-  RouiText  info;
+  RouiText    ipVal, macVal, nrTwitVal;
+  LabSpinner  lsDevIdTwitter, lsTwitPduNumber;
+  LabSpinner  lsDevIpAdr, lsDevMacAdr, lsDevName, lsDevId, lsDevPos,
+              lsDevBasStat, lsDevBasMod, lsDevLostPdu;
 
   private void graphInit()
   {
-    tvInfo =
-      (TextView) findViewById(R.id.tvInfo);
-    info = new RouiText(this, tvInfo);
+    ipVal     = new RouiText(this, findViewById(R.id.tvThisDevIpVal));
+    macVal    = new RouiText(this, findViewById(R.id.tvThisDevMacVal));
+    nrTwitVal = new RouiText(this, findViewById(R.id.tvMonTwitCntVal));
+
+    lsDevIdTwitter = findViewById(R.id.lsDevIdTwitter);
+    lsDevIdTwitter.addToList();
+
+    lsTwitPduNumber = findViewById(R.id.lsTwitPduNumber);
+    lsTwitPduNumber.addToList();
+
+    lsDevIpAdr    = findViewById(R.id.lsDevIpAdr);
+    lsDevIpAdr.addToList();
+    lsDevMacAdr   = findViewById(R.id.lsDevMacAdr);
+    lsDevMacAdr.addToList();
+    lsDevName     = findViewById(R.id.lsDevName);
+    lsDevName.addToList();
+    lsDevId       = findViewById(R.id.lsDevId);
+    lsDevId.addToList();
+    lsDevPos      = findViewById(R.id.lsDevPos);
+    lsDevPos.addToList();
+    lsDevBasStat  = findViewById(R.id.lsDevBasStat);
+    lsDevBasStat.addToList();
+    lsDevBasMod   = findViewById(R.id.lsDevBasMod);
+    lsDevBasMod.addToList();
+    lsDevLostPdu  = findViewById(R.id.lsDevLostPdu);
+    lsDevLostPdu.addToList();
+
+
   }
 
   // -------------------------------------------------------------------------
@@ -173,9 +209,15 @@ public class MainActivity extends AppCompatActivity
   //
 
 
-  // Variables used for some calculations
+  // Variables used in different states
   //
-  int       tmpInt;
+  int       loopDevIdx;
+  int       nrOfTwitters;
+  int       lastNrOfTwitters = -1;
+  int       newSelectedDevIdx = 0;
+  int       lastSelectedDevIdx = -1;
+
+  DeviceDHA dut;
 
   // -------------------------------------------------------------------------
   // The state machine itself
@@ -184,304 +226,261 @@ public class MainActivity extends AppCompatActivity
 
   void stateMachine(int inFreq)
   {
+    int     currentInfStatus;
+    boolean skipMachine;
+    boolean inputTimeOut;
+
     // -----------------------------------------------------------------------
     // state independent activities
     // -----------------------------------------------------------------------
     //
-
-    stateLoopCounter++;     // simply counting the enters
-
-    // do this independent from state every half second
-    //
-    globSeqCounter++;
-    if(globSeqCounter >= inFreq/2)
-    {
-      globSeqCounter = 0;
-
-      devTwitter.baseState = smBaseState.ordinal();
-      // With the next automatic twitter message, this baseState is transferred
-    }
+    skipMachine = smh.begin();
 
     // -----------------------------------------------------------------------
     // state dependent activities
     // -----------------------------------------------------------------------
     //
 
-    switch(smh.nextState)
+    if(!skipMachine)
     {
-      // ---------------------------------------------------------------------
-      case Prepare:                               // Preparation
-      // ---------------------------------------------------------------------
-        smh.enter(SmState.InitTwitter);
-        break;
-
-      // ---------------------------------------------------------------------
-      case InitTwitter:                          // Initialisation
-      // ---------------------------------------------------------------------
-        // Initialising our application variables
-        // that is 3 Integer values, 2 Float values and 1 text string
-        //
-        simInt01   = 100;
-        simInt02   = -200;
-        simInt03   = 0x555;
-
-        simFloat01 = 1000f;
-        simFloat02 = 0.001f;
-
-        simText01  = "Hello world";
-
-        // Initialising Twitter to send 3 Integer values, 2 Float values and
-        // 1 text string with normal speed (every second a message)
-        // and the object name "TestTwitter"
-        //
-        devTwitter.init("Monitor", 3, 2, 1, Twitter.Speed.normal);
-
-        // If there is an error with initialisation of twitter
-        // we will go to error state with the next timer tick
-        //
-        if(devTwitter.errorCode != 0)
-        {
-          infoMsg = devTwitter.errorMsg;  // to be displayed
-          oneShot = true;
-          smh.enter(SmState.Error);        // next in error state
+      switch (smh.nextState)
+      {
+        // ---------------------------------------------------------------------
+        case Prepare:                               // Preparation
+        // ---------------------------------------------------------------------
+          smh.enter(SmState.InitTwitter);
           break;
-        }
 
-        // If there is no error, we inform about the network
-        // and start configuration of twitter
-        //
-        smBaseState = SmBaseState.Init;     // This is for the world outside
-        infoMsg = devTwitter.resultMsg;     // This for the display
-        oneShot = true;
-        smh.enter(SmState.ConfigTwitter);   // next in configuration state
-        break;
-
-
-      // ---------------------------------------------------------------------
-      case ConfigTwitter:                        // Configuration of Twitter
-      // ---------------------------------------------------------------------
-        //
-        if(oneShot)
-        {
-          info.print(infoMsg);      // Display initialisation result message
-          oneShot = false;          // But only once (if we come again here)
-        }
-
-        // -------------------------------------------------------------------
-        // Setting meta data (or static data), which will change not so often
-        //
-
-        devTwitter.applicationKey = 0;
-        // application key marks the usage of a device in a device overlapping
-        // application e.g. regulation circuit with several inkluded devices
-        // (0 = not used)
-
-        devTwitter.deviceKey = SocManNet.getSmallDeviceId();
-        // the device key ist the individualisation of the device and could be
-        // something like the serial number
-
-        devTwitter.deviceState = SocManNet.DeviceState.Run.ordinal();
-        // device state describes a kind of physical status
-        // (operable, defect, need maintenance, etc.)
-
-        devTwitter.deviceName = "Android SP1";
-        // device Name may also used for a kind of individualisation
-        // but it cannot replace device key, because device key is used
-        // by special class FollowMultDev when receiving messages
-
-        devTwitter.posX = 1111;
-        devTwitter.posY = 2345;
-        devTwitter.posZ = 22;
-        // Position of device in local coordinates, resolution is centimeter
-        // there will be tools in future to configure devices and setting the
-        // local position is a matter of configuration.
-        // Mobile devices will have to change the content of these variables
-        // when beeing moved.
-
-        devTwitter.baseState = SmBaseState.Init.ordinal();
-        // This is the status of the state machine presented to the world
-        // it will be changed by the state machine
-        // the base state is used to synchronise the behaviour of many devices
-        // of the same kind to achieve group activities for commonly working
-        // on the same task
-
-        devTwitter.baseMode = 34;
-        // In the base mode variable, a device tells the environment, what its
-        // plan is for the next step. The combination of base state and base mode
-        // tells the environment the process movement of a device.
-
-        // --------------------------------------------------------------------
-        // Setting process data, which depends on observations and calculations
-        // The structure is defined with the initialisation of Twitter
-        // The values are initialised here.
-        // The real content depends on the application and will be set
-        // whenever the application creates a new value (see state Simulation).
-
-        devTwitter.setIntValue(0, simInt01);
-        devTwitter.setIntValue(1, simInt02);
-        devTwitter.setIntValue(2, simInt03);
-
-        devTwitter.setFloatValue(0, simFloat01);
-        devTwitter.setFloatValue(1, simFloat02);
-
-        devTwitter.setTextValue(0, simText01);
-
-        devTwitter.enabled = true;    // Twitter may be started after
-                                      // configuration
-
-        smh.enter(SmState.InitFollower);
-        break;
-
-      // ---------------------------------------------------------------------
-      case InitFollower:              // Initialisation of Follower
-      // ---------------------------------------------------------------------
-
-        FollowMultDev.monitorMode = true;
-        // Special use as monitor setting in static variable
-
-        monFollower = new FollowMultDev("Monitor");
-        // Name is not relevant
-
-        // If there is an error with initialisation of follower
-        // we will go to error state with the next timer tick
-        //
-        if(monFollower.errorCode != 0)
-        {
-          infoMsg = monFollower.errorMsg;   // to be displayed
-          oneShot = true;
-          smh.enter(SmState.Error);          // next in error state
-          break;
-        }
-
-        smh.enter(SmState.DelayMsg);   // Next state is Waiting and Display
-        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        break;
-
-      // ---------------------------------------------------------------------
-      case DelayMsg:                      // Wait and display
-      // ---------------------------------------------------------------------
-        // In this example, this is part of a loop and the delay
-        // time has to be set in waitCounter in the state passed before
-        //
-        if(waitCounter > 0)
-        {
-          waitCounter--;        // staying here until waitCounter is
-          break;                // decremented down to 0
-        }
-
-        info.print(monFollower.resultMsg);  // Follower init result
-        monFollower.enabled = true;
-
-        smh.enter(SmState.Wait);       // Next state is Waiting (again)
-        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        break;
-
-      // ---------------------------------------------------------------------
-      case Wait:                          // Waiting
-      // ---------------------------------------------------------------------
-        // In this example, this is part of a loop and the delay
-        // time has to be set in waitCounter in the state passed before
-        //
-        waitCounter--;
-        if(waitCounter <= 0)              // if waitCounter finished
-        {                                 // change state
-          smh.enter(SmState.CheckTwitter); // to check for Twitters
-          waitCounter = inFreq;           // with delay
-          smBaseState = SmBaseState.Run;  // tell the world we are running
-          break;
-        }
-
-        break;
-
-      // ---------------------------------------------------------------------
-      case Simulate:                      // Simulating values
-      // ---------------------------------------------------------------------
-        // In this example, values are simply changed and Twitter is updated
-        //
-
-        simInt01++;
-        if(simInt01 > 200)
-          simInt01 = 0;
-
-        simInt02++;
-        if(simInt02 > 0)
+        // ---------------------------------------------------------------------
+        case InitTwitter:                          // Initialisation
+        // ---------------------------------------------------------------------
+          // Initialising our application variables
+          // that is 3 Integer values, 2 Float values and 1 text string
+          //
+          simInt01 = 100;
           simInt02 = -200;
-
-        simInt03 <<= 1;
-        simInt03 &= 0xFFF;
-        if(simInt03 == 0)
           simInt03 = 0x555;
 
-        simFloat01 -= 0.1f;
-        if(simFloat01 <= 0)
           simFloat01 = 1000f;
+          simFloat02 = 0.001f;
 
-        simFloat02 += 0.77;
-        if(simFloat02 >= 500)
-          simFloat02 = 0.01f;
+          simText01 = "Hello world";
 
-        tmpInt = stateLoopCounter % 9;
+          // Initialising Twitter to send 3 Integer values, 2 Float values and
+          // 1 text string with normal speed (every second a message)
+          // and the object name "TestTwitter"
+          //
+          devTwitter.init("Monitor", 3, 2, 1, Twitter.Speed.normal);
 
-        if((stateLoopCounter % 3) == 0)
-          simText01 = "Here I am. _" + tmpInt;
-        else
-          simText01 = "Again. _" + tmpInt;
+          // If there is an error with initialisation of twitter
+          // we will go to error state with the next timer tick
+          //
+          if (devTwitter.errorCode != 0)
+          {
+            infoMsg = devTwitter.errorMsg;  // to be displayed
+            oneShot = true;
+            smh.enter(SmState.Error);        // next in error state
+            break;
+          }
 
-        devTwitter.setIntValue(0, simInt01);
-        devTwitter.setIntValue(1, simInt02);
-        devTwitter.setIntValue(2, simInt03);
-
-        devTwitter.setFloatValue(0, simFloat01);
-        devTwitter.setFloatValue(1, simFloat02);
-
-        devTwitter.setTextValue(0, simText01);
-
-        smh.enter(SmState.Wait);       // Next state is Waiting (delay)
-        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        break;
-
-      // ---------------------------------------------------------------------
-      case Evaluate:                  // Evaluate Follower
-      // ---------------------------------------------------------------------
-        // Get all management data for the external Twitter
-        // followed by devFollower
-
-        smh.enter(SmState.Wait);       // Next state is Waiting (delay)
-        waitCounter = 2 * inFreq;     // Delay time is 2 seconds
-        break;
-
-      // ---------------------------------------------------------------------
-      case CheckTwitter:              // Looking for any Twitter
-      // ---------------------------------------------------------------------
-        // Get all management data for the external Twitter
-        // followed by monFollower
-        waitCounter--;
-        if(waitCounter > 0)
+          // If there is no error, we inform about the network
+          // and start configuration of twitter
+          //
+          smBaseState = SmBaseState.Init;     // This is for the world outside
+          infoMsg = devTwitter.resultMsg;     // This for the display
+          smh.enter(SmState.ConfigTwitter);   // next in configuration state
           break;
 
 
-        //tmpInt = monFollower.deviceCount();
-        //info.print("Anzahl Geräte = " + tmpInt);
-        tmpInt = monFollower.twitterCount();
-        info.print("Anzahl unterschiedlicher Twitter = " + tmpInt);
-        waitCounter = inFreq;
-        break;
+        // ---------------------------------------------------------------------
+        case ConfigTwitter:                        // Configuration of Twitter
+        // ---------------------------------------------------------------------
 
-      // ---------------------------------------------------------------------
-      case Error:                         // Error (severe)
-      // ---------------------------------------------------------------------
-        // In this example, the state machine will stay in error state
-        // until power supply is switched off (or reset is done)
-        //
-        if(oneShot)
-        {
-          info.print(infoMsg);      // Display error message
-          oneShot = false;    // But only once
-        }
-        break;
+          // -------------------------------------------------------------------
+          // Setting meta data (or static data), which will change not so often
+          //
+
+          devTwitter.applicationKey = 0;
+          // application key marks the usage of a device in a device overlapping
+          // application e.g. regulation circuit with several inkluded devices
+          // (0 = not used)
+
+          devTwitter.deviceKey = SocManNet.getSmallDeviceId();
+          // the device key ist the individualisation of the device and could be
+          // something like the serial number
+
+          devTwitter.deviceState = SocManNet.DeviceState.Run.ordinal();
+          // device state describes a kind of physical status
+          // (operable, defect, need maintenance, etc.)
+
+          devTwitter.deviceName = "Android SP1";
+          // device Name may also used for a kind of individualisation
+          // but it cannot replace device key, because device key is used
+          // by special class FollowMultDev when receiving messages
+
+          devTwitter.posX = 1111;
+          devTwitter.posY = 2345;
+          devTwitter.posZ = 22;
+          // Position of device in local coordinates, resolution is centimeter
+          // there will be tools in future to configure devices and setting the
+          // local position is a matter of configuration.
+          // Mobile devices will have to change the content of these variables
+          // when beeing moved.
+
+          devTwitter.baseState = SmBaseState.Init.ordinal();
+          // This is the status of the state machine presented to the world
+          // it will be changed by the state machine
+          // the base state is used to synchronise the behaviour of many devices
+          // of the same kind to achieve group activities for commonly working
+          // on the same task
+
+          devTwitter.baseMode = 34;
+          // In the base mode variable, a device tells the environment, what its
+          // plan is for the next step. The combination of base state and base mode
+          // tells the environment the process movement of a device.
+
+          // --------------------------------------------------------------------
+          // Setting process data, which depends on observations and calculations
+          // The structure is defined with the initialisation of Twitter
+          // The values are initialised here.
+          // The real content depends on the application and will be set
+          // whenever the application creates a new value (see state Simulation).
+
+          devTwitter.setIntValue(0, simInt01);
+          devTwitter.setIntValue(1, simInt02);
+          devTwitter.setIntValue(2, simInt03);
+
+          devTwitter.setFloatValue(0, simFloat01);
+          devTwitter.setFloatValue(1, simFloat02);
+
+          devTwitter.setTextValue(0, simText01);
+
+          devTwitter.enabled = true;    // Twitter may be started after
+          // configuration
+
+          smh.enter(SmState.InitFollower);
+          break;
+
+        // ---------------------------------------------------------------------
+        case InitFollower:              // Initialisation of Follower
+        // ---------------------------------------------------------------------
+
+          FollowMultDev.monitorMode = true;
+          // Special use as monitor setting in static variable
+
+          monFollower = new FollowMultDev("Monitor");
+          // Name is not relevant
+
+          // If there is an error with initialisation of follower
+          // we will go to error state with the next timer tick
+          //
+          if (monFollower.errorCode != 0)
+          {
+            infoMsg = monFollower.errorMsg;   // to be displayed
+            oneShot = true;
+            smh.enter(SmState.Error);          // next in error state
+            break;
+          }
+
+          monFollower.enabled = true;
+          ipVal.print(SocManNet.localIP);
+          macVal.print(SocManNet.localMAC);
+          loopDevIdx = 0;
+          smh.setTimeOut(1000);
+          smh.enter(SmState.Evaluate);    // Next state is Waiting and Display
+          break;
+
+        // ---------------------------------------------------------------------
+        case Evaluate:                  // Evaluate Follower
+        // ---------------------------------------------------------------------
+          // Get all management data for the external Twitter
+          // followed by devFollower
+
+          dut = monFollower.getDevice(loopDevIdx);
+          // getDevice liefert null, wenn Idx zu groß für die Liste
+          if (dut == null)
+          {
+            loopDevIdx = 0;
+            nrOfTwitters = monFollower.deviceCount();
+            // Anzahl der im Netz befindlichen Twitter
+            // Die inzwischen ausgeschalteten werden mitgezählt, weil die Liste bleibt
+            if (lastNrOfTwitters != nrOfTwitters)
+            {
+              lastNrOfTwitters = nrOfTwitters;
+              nrTwitVal.print("" + nrOfTwitters);
+            }
+            break;
+          }
+
+          inputTimeOut = monFollower.deviceInputLag(loopDevIdx) > 1500;
+          if (inputTimeOut)
+            currentInfStatus = lsDevIdTwitter.infoStatIdxTimeOut;
+          else
+            currentInfStatus = lsDevIdTwitter.infoStatIdxOk;
+
+          lsDevIdTwitter.addOrReplace
+              (dut.deviceKey + " / " + dut.twitterName, loopDevIdx, currentInfStatus);
+
+          lsTwitPduNumber.addOrReplace("" + dut.pduCount, loopDevIdx, currentInfStatus);
+
+          lsDevMacAdr.addOrReplace(dut.macAdrStr,loopDevIdx,currentInfStatus);
+          lsDevIpAdr.addOrReplace(dut.ipAdrStr,loopDevIdx,currentInfStatus);
+          lsDevId.addOrReplace("" + dut.deviceKey,loopDevIdx,currentInfStatus);
+          lsDevName.addOrReplace(dut.deviceName,loopDevIdx,currentInfStatus);
+          lsDevPos.addOrReplace
+              ("x=" + dut.posX + " y=" + dut.posY + " z=" + dut.posZ, loopDevIdx, currentInfStatus);
+          lsDevBasMod.addOrReplace("" + dut.baseMode, loopDevIdx, currentInfStatus);
+          lsDevBasStat.addOrReplace("" + dut.baseState, loopDevIdx, currentInfStatus);
+          lsDevLostPdu.addOrReplace(""+dut.lostPduCount, loopDevIdx, currentInfStatus);
+          
+          if (smh.timeOut())
+          {
+            if (smh.oneShot())
+              LabSpinner.clearAnySelected();
+            if (newSelectedDevIdx >= 0)
+              lastSelectedDevIdx = newSelectedDevIdx;
+            int newSelection = LabSpinner.getLastNewSelectedPos();
+            if (newSelection >= 0)
+            {
+              newSelectedDevIdx = newSelection;
+              LabSpinner.setAllSelections(newSelectedDevIdx);
+              smh.setOneShot();
+              smh.setTimeOut(2000);
+            } else
+              smh.setTimeOut(1000);
+          }
+
+          loopDevIdx++;
+          break;
+
+        // ---------------------------------------------------------------------
+        case CheckTwitter:              // Looking for any Twitter
+        // ---------------------------------------------------------------------
+          // Get all management data for the external Twitter
+          // followed by monFollower
+          waitCounter--;
+          if (waitCounter > 0)
+            break;
+
+
+          //tmpInt = monFollower.deviceCount();
+          //info.print("Anzahl Twitter gesamt = " + tmpInt);
+          //tmpInt = monFollower.twitterCount();
+          //info.print("Anzahl unterschiedlicher Twitter = " + tmpInt);
+          waitCounter = inFreq;
+          break;
+
+        // ---------------------------------------------------------------------
+        case Error:                         // Error (severe)
+        // ---------------------------------------------------------------------
+          // In this example, the state machine will stay in error state
+          // until power supply is switched off (or reset is done)
+          //
+          break;
+      }
     }
 
-
+    smh.end();
   }
 
 

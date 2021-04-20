@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">SMN Monitor</string>
     <string name="devTitle">SMN Monitoring</string>
+    <string name="devIdTwitter">Device-ID/Twitter</string>
 </resources>

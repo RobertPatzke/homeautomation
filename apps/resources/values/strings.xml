@@ -22,4 +22,7 @@
     <string name="posY" translatable="false">PosY (cm)</string>
     <string name="posZ" translatable="false">PosZ (cm)</string>
     <string name="setVal" translatable="false">S E T</string>
+    <string name="nrTwitDev">Anzahl der Twitter</string>
+    <string name="monHeader">Twitter-Details und -Auswahl</string>
+    <string name="twitPduNumber" translatable="false">Twitter Pdu No.</string>
 </resources>

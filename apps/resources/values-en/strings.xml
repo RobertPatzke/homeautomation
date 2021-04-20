@@ -14,4 +14,6 @@
     <string name="devTimeOut">Cycle Timeout</string>
     <string name="devLostPdu">Lost PDUs</string>
     <string name="selectedDevice">Selected Device</string>
+    <string name="nrTwitDev">Number of Twitters</string>
+    <string name="monHeader">Twitter Details and Selection</string>
 </resources>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="styIntText" parent="TextAppearance.AppCompat">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">25</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">2sp</item>
+        <item name="android:layout_marginTop">1sp</item>
+        <item name="android:layout_marginRight">2sp</item>
+        <item name="android:layout_marginBottom">1sp</item>
+        <item name="android:paddingLeft">0sp</item>
+        <item name="android:paddingTop">0sp</item>
+        <item name="android:paddingRight">0sp</item>
+        <item name="android:paddingBottom">0sp</item>
+        <item name="ItemTextSize">12sp</item>
+        <item name="android:background">@color/cfgInfoViewBG</item>
+        <item name="android:textColor">@color/cfgInfoPageFG</item>
+    </style>
+
+    <style name="styFloatText" parent="TextAppearance.AppCompat">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">25</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">2sp</item>
+        <item name="android:layout_marginTop">1sp</item>
+        <item name="android:layout_marginRight">2sp</item>
+        <item name="android:layout_marginBottom">1sp</item>
+        <item name="android:paddingLeft">0sp</item>
+        <item name="android:paddingTop">0sp</item>
+        <item name="android:paddingRight">0sp</item>
+        <item name="android:paddingBottom">0sp</item>
+        <item name="ItemTextSize">12sp</item>
+        <item name="android:background">@color/cfgInfoViewBG</item>
+        <item name="android:textColor">@color/cfgInfoPageFG</item>
+    </style>
+
+    <style name="styStringText" parent="TextAppearance.AppCompat">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginLeft">2sp</item>
+        <item name="android:layout_marginTop">1sp</item>
+        <item name="android:layout_marginRight">2sp</item>
+        <item name="android:layout_marginBottom">1sp</item>
+        <item name="android:paddingLeft">0sp</item>
+        <item name="android:paddingTop">0sp</item>
+        <item name="android:paddingRight">0sp</item>
+        <item name="android:paddingBottom">0sp</item>
+        <item name="ItemTextSize">12sp</item>
+        <item name="android:background">@color/cfgInfoViewBG</item>
+        <item name="android:textColor">@color/cfgInfoPageFG</item>
+    </style>
+
+</resources>

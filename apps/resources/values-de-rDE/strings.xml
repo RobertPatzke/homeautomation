@@ -14,4 +14,6 @@
     <string name="devTimeOut">Zyklusfehler</string>
     <string name="devLostPdu">PDU-Verluste</string>
     <string name="selectedDevice">Ausgewähltes Gerät</string>
+    <string name="nrTwitDev">Anzahl der Twitter</string>
+    <string name="monHeader">Twitter-Details und -Auswahl</string>
 </resources>

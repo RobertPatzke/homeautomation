@@ -579,6 +579,7 @@ void ConfigDev::smStartPOS()
   // Set Twitter for POS configuration
   //
   twPtr->baseState = cmPOS;             // set base state
+  cfgState = csStartPOS;
 
   twPtr->posX = cfmPtr->getPos(0);
   twPtr->posY = cfmPtr->getPos(1);
@@ -598,21 +599,15 @@ void ConfigDev::smWaitPOS()
 
   if(stmPtr->firstEnter())
   {
-  }
-
 #ifdef DebConfigDev
     if(stmPtr->oneShot())
       smnSerial.println("CD:WaitPOS");
 #endif
+  }
 
   updateFollower();               // get all follower data
 
   chkLogic = foPtr->anyNewPdu();
-
-#ifdef DebConfigDev
-  if(chkLogic)
-    smnSerial.println("NewPdu");
-#endif
 
   if(!chkLogic)         // if there is no new pdu
   {
@@ -620,20 +615,15 @@ void ConfigDev::smWaitPOS()
     return;
   }
 
-#ifdef DebConfigDev
-  smnSerial.println(foPtr->baseMode);
-#endif
 
-  if(foPtr->baseMode == cfgMode)    // new pdu but old mode
+  if(foPtr->baseState == cfgState)  // new pdu but old mode
     return;                         // nothing to do
 
-#ifdef DebConfigDev
-  smnSerial.println(foInt1.value);
-#endif
 
   if(foInt1.value != twPtr->getDeviceKey()) // wrong configurator
     return;
 
+  cfgState = foPtr->baseState;
   NEXT(smProgPOS)
 
 }

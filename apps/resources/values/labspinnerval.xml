@@ -11,11 +11,11 @@
         <item name="SpinBgColor">@color/cfgInfoViewBG</item>
         <item name="SpinTextGravity">left</item>
         <item name="SpinTextPadding">2sp</item>
-        <item name="SpinTextSize">12sp</item>
+        <item name="SpinTextSize">16sp</item>
         <item name="ItemBgColor">@color/cfgInfoViewBG</item>
         <item name="ItemTextGravity">left</item>
         <item name="ItemTextPadding">2sp</item>
-        <item name="ItemTextSize">12sp</item>
+        <item name="ItemTextSize">18sp</item>
         <item name="LabSpinStatValues">@array/LabSpinStatValueArray</item>
         <item name="LabSpinStatColors">@array/LabSpinStatColorArray</item>
         <item name="LabSpinStatStrings">@array/LabSpinStatStringArray</item>

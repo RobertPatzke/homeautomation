@@ -267,6 +267,35 @@ public class FollowMultDev
       return(dev);
     }
 
+    public DeviceDHA getDevice(int devKey, String twitter)
+    {
+      DeviceDHA dev;
+
+      if(itemList.isEmpty())
+      {
+        dev = new DeviceDHA();
+        dev.deviceKey = devKey;
+        dev.twitterName = twitter;
+        itemList.add(dev);
+        return (dev);
+      }
+
+      int nrOfItems = itemList.size();
+
+      for (int i = 0; i < nrOfItems; i++)
+      {
+        dev = itemList.get(i);
+        if(dev.deviceKey == devKey && dev.twitterName.equals(twitter))
+          return(dev);
+      }
+
+      dev = new DeviceDHA();
+      dev.deviceKey = devKey;
+      dev.twitterName = twitter;
+      itemList.add(dev);
+      return(dev);
+    }
+
     public DeviceDHA item(int idx)
     {
       if(idx < 0 || idx >= itemList.size())
@@ -329,22 +358,21 @@ public class FollowMultDev
 
   public void handleInput(String[] header, String[] elements)
   {
-    int   intIdx, floatIdx, textIdx, elementIdx, deviceKey;
+    int       intIdx, floatIdx, textIdx, elementIdx, deviceKey;
+    String    twitter;
+    DeviceDHA dev;
 
     deviceKey       = Integer.parseInt(elements[SocManNet.pduElDevKey]);
-    DeviceDHA dev   = deviceList.getDevice(deviceKey);
-
-    dev.recTime     = elapsedRealtime();
-    dev.macAdrStr   = new String(header[SocManNet.pduHdMac]);
-    dev.ipAdrStr    = new String(header[SocManNet.pduHdIp]);
+    twitter         = new String(header[SocManNet.pduHdObject]);
     if(monitorMode)
-    {
-      dev.twitterName = new String(header[SocManNet.pduHdObject]);
-      if(monTwitterList == null)
-        monTwitterList = new MonTwitterList();
-      monTwitterList.add(dev);
-    }
+      dev = deviceList.getDevice(deviceKey,twitter);
+    else
+      dev = deviceList.getDevice(deviceKey);
 
+
+    dev.recTime       = elapsedRealtime();
+    dev.macAdrStr     = new String(header[SocManNet.pduHdMac]);
+    dev.ipAdrStr      = new String(header[SocManNet.pduHdIp]);
     dev.lastPduCount  = dev.pduCount;
     dev.pduCount      = Integer.parseInt(header[SocManNet.pduHdCount]);
 
@@ -363,6 +391,13 @@ public class FollowMultDev
         dev.lastPduCount = 0;
       }
       dev.lostPduCount += dev.pduCount - dev.lastPduCount - 1;
+    }
+
+    if(monitorMode)
+    {
+      if(monTwitterList == null)
+        monTwitterList = new MonTwitterList();
+      monTwitterList.add(dev);
     }
 
     dev.intCount    = Integer.parseInt(elements[SocManNet.pduElTwNrInt]);

@@ -13,13 +13,23 @@
 #ifndef _arduinoDefs_h
 #define _arduinoDefs_h
 
+#undef  word
 // ---------------------------------------------------------------------------
 // Simple type definitions
 // ---------------------------------------------------------------------------
 //
 #ifndef byte
-  #define byte      unsigned char
+  typedef unsigned char byte;
 #endif
+
+#ifndef word
+  typedef unsigned short word;
+#endif
+
+#ifndef dword
+  typedef unsigned long  dword;
+#endif
+
 
 // ---------------------------------------------------------------------------
 // Complex type definitions

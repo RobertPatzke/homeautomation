@@ -299,9 +299,13 @@ public:
 
 
   // -------------------------------------------------------------------------
-  // Anwendervariablen
+  // Debug-Funtionen
   // -------------------------------------------------------------------------
   //
+
+#ifdef smnLoopCheckDebug
+  void dbgGetStatistics(char *buffer, int idxItem);
+#endif
 
 };
 

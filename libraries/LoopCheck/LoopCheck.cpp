@@ -571,6 +571,9 @@
     periodMicros            = 0;
     periodFailAlarm         = false;
 
+    for (int i = 0; i < LoopScreeningGrades; i++)
+      loopScreening[i] = 0;
+
     calcAvgCounter          = 0;
   }
 
@@ -747,3 +750,27 @@
   // Debug-Funktionen
   // -------------------------------------------------------------------------
   //
+#ifdef smnLoopCheckDebug
+
+  void LoopCheck::dbgGetStatistics(char *buffer, int idxItem)
+  {
+    switch(idxItem)
+    {
+      case 0:
+        sprintf(buffer,"lT=%d, lMaxT=%d, lMinT=%d, lAvgT=%d",
+            loopMicros,loopMaxMicros,loopMinMicros,loopAvgMicros);
+        break;
+
+      case 1:
+        sprintf(buffer,"bT=%d, bMaxT=%d, bMinT=%d, bAvgT=%d",
+            backgroundMicros,backgroundMaxMicros,backgroundMinMicros,backgroundAvgMicros);
+        break;
+
+      case 2:
+        sprintf(buffer,"rtAlCnt=%d, lCnt=%d, Scr=%d,%d,%d,%d,%d,%d",
+            periodFailCount, loopCounter, loopScreening[0],loopScreening[1],loopScreening[2],loopScreening[3],loopScreening[4],loopScreening[5]);
+        break;
+    }
+  }
+
+#endif

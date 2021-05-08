@@ -61,6 +61,14 @@
     #define smnSerial Serial
   #endif
 
+  #ifdef smnNANOBLE33
+    #define smnDebugArduino
+    #define smnSloeber
+    #define smnArduinoNanoBLE33
+    #define smnNRF52840
+    #define smnSerial Serial
+  #endif
+
 #else
 
 // Die Definitionen werden hier in den meisten Fällen grundsetzlich ausgewertet,

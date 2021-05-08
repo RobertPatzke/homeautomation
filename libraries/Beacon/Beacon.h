@@ -19,6 +19,7 @@
 // ----------------------------------------------------------------------------
 
 #include "arduinoDefs.h"
+#include "bleSpec.h"
 
 // Datenstruktur für das zu sendende Telegramm
 //
@@ -48,15 +49,26 @@ typedef struct _measBase
   word  meas[12];   // Liste/Array der Messwerte
 } measBase, *measBasePtr;
 
-// Datentypen (type in measBase)
+// Datentypen (type in measBase) bzw. Beacontypen
+// Bei Beacons von anderen Autoren (z.B. iBeacon oder Eddystone) ist die
+// Datenstruktur spezifisch und der Typ des Beacon kann beim Empfang nicht
+// über das Element measBase.type ermittelt werden.
 //
-#define mbtSimple   0
-// eine einfache Liste von Messwerten
+typedef enum _mbcType
+{
+  iBeacon,            // von Apple definiert, Datenstruktur im Internet
+  eddy,               // von Google definiert, Datenstruktur im Internet
+  mbcBasic,           // zyklische Messwertübertragung, no scan, no connection
+  mbcPlus             // zyklische Messw.. mit Nachfrage (scan)
+} mbcType, *mbcTypePtr;
 
-// Zuordnung/Verteilung der Daten (id in measBase)
+// Identifikator für die Art der Daten
 //
-#define mbiExtern   0
-// Die Bedeutung/Zuordnung wird in den Anwendungen festgelegt
+typedef enum _measId
+{
+  app                 // Gestaltung/Bedeutung der Daten aus Anwendung
+} measId, *measIdPtr;
+
 
 
 // ----------------------------------------------------------------------------
@@ -78,13 +90,13 @@ private:
 
 public:
   // --------------------------------------------------------------------------
-  // Initialisierungen des Beacon
+  // Initialisierungen
   // --------------------------------------------------------------------------
 
-  Beacon();
+  Beacon(mbcType type, measId id);
 
   // --------------------------------------------------------------------------
-  // Konfiguration des Beacon
+  // Konfiguration
   // --------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------

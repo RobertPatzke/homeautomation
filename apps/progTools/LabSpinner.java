@@ -233,12 +233,12 @@ public class LabSpinner extends FrameLayout
     // -----------------------------------------------------------------------
     spinner = (Spinner) view.findViewById(R.id.spLabSpinner);
     // -----------------------------------------------------------------------
-    float dist = a.getDimension(R.styleable.LabSpinner_LabSpinPos, 0);
-    if(dist < 0.1) dist = 40;
-    MarginLayoutParams mlp = (MarginLayoutParams) spinner.getLayoutParams();
-    mlp.leftMargin = (int) (dist/dpRatio);
+    //float dist = a.getDimension(R.styleable.LabSpinner_LabSpinPos, 0);
+    //if(dist < 0.1) dist = 40;
+    //MarginLayoutParams mlp = (MarginLayoutParams) spinner.getLayoutParams();
+    //mlp.leftMargin = (int) (dist/dpRatio);
     //mlp.leftMargin = (int) dist; Exception
-    spinner.setLayoutParams(mlp);
+    //spinner.setLayoutParams(mlp);
 
     if(useExtraAdapter)
     {

@@ -28,7 +28,8 @@
             android:layout_width="110sp"
             android:layout_height="wrap_content"
             android:textAlignment="center"
-            android:text="@string/ipAdr"/>
+            android:text="@string/ipAdr"
+            android:gravity="center_horizontal" />
 
         <TextView
             android:id="@+id/tvThisDevIpVal"
@@ -37,7 +38,8 @@
             android:layout_below="@id/tvThisDevIpLab"
             android:textAlignment="center"
             android:background="@color/cfgInfoViewBG"
-            android:text="123.456.789.001" />
+            android:text="123.456.789.001"
+            android:gravity="center_horizontal" />
 
         <TextView
             android:id="@+id/tvThisDevMacLab"
@@ -57,7 +59,8 @@
             android:layout_marginLeft="10sp"
             android:textAlignment="center"
             android:background="@color/cfgInfoViewBG"
-            android:text="50-3F-88-66-F7-01" />
+            android:text="50-3F-88-66-F7-01"
+            android:gravity="center_horizontal" />
 
         <TextView
             android:id="@+id/tvMonTwitCntLab"
@@ -68,7 +71,9 @@
             android:lines="2"
             android:layout_toLeftOf="@id/tvMonTwitCntVal"
             android:text="@string/nrTwitDev"
-            android:textAlignment="textEnd" />
+            android:textAlignment="textEnd"
+            android:layout_marginRight="10sp"
+            android:gravity="end" />
 
         <TextView
             android:id="@+id/tvMonTwitCntVal"
@@ -80,7 +85,10 @@
             android:layout_marginEnd="0sp"
             android:textSize="22sp"
             android:textAlignment="center"
-            android:text="10"/>
+            android:text="10"
+            android:layout_alignParentRight="true"
+            android:layout_marginRight="0sp"
+            android:gravity="center_horizontal" />
 
     </RelativeLayout>
 
@@ -90,173 +98,201 @@
         android:layout_marginTop="0sp"
         android:textSize="22sp"
         android:textAlignment="center"
-        android:text="@string/monHeader"/>
+        android:text="@string/monHeader"
+        android:gravity="center_horizontal" />
 
     <hsh.mplab.progtools.LabSpinner
         android:id="@+id/lsDevIdTwitter"
-        style="@style/labSpinnerParams"
+        style="@style/labSpinnerParamsHandy"
         cust:LabText="@string/devIdTwitter"/>
 
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsTwitPduNumber"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/twitPduNumber"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevIpAdr"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/ipAdr"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevMacAdr"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/macAdr"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevName"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/devName"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevId"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/devId"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevPos"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/devPos"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevBasStat"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/devBasStat"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevBasMod"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/devBasMod"/>
-
-    <hsh.mplab.progtools.LabSpinner
-        android:id="@+id/lsDevLostPdu"
-        style="@style/labSpinnerParams"
-        cust:LabText="@string/devLostPdu"/>
-
-    <TextView
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6sp"
-        android:textSize="12sp"
-        android:textAlignment="center"
-        android:text="Integer 1-4"/>
-
+        android:layout_height="match_parent">
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tvTwInt1"
-            style="@style/styIntText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-        <TextView
-            android:id="@+id/tvTwInt2"
-            style="@style/styIntText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-        <TextView
-            android:id="@+id/tvTwInt3"
-            style="@style/styIntText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-        <TextView
-            android:id="@+id/tvTwInt4"
-            style="@style/styIntText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-    </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6sp"
-        android:textSize="12sp"
-        android:textAlignment="center"
-        android:text="Float 1-4"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/tvTwFloat1"
-            style="@style/styFloatText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-        <TextView
-            android:id="@+id/tvTwFloat2"
-            style="@style/styFloatText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-        <TextView
-            android:id="@+id/tvTwFloat3"
-            style="@style/styFloatText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-        <TextView
-            android:id="@+id/tvTwFloat4"
-            style="@style/styFloatText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
-
-    </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6sp"
-        android:textSize="12sp"
-        android:textAlignment="center"
-        android:text="String 1-4"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvTwString1"
-            style="@style/styStringText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsTwitPduNumber"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/twitPduNumber"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevIpAdr"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/ipAdr"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevMacAdr"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/macAdr"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevName"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/devName"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevId"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/devId"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevPos"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/devPos"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevBasStat"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/devBasStat"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevBasMod"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/devBasMod"/>
+
+        <hsh.mplab.progtools.LabSpinner
+            android:id="@+id/lsDevLostPdu"
+            style="@style/labSpinnerParamsHandy"
+            cust:LabText="@string/devLostPdu"/>
 
         <TextView
-            android:id="@+id/tvTwString2"
-            style="@style/styStringText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6sp"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:text="Integer 1-4"
+            android:gravity="center_horizontal" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvTwInt1"
+                style="@style/styIntText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwInt2"
+                style="@style/styIntText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwInt3"
+                style="@style/styIntText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwInt4"
+                style="@style/styIntText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/tvTwString3"
-            style="@style/styStringText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6sp"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:text="Float 1-4"
+            android:gravity="center_horizontal" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvTwFloat1"
+                style="@style/styFloatText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwFloat2"
+                style="@style/styFloatText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwFloat3"
+                style="@style/styFloatText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwFloat4"
+                style="@style/styFloatText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/tvTwString4"
-            style="@style/styStringText"
-            android:textAlignment="textStart"
-            android:text="1234567"/>
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6sp"
+            android:textSize="12sp"
+            android:textAlignment="center"
+            android:text="String 1-4"
+            android:gravity="center_horizontal" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvTwString1"
+                style="@style/styStringText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwString2"
+                style="@style/styStringText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwString3"
+                style="@style/styStringText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+            <TextView
+                android:id="@+id/tvTwString4"
+                style="@style/styStringText"
+                android:textAlignment="textStart"
+                android:text="1234567"
+                android:gravity="start" />
+
+        </LinearLayout>
 
     </LinearLayout>
+
+    </ScrollView>
 
 </LinearLayout>

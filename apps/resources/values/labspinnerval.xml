@@ -1,7 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="labSpinnerParams" parent="TextAppearance.AppCompat">
+    <style name="labSpinnerParamsTablet" parent="TextAppearance.AppCompat">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">10sp</item>
+        <item name="LabColor">@color/cfgInfoPageFG</item>
+        <item name="LabSize">12sp</item>
+        <item name="LabSpinPos">200sp</item>
+        <item name="SpinBgColor">@color/cfgInfoViewBG</item>
+        <item name="SpinTextGravity">left</item>
+        <item name="SpinTextPadding">1sp</item>
+        <item name="SpinTextSize">12sp</item>
+        <item name="ItemBgColor">@color/cfgInfoViewBG</item>
+        <item name="ItemTextGravity">left</item>
+        <item name="ItemTextPadding">1sp</item>
+        <item name="ItemTextSize">12sp</item>
+        <item name="LabSpinStatValues">@array/LabSpinStatValueArray</item>
+        <item name="LabSpinStatColors">@array/LabSpinStatColorArray</item>
+        <item name="LabSpinStatStrings">@array/LabSpinStatStringArray</item>
+        <item name="LabSpinIdxDefault">@integer/InfoStatIdxDefault</item>
+        <item name="LabSpinIdxOk">@integer/InfoStatIdxOk</item>
+        <item name="LabSpinIdxTimeOut">@integer/InfoStatIdxTimeOut</item>
+        <item name="LabSpinIdxError">@integer/InfoStatIdxError</item>
+    </style>
+
+    <style name="labSpinnerParamsHandy" parent="TextAppearance.AppCompat">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">10sp</item>

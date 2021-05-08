@@ -8,6 +8,7 @@
 //
 
 #include "nRF52840Radio.h"
+#include <string.h>
 
 // ----------------------------------------------------------------------------
 // Initialisierungen
@@ -23,6 +24,8 @@ nRF52840Radio::nRF52840Radio()
 // Steuerfunktionen und Prozessorzugriffe
 // ----------------------------------------------------------------------------
 
+// Schalten des Bewerbungskanals
+//
 void nRF52840Radio::advChannel(int idx)
 {
   int deltaF = 0;
@@ -42,4 +45,11 @@ void nRF52840Radio::advChannel(int idx)
       break;
   }
   NrfRadioPtr->FREQUENCY = deltaF;
+}
+
+// Senden eines Telegramms
+//
+void nRF52840Radio::send(bcPduPtr inPduPtr)
+{
+  memcpy((void *)pduMem, (const void *)inPduPtr, (unsigned int) sizeof(bcPdu));
 }

@@ -47,7 +47,8 @@
 #define DevAdrType  0x2
 
 // Telegrammkopf ohne Längenbyte
-#define HeadS0BC    ((ADV_NONCONN_IND << 4) | DevAdrType)
+#define HeadS0B     ((ADV_NONCONN_IND << 4) | DevAdrType)
+#define HeadS0BS    ((ADV_SCAN_IND << 4) | DevAdrType)
 
 // ----------------------------------------------------------------------------
 #endif  // bleSpec_h

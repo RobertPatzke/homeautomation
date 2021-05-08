@@ -14,4 +14,42 @@
 // Daten (iBeacon, Eddystone, etc.) wie auch Messwerte versendet werden.
 //
 
+#include "Beacon.h"
+
+  // --------------------------------------------------------------------------
+  // Initialisierungen
+  // --------------------------------------------------------------------------
+
+  Beacon::Beacon(mbcType type, measId id)
+  {
+    switch(type)
+    {
+      case iBeacon:
+      case eddy:
+        break;
+
+      case mbcBasic:
+        pdu.head = HeadS0B;
+        ((measBasePtr)pdu.data)->type = type;
+        break;
+
+      case mbcPlus:
+        ((measBasePtr)pdu.data)->type = type;
+        pdu.head = HeadS0BS;
+        break;
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // Konfiguration
+  // --------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------
+  // Steuerung des Beacon
+  // --------------------------------------------------------------------------
+  //
+  void Beacon::start()
+  {
+
+  }
 

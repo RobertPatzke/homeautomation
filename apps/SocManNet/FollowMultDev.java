@@ -226,9 +226,9 @@ public class FollowMultDev
     public int      baseState;
     public int      baseMode;
 
-    int[]       intArray;
-    float[]     floatArray;
-    String[]    stringArray;
+    public int[]       intArray;
+    public float[]     floatArray;
+    public String[]    stringArray;
   }
 
   public class DeviceList

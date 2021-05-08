@@ -1,8 +1,11 @@
 package hsh.mplab.monitorsmn;
 
-import androidx.appcompat.app.AppCompatActivity;
+//import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
+
+
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
 
 import java.util.Timer;
@@ -76,37 +79,55 @@ public class MainActivity extends AppCompatActivity
   // -------------------------------------------------------------------------
   //
   RouiText    ipVal, macVal, nrTwitVal;
+  RouiText[]  twInt = new RouiText[4];
+  RouiText[]  twFloat = new RouiText[4];
+  RouiText[]  twString = new RouiText[4];
   LabSpinner  lsDevIdTwitter, lsTwitPduNumber;
   LabSpinner  lsDevIpAdr, lsDevMacAdr, lsDevName, lsDevId, lsDevPos,
               lsDevBasStat, lsDevBasMod, lsDevLostPdu;
 
   private void graphInit()
   {
-    ipVal     = new RouiText(this, findViewById(R.id.tvThisDevIpVal));
-    macVal    = new RouiText(this, findViewById(R.id.tvThisDevMacVal));
-    nrTwitVal = new RouiText(this, findViewById(R.id.tvMonTwitCntVal));
+    ipVal     = new RouiText(this, (TextView) findViewById(R.id.tvThisDevIpVal));
+    macVal    = new RouiText(this, (TextView) findViewById(R.id.tvThisDevMacVal));
+    nrTwitVal = new RouiText(this, (TextView) findViewById(R.id.tvMonTwitCntVal));
 
-    lsDevIdTwitter = findViewById(R.id.lsDevIdTwitter);
+    twInt[0]    = new RouiText(this, (TextView) findViewById(R.id.tvTwInt1));
+    twInt[1]    = new RouiText(this, (TextView) findViewById(R.id.tvTwInt2));
+    twInt[2]    = new RouiText(this, (TextView) findViewById(R.id.tvTwInt3));
+    twInt[3]    = new RouiText(this, (TextView) findViewById(R.id.tvTwInt4));
+
+    twFloat[0]  = new RouiText(this, (TextView) findViewById(R.id.tvTwFloat1));
+    twFloat[1]  = new RouiText(this, (TextView) findViewById(R.id.tvTwFloat2));
+    twFloat[2]  = new RouiText(this, (TextView) findViewById(R.id.tvTwFloat3));
+    twFloat[3]  = new RouiText(this, (TextView) findViewById(R.id.tvTwFloat4));
+
+    twString[0] = new RouiText(this, (TextView) findViewById(R.id.tvTwString1));
+    twString[1] = new RouiText(this, (TextView) findViewById(R.id.tvTwString2));
+    twString[2] = new RouiText(this, (TextView) findViewById(R.id.tvTwString3));
+    twString[3] = new RouiText(this, (TextView) findViewById(R.id.tvTwString4));
+
+    lsDevIdTwitter = (LabSpinner) findViewById(R.id.lsDevIdTwitter);
     lsDevIdTwitter.addToList();
 
-    lsTwitPduNumber = findViewById(R.id.lsTwitPduNumber);
+    lsTwitPduNumber = (LabSpinner) findViewById(R.id.lsTwitPduNumber);
     lsTwitPduNumber.addToList();
 
-    lsDevIpAdr    = findViewById(R.id.lsDevIpAdr);
+    lsDevIpAdr    = (LabSpinner) findViewById(R.id.lsDevIpAdr);
     lsDevIpAdr.addToList();
-    lsDevMacAdr   = findViewById(R.id.lsDevMacAdr);
+    lsDevMacAdr   = (LabSpinner) findViewById(R.id.lsDevMacAdr);
     lsDevMacAdr.addToList();
-    lsDevName     = findViewById(R.id.lsDevName);
+    lsDevName     = (LabSpinner) findViewById(R.id.lsDevName);
     lsDevName.addToList();
-    lsDevId       = findViewById(R.id.lsDevId);
+    lsDevId       = (LabSpinner) findViewById(R.id.lsDevId);
     lsDevId.addToList();
-    lsDevPos      = findViewById(R.id.lsDevPos);
+    lsDevPos      = (LabSpinner) findViewById(R.id.lsDevPos);
     lsDevPos.addToList();
-    lsDevBasStat  = findViewById(R.id.lsDevBasStat);
+    lsDevBasStat  = (LabSpinner) findViewById(R.id.lsDevBasStat);
     lsDevBasStat.addToList();
-    lsDevBasMod   = findViewById(R.id.lsDevBasMod);
+    lsDevBasMod   = (LabSpinner) findViewById(R.id.lsDevBasMod);
     lsDevBasMod.addToList();
-    lsDevLostPdu  = findViewById(R.id.lsDevLostPdu);
+    lsDevLostPdu  = (LabSpinner) findViewById(R.id.lsDevLostPdu);
     lsDevLostPdu.addToList();
 
 
@@ -135,8 +156,8 @@ public class MainActivity extends AppCompatActivity
 
   private void timerSmnInit()
   {
-    long smnTimerPeriod = 10;       // repetition time in milliseconds
-    long smnTimerStartDelay = 500;  // start delay in milliseconds
+    long smnTimerPeriod = 10;         // repetition time in milliseconds
+    long smnTimerStartDelay = 2000;  // start delay in milliseconds
     // Expecting some time extra for creating
     // all graphics we simply wait
 
@@ -207,6 +228,9 @@ public class MainActivity extends AppCompatActivity
 
   // Variables (management structures) used for the Follower application
   //
+  IntegerValueList  intMan1, intMan2, intMan3, intMan4;           // Management structures for
+  FloatValueList    floatMan1, floatMan2, floatMan3, floatMan4;   // receiving 4 Integer variables,
+  TextValueList     textMan1, textMan2, textMan3, textMan4;       // 4 Float and 4 Text
 
 
   // Variables used in different states
@@ -309,7 +333,8 @@ public class MainActivity extends AppCompatActivity
           // the device key ist the individualisation of the device and could be
           // something like the serial number
 
-          devTwitter.deviceState = SocManNet.DeviceState.Run.ordinal();
+          devTwitter.deviceState = 1;
+
           // device state describes a kind of physical status
           // (operable, defect, need maintenance, etc.)
 
@@ -382,6 +407,21 @@ public class MainActivity extends AppCompatActivity
             break;
           }
 
+          intMan1   = monFollower.getIntegerValueList(0);
+          intMan2   = monFollower.getIntegerValueList(1);
+          intMan3   = monFollower.getIntegerValueList(2);
+          intMan4   = monFollower.getIntegerValueList(3);
+
+          floatMan1 = monFollower.getFloatValueList(0);
+          floatMan2 = monFollower.getFloatValueList(1);
+          floatMan3 = monFollower.getFloatValueList(3);
+          floatMan4 = monFollower.getFloatValueList(4);
+
+          textMan1  = monFollower.getTextValueList(0);
+          textMan2  = monFollower.getTextValueList(1);
+          textMan3  = monFollower.getTextValueList(2);
+          textMan4  = monFollower.getTextValueList(3);
+
           monFollower.enabled = true;
           ipVal.print(SocManNet.localIP);
           macVal.print(SocManNet.localMAC);
@@ -432,6 +472,28 @@ public class MainActivity extends AppCompatActivity
           lsDevBasMod.addOrReplace("" + dut.baseMode, loopDevIdx, currentInfStatus);
           lsDevBasStat.addOrReplace("" + dut.baseState, loopDevIdx, currentInfStatus);
           lsDevLostPdu.addOrReplace(""+dut.lostPduCount, loopDevIdx, currentInfStatus);
+
+          if(loopDevIdx == newSelectedDevIdx)
+          {
+            for(int i = 0; i < 4; i++)
+            {
+              if(i < dut.intCount)
+                twInt[i].print(""+dut.intArray[i]);
+              else
+                twInt[i].print("");
+
+              if(i < dut.floatCount)
+                twFloat[i].print(""+dut.floatArray[i]);
+              else
+                twFloat[i].print("");
+
+              if(i < dut.textCount)
+                twString[i].print(""+dut.stringArray[i]);
+              else
+                twString[i].print("");
+            }
+          }
+
           
           if (smh.timeOut())
           {
@@ -445,9 +507,9 @@ public class MainActivity extends AppCompatActivity
               newSelectedDevIdx = newSelection;
               LabSpinner.setAllSelections(newSelectedDevIdx);
               smh.setOneShot();
-              smh.setTimeOut(2000);
-            } else
               smh.setTimeOut(1000);
+            } else
+              smh.setTimeOut(500);
           }
 
           loopDevIdx++;

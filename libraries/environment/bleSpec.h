@@ -16,6 +16,10 @@
 #define bleSpec_h
 // ----------------------------------------------------------------------------
 
+#ifndef octet
+  typedef unsigned char octet;
+#endif
+
 #define VersionBTS  52
 #define TypeBTS     BLE
 
@@ -34,6 +38,9 @@
 // Zugriffsadresse (Access Address)
 #define AdvAccAddr  0x8E89BED6
 
+// Geräteadresse
+typedef octet  BD_ADR[6];
+
 // Telegrammtypen (PDU Types)
 #define ADV_IND           0x0
 #define ADV_DIRECT_IND    0x1
@@ -49,6 +56,30 @@
 // Telegrammkopf ohne Längenbyte
 #define HeadS0B     ((ADV_NONCONN_IND << 4) | DevAdrType)
 #define HeadS0BS    ((ADV_SCAN_IND << 4) | DevAdrType)
+
+// Datenstruktur für das zu sendende Telegramm
+// bei der Bewerbung (Advertising)
+//
+typedef struct _bcPdu
+{
+  byte  head;       // Header = PDU-Typ und Adresskennung (S0 bei nRF52840)
+  byte  len;        // Länge des Telegramms inkl. Adresse (LENGTH bei nRF52840)
+  byte  adr0;       // niedrigstwertiges Adressbyte (S1 bei nRF52840)
+  byte  adr1;       //
+  byte  adr2;       //      Das ist die Geräteadresse, die hier wahlfrei ist
+  byte  adr3;       //      Sie wird zur Identifikation des Gerätes verwendet
+  byte  adr4;       //
+  byte  adr5;       // höchstwertiges Addressbyte
+  byte  data[31];   // Nutzdaten (maximale Anzahl nach BLE-Spez.)
+} bcPdu, *bcPduPtr;
+
+// Telegrammtypen
+//
+typedef enum  _blePduType
+{
+  bptAdv,           // Standard-Bewerbungstelegramm
+  bptAux
+} blePduType;
 
 // ----------------------------------------------------------------------------
 #endif  // bleSpec_h

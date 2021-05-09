@@ -20,6 +20,13 @@
   // Initialisierungen
   // --------------------------------------------------------------------------
 
+  void Beacon::init01(mbcType type, measId id)
+  {
+    ((measBasePtr)pdu.data)->type = type;
+    ((measBasePtr)pdu.data)->id = id;
+
+  }
+
   Beacon::Beacon(mbcType type, measId id)
   {
     switch(type)
@@ -30,12 +37,12 @@
 
       case mbcBasic:
         pdu.head = HeadS0B;
-        ((measBasePtr)pdu.data)->type = type;
+        init01(type,id);
         break;
 
       case mbcPlus:
-        ((measBasePtr)pdu.data)->type = type;
         pdu.head = HeadS0BS;
+        init01(type,id);
         break;
     }
   }
@@ -43,6 +50,22 @@
   // --------------------------------------------------------------------------
   // Konfiguration
   // --------------------------------------------------------------------------
+  //
+  void Beacon::setDevAddress(BD_ADR bdAdr)
+  {
+    pdu.adr0 = bdAdr[5];
+    pdu.adr1 = bdAdr[4];
+    pdu.adr2 = bdAdr[3];
+    pdu.adr3 = bdAdr[2];
+    pdu.adr4 = bdAdr[1];
+    pdu.adr5 = bdAdr[0];
+  }
+
+  void Beacon::setRadioInterface(IntrfRadio * inRadio)
+  {
+    radio = inRadio;
+    inRadio->sendSync(&pdu);
+  }
 
   // --------------------------------------------------------------------------
   // Steuerung des Beacon

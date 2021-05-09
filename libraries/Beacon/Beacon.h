@@ -20,21 +20,7 @@
 
 #include "arduinoDefs.h"
 #include "bleSpec.h"
-
-// Datenstruktur für das zu sendende Telegramm
-//
-typedef struct _bcPdu
-{
-  byte  head;       // Header = PDU-Typ und Adresskennung (S0 bei nRF52840)
-  byte  len;        // Länge des Telegramms inkl. Adresse (LENGTH bei nRF52840)
-  byte  adr0;       // niedrigstwertiges Adressbyte (S1 bei nRF52840)
-  byte  adr1;       //
-  byte  adr2;       //      Das ist die Geräteadresse, die hier wahlfrei ist
-  byte  adr3;       //      Sie wird zur Identifikation des Gerätes verwendet
-  byte  adr4;       //
-  byte  adr5;       // höchstwertiges Addressbyte
-  byte  data[31];   // Nutzdaten (maximale Anzahl nach BLE-Spez.)
-} bcPdu, *bcPduPtr;
+#include "IntrfRadio.h"
 
 // Datenstrukturen für die Nutzdaten
 // Sie können über eine cast-Anweisung in der Telegrammstruktur
@@ -81,12 +67,14 @@ private:
   // Lokale Daten
   // --------------------------------------------------------------------------
   //
-  bcPdu   pdu;
+  IntrfRadio  *radio;
+  bcPdu       pdu;
 
   // --------------------------------------------------------------------------
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
+  void  init01(mbcType type, measId id);
 
 public:
   // --------------------------------------------------------------------------
@@ -98,6 +86,9 @@ public:
   // --------------------------------------------------------------------------
   // Konfiguration
   // --------------------------------------------------------------------------
+  //
+  void setDevAddress(BD_ADR bdAdr);
+  void setRadioInterface(IntrfRadio * inRadio);
 
   // --------------------------------------------------------------------------
   // Steuerung des Beacon

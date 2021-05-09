@@ -13,6 +13,7 @@
 #include "arduinoDefs.h"
 #include "bleSpec.h"
 #include "Beacon.h"
+#include "IntrfRadio.h"
 
 // ----------------------------------------------------------------------------
 
@@ -116,14 +117,14 @@
 
 // ----------------------------------------------------------------------------
 
-class nRF52840Radio
+class nRF52840Radio : IntrfRadio
 {
 private:
   // --------------------------------------------------------------------------
   // Lokale Daten
   // --------------------------------------------------------------------------
   //
-  volatile  byte  pduMem[256];
+  byte  pduMem[256];
 
   // --------------------------------------------------------------------------
   // Lokale Funktionen
@@ -138,11 +139,18 @@ public:
   nRF52840Radio();
 
   // --------------------------------------------------------------------------
+  // Konfigurationen
+  // --------------------------------------------------------------------------
+  //
+  void  setAccessAddress(dword addr); // Setzen der Zugriffsadresse
+  void  setPacketParms(blePduType type);
+
+  // --------------------------------------------------------------------------
   // Steuerfunktionen
   // --------------------------------------------------------------------------
   //
-  void advChannel(int idx);       // Schalten des Bewerbungskanals (advertizing)
-  void send(bcPduPtr inPduPtr);   // Senden eines Telegramms
+  void  advChannel(int idx);          // Schalten Bewerbungskanal (advertizing)
+  int   sendSync(bcPduPtr inPduPtr);  // Senden eines Telegramms (und warten)
 
 };
 

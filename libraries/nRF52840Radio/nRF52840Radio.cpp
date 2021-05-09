@@ -16,12 +16,45 @@
 
 nRF52840Radio::nRF52840Radio()
 {
-  ;
+  NrfRadioPtr->TASKS_DISABLE;   // Sender abgeschaltet
+}
+
+// ----------------------------------------------------------------------------
+// Konfiguration
+// ----------------------------------------------------------------------------
+
+// Setzen der Zugriffsadresse
+//
+void  nRF52840Radio::setAccessAddress(dword addr)
+{
+  dword prefix = addr >> 24;
+  dword base = addr & 0x00FFFFFF;
+  NrfRadioPtr->BASE0 = base;
+  NrfRadioPtr->PREFIX0 = prefix;
+  NrfRadioPtr->TXADDRESS = 0;
+}
+
+// Telegrammparameter setzen
+//
+void  nRF52840Radio::setPacketParms(blePduType type)
+{
+  switch(type)
+  {
+    case bptAdv:
+      NrfRadioPtr->PCNF0  = 0x00080108;
+      NrfRadioPtr->PCNF1  = 0x00030028;
+      NrfRadioPtr->CRCCNF = 0x03;
+      NrfRadioPtr->PACKETPTR  = (dword) pduMem;
+      break;
+
+    case bptAux:
+      break;
+  }
 }
 
 
 // ----------------------------------------------------------------------------
-// Steuerfunktionen und Prozessorzugriffe
+// Steuerfunktionen und gezielte Prozessorzugriffe
 // ----------------------------------------------------------------------------
 
 // Schalten des Bewerbungskanals
@@ -48,8 +81,16 @@ void nRF52840Radio::advChannel(int idx)
 }
 
 // Senden eines Telegramms
+// Es wird davon ausgeganen, das der Radio-Zustand = DISABLED ist
 //
-void nRF52840Radio::send(bcPduPtr inPduPtr)
+int nRF52840Radio::sendSync(bcPduPtr inPduPtr)
 {
-  memcpy((void *)pduMem, (const void *)inPduPtr, (unsigned int) sizeof(bcPdu));
+  int   retv = 0;
+  memcpy((void *)pduMem, (void *)inPduPtr, sizeof(bcPdu));  // Daten kopieren
+  NrfRadioPtr->TASKS_TXEN = 1;                  // Starten des Anlaufes
+  while(NrfRadioPtr->EVENTS_READY != 1) retv++; // Warten bis angelaufen
+  NrfRadioPtr->TASKS_START = 1;                 // Starten des Sendevorgangs
+  while(NrfRadioPtr->EVENTS_END != 1) retv++;   // Warten bis gesendet
+  NrfRadioPtr->TASKS_DISABLE = 1;               // Sender abschalten
+  return(retv);
 }

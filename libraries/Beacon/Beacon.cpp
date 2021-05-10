@@ -22,13 +22,18 @@
 
   void Beacon::init01(mbcType type, measId id)
   {
+    radio->setPacketParms(bptAdv);
+    radio->setAccessAddress(AdvAccAddr);
+    pdu.len = sizeof(bcPdu);
     ((measBasePtr)pdu.data)->type = type;
     ((measBasePtr)pdu.data)->id = id;
-
+    ((measBasePtr)pdu.data)->counter = 1;
   }
 
-  Beacon::Beacon(mbcType type, measId id)
+  Beacon::Beacon(IntrfRadio *inRadio, mbcType type, measId id)
   {
+    radio = inRadio;
+
     switch(type)
     {
       case iBeacon:
@@ -61,11 +66,21 @@
     pdu.adr5 = bdAdr[0];
   }
 
-  void Beacon::setRadioInterface(IntrfRadio * inRadio)
+  void Beacon::setDevAddress(word head, dword body)
   {
-    radio = inRadio;
-    inRadio->sendSync(&pdu);
+    BD_ADR  bdAdr;
+
+    bdAdr[0] = (octet) (head >> 8);
+    bdAdr[1] = (octet) (head);
+
+    bdAdr[2] = (octet) (body >> 24);
+    bdAdr[3] = (octet) (body >> 16);
+    bdAdr[4] = (octet) (body >> 8);
+    bdAdr[5] = (octet) (body);
+
+    setDevAddress(bdAdr);
   }
+
 
   // --------------------------------------------------------------------------
   // Steuerung des Beacon

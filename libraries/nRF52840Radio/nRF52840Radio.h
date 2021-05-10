@@ -115,6 +115,26 @@
 #define NrfRadioBase    0x40001000UL
 #define NrfRadioPtr     ((nrfRadioPtr) NrfRadioBase)
 
+// Festlegungen für die Paketkonfigurationsregister
+//
+
+#define PCNF0_LFLEN(x)  x
+// Anzahl der Bits im Längenfeld (0-15)
+
+#define PCNF0_S0LEN(x)  (x << 8)
+// Länge des Header0 (S0) in Bytes (0 oder 1)
+
+#define PCNF0_S1LEN(x)  (x << 16)
+// Länge des S1-Feldes in Bit (0 bis 15)
+
+#define PCNF1_MAXLEN(x) x
+// Maximale Telegrammlänge (0 bis 255)
+
+#define PCNF1_BALEN(x)  (x << 16)
+// Basislänge der Zugriffsadresse (Access Address, 2-4)
+
+
+
 // ----------------------------------------------------------------------------
 
 class nRF52840Radio : IntrfRadio
@@ -151,6 +171,7 @@ public:
   //
   void  advChannel(int idx);          // Schalten Bewerbungskanal (advertizing)
   int   sendSync(bcPduPtr inPduPtr);  // Senden eines Telegramms (und warten)
+  void  setPower(int DBm);            // Leistung des Senders in DBm
 
 };
 

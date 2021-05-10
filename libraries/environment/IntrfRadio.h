@@ -35,6 +35,8 @@ public:
   //
   virtual void  advChannel(int idx);          // Schalten Bewerbungskanal (advertizing)
   virtual int   sendSync(bcPduPtr inPduPtr);  // Senden eines Telegramms (und warten)
+  virtual void  setPower(int DBm);            // Leistung des Senders in DBm
+
 
 };
 

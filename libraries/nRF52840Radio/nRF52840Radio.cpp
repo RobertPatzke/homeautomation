@@ -41,9 +41,10 @@ void  nRF52840Radio::setPacketParms(blePduType type)
   switch(type)
   {
     case bptAdv:
-      NrfRadioPtr->PCNF0  = 0x00080108;
-      NrfRadioPtr->PCNF1  = 0x00030028;
-      NrfRadioPtr->CRCCNF = 0x03;
+      NrfRadioPtr->PCNF0      = PCNF0_LFLEN(8) | PCNF0_S0LEN(1) | PCNF0_S1LEN(8);
+      NrfRadioPtr->PCNF1      = PCNF1_MAXLEN(40) | PCNF1_BALEN(3);
+      NrfRadioPtr->MODECNF0   = 1;
+      NrfRadioPtr->CRCCNF     = 0x03;
       NrfRadioPtr->PACKETPTR  = (dword) pduMem;
       break;
 
@@ -80,6 +81,12 @@ void nRF52840Radio::advChannel(int idx)
   NrfRadioPtr->FREQUENCY = deltaF;
 }
 
+// einstellen der Sendeleistung
+//
+void  nRF52840Radio::setPower(int DBm)
+{
+  NrfRadioPtr->TXPOWER = DBm;
+}
 // Senden eines Telegramms
 // Es wird davon ausgeganen, das der Radio-Zustand = DISABLED ist
 //

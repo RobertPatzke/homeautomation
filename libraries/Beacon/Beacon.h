@@ -81,13 +81,14 @@ public:
   // Initialisierungen
   // --------------------------------------------------------------------------
 
-  Beacon(mbcType type, measId id);
+  Beacon(IntrfRadio *inRadio, mbcType type, measId id);
 
   // --------------------------------------------------------------------------
   // Konfiguration
   // --------------------------------------------------------------------------
   //
   void setDevAddress(BD_ADR bdAdr);
+  void setDevAddress(word head, dword body);
   void setRadioInterface(IntrfRadio * inRadio);
 
   // --------------------------------------------------------------------------

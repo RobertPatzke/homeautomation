@@ -118,20 +118,32 @@
 // Festlegungen für die Paketkonfigurationsregister
 //
 
-#define PCNF0_LFLEN(x)  x
+#define PCNF0_LFLEN(x)    x
 // Anzahl der Bits im Längenfeld (0-15)
 
-#define PCNF0_S0LEN(x)  (x << 8)
+#define PCNF0_S0LEN(x)    (x << 8)
 // Länge des Header0 (S0) in Bytes (0 oder 1)
 
-#define PCNF0_S1LEN(x)  (x << 16)
+#define PCNF0_S1LEN(x)    (x << 16)
 // Länge des S1-Feldes in Bit (0 bis 15)
 
-#define PCNF1_MAXLEN(x) x
+#define PCNF1_MAXLEN(x)   x
 // Maximale Telegrammlänge (0 bis 255)
 
-#define PCNF1_BALEN(x)  (x << 16)
+#define PCNF1_BALEN(x)    (x << 16)
 // Basislänge der Zugriffsadresse (Access Address, 2-4)
+
+#define PCNF1_WHITEEN(x)  (x << 25)
+// Whitening (Bitmischung) Ein/Aus (1/0)
+
+// Festlegungen für die CRC-Generierung
+//
+
+#define CRCCNF_LEN(x)     x
+// Anzahl der Bytes für CRC (0-3)
+
+#define CRCCNF_SKIPADDR(x)  (x << 8)
+// Zugriffsadresse (Access Address) nicht im CRC (1), im CRC (0)
 
 
 

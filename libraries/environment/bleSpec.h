@@ -38,6 +38,12 @@
 // Zugriffsadresse (Access Address)
 #define AdvAccAddr  0x8E89BED6
 
+// CRC-Polynom
+#define PolynomCRC  0x0100065B
+
+// CRC-Startwert
+#define AdvStartCRC 0x555555
+
 // Geräteadresse
 typedef octet  BD_ADR[6];
 

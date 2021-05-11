@@ -10,7 +10,7 @@ This works perfectly with the IDE and gives us a better understandable organisat
 structure than that with an extra folder for each module.
 
 ## Warning
-Triggered by discussions about the current status of development, I wanted to give my students and colleagues the possibility to look into my latest plans and work. Therefore I make very early commits without having finished the software. A library may not be used, before there is an example for ist (see below).
+Triggered by discussions about the current status of development, I wanted to give my students and colleagues the possibility to look into my latest plans and work. Therefore I make very early commits without having finished the software. A library may not be used, before there is an example for it (see below).
 
 # Examples
 In the library folders there are subfolders named examplesArduino with typical Arduino sketches 

@@ -30,10 +30,13 @@
 // Basisfrequenz in MHz
 #define BaseFrequency   2400
 
-// Kanalfrequenzen (Offsets zur Basisfrequenz)
-#define FrqOffsAdvChn1  2
-#define FrqOffsADvChn2  26
-#define FrqOffsAdvChn3  80
+// Kanalfrequenzen (Offsets zur Basisfrequenz) und Whitening-Preset
+#define FrqOffsAdvChn1    2
+#define WhiteOffsAdvChn1  0x65
+#define FrqOffsADvChn2    26
+#define WhiteOffsAdvChn2  0x66
+#define FrqOffsAdvChn3    80
+#define WhiteOffsAdvChn3  0x67
 
 // Zugriffsadresse (Access Address)
 #define AdvAccAddr  0x8E89BED6

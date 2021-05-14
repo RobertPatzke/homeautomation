@@ -18,6 +18,7 @@
 #define Beacon_h
 // ----------------------------------------------------------------------------
 
+#include "stddef.h"
 #include "arduinoDefs.h"
 #include "bleSpec.h"
 #include "IntrfRadio.h"
@@ -95,7 +96,9 @@ public:
   // Steuerung des Beacon
   // --------------------------------------------------------------------------
   //
-  void start();
+  void  start();
+  int   send();
+  int   send(TxStatePtr refState);
 
 };
 

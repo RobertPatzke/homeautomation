@@ -145,7 +145,24 @@
 #define CRCCNF_SKIPADDR(x)  (x << 8)
 // Zugriffsadresse (Access Address) nicht im CRC (1), im CRC (0)
 
+typedef struct _nrf52840Cfg
+{
+  dword   pCnf0;
+  dword   pCnf1;
+  dword   whiteInit;
+  dword   modeCnf0;
+  dword   crcPoly;
+  dword   crcInit;
+  dword   crcCnf;
+  dword   packetPtr;
+  dword   frequency;
+  dword   txPower;
+  dword   mode;
+  dword   base0;
+  dword   prefix0;
+  dword   txAddr;
 
+}nrf52840Cfg, *nrf52840CfgPtr;
 
 // ----------------------------------------------------------------------------
 
@@ -156,12 +173,17 @@ private:
   // Lokale Daten
   // --------------------------------------------------------------------------
   //
-  byte  pduMem[256];
+  byte        pduMem[256];
+  nrf52840Cfg cfgData;
 
   // --------------------------------------------------------------------------
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
+  void hexAsc(char * dest, byte val);
+  void binAsc(char *dest, byte val);
+  int   cpyStr(char *dest, char *src);
+  void binSeq(char *dest, dword val);
 
 public:
   // --------------------------------------------------------------------------
@@ -182,9 +204,12 @@ public:
   // --------------------------------------------------------------------------
   //
   void  advChannel(int idx);          // Schalten Bewerbungskanal (advertizing)
-  int   sendSync(bcPduPtr inPduPtr);  // Senden eines Telegramms (und warten)
+  int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
+                                      // Senden eines Telegramms (und warten)
   void  setPower(int DBm);            // Leistung des Senders in DBm
 
+  void  readCheckCfg();               // Konfigurationsdaten auslesen
+  void  getDataCfg(char *dest, int select);  // Konfigurationsdaten aufbereiten
 };
 
 #endif // NRF52840RADIO_H

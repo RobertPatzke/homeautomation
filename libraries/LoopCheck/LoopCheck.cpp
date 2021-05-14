@@ -746,6 +746,28 @@
     return(measureRuntime);
   }
 
+  void LoopCheck::hexAsc(char * dest, byte val)
+  {
+    char cv;
+
+    cv = val >> 4;
+    if(cv < 10)
+      cv += 0x30;
+    else
+      cv += 0x37;
+    dest[0] = cv;
+
+    cv = val & 0x0F;
+    if(cv < 10)
+      cv += 0x30;
+    else
+      cv += 0x37;
+    dest[1] = cv;
+
+    dest[2] = '\0';
+  }
+
+
   // -------------------------------------------------------------------------
   // Debug-Funktionen
   // -------------------------------------------------------------------------

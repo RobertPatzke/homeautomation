@@ -24,10 +24,12 @@
   {
     radio->setPacketParms(bptAdv);
     radio->setAccessAddress(AdvAccAddr);
-    pdu.len = sizeof(bcPdu);
+    //pdu.len = sizeof(bcPdu) - 2;
+    // TEST
+    pdu.len = sizeof(bcPdu) - 2;
     ((measBasePtr)pdu.data)->type = type;
     ((measBasePtr)pdu.data)->id = id;
-    ((measBasePtr)pdu.data)->counter = 1;
+    ((measBasePtr)pdu.data)->counter = 0;
   }
 
   Beacon::Beacon(IntrfRadio *inRadio, mbcType type, measId id)
@@ -90,4 +92,31 @@
   {
 
   }
+
+  int  Beacon::send()
+  {
+    return(send(NULL));
+  }
+
+  int Beacon::send(TxStatePtr refState)
+  {
+    ((measBasePtr)pdu.data)->counter++;
+    ((measBasePtr)pdu.data)->meas[0] = 0x1111;
+    ((measBasePtr)pdu.data)->meas[1] = 0x2222;
+    ((measBasePtr)pdu.data)->meas[2] = 0x3333;
+    ((measBasePtr)pdu.data)->meas[3] = 0x4444;
+    ((measBasePtr)pdu.data)->meas[4] = 0x5555;
+    ((measBasePtr)pdu.data)->meas[5] = 0x6666;
+    radio->advChannel(0);
+    return(radio->sendSync(&pdu, refState));
+  }
+
+
+
+
+
+
+
+
+
 

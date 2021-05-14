@@ -19,6 +19,14 @@
 #include "bleSpec.h"
 #include "Beacon.h"
 
+typedef struct _TxState
+{
+  unsigned int  prgLoopPrep;
+  unsigned int  evtLoopRampUp;
+  unsigned int  evtLoopTrans;
+  byte  *       txBufferPtr;
+}TxState, *TxStatePtr;
+
 class IntrfRadio
 {
 public:
@@ -34,7 +42,8 @@ public:
   // --------------------------------------------------------------------------
   //
   virtual void  advChannel(int idx);          // Schalten Bewerbungskanal (advertizing)
-  virtual int   sendSync(bcPduPtr inPduPtr);  // Senden eines Telegramms (und warten)
+  virtual int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
+                                              // Senden eines Telegramms (und warten)
   virtual void  setPower(int DBm);            // Leistung des Senders in DBm
 
 

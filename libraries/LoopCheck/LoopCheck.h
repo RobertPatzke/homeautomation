@@ -297,6 +297,8 @@ public:
   unsigned long getRuntime();
   // Laufzeit in Sekunden
 
+  void hexAsc(char * dest, byte val);
+  // Umwandlung byte in Hex-ASCII
 
   // -------------------------------------------------------------------------
   // Debug-Funtionen

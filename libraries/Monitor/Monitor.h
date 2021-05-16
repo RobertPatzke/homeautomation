@@ -21,8 +21,12 @@
 #define keyHit()  smnSerial.available()
 #define keyIn()   smnSerial.read()
 #define out(x)    smnSerial.print(x)
+#define outl(x)   smnSerial.println(x)
+#define GoInp     nextState = &Monitor::getKey;
+#define GoPrm     nextState = &Monitor::prompt;
 
 #define modeEcho  0x01
+#define BufSize   128
 
 class Monitor
 {
@@ -42,14 +46,23 @@ private:
   int       cpu;
   int       mode;
 
+  char      buffer[BufSize];
+  int       wrIdx;
+  int       rdIdx;
+  bool      blkOut;
+
   StatePtr  nextState;
 
   // --------------------------------------------------------------------------
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
+  void  prompt();
   void  getKey();
   void  version();
+
+  void  print(char *txt, bool nl);
+  void  print(unsigned int iVal, bool nl);
 
 public:
   // --------------------------------------------------------------------------
@@ -59,9 +72,12 @@ public:
   Monitor(int mode, int cpu);
 
   // --------------------------------------------------------------------------
-  // Konfiguration
+  // Konfiguration und Hilfsfunktionen
   // --------------------------------------------------------------------------
   //
+  int   putBuf(char c);
+  int   putBuf(char *txt);
+  char  getBuf();
 
 
   // --------------------------------------------------------------------------
@@ -70,6 +86,10 @@ public:
   //
 
   void run();
+  void print(char *txt);
+  void println(char *txt);
+  void print(unsigned int iVal);
+  void println(unsigned int iVal);
 
 
 };

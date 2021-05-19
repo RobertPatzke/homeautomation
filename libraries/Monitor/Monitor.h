@@ -24,9 +24,12 @@
 #define outl(x)   smnSerial.println(x)
 #define GoInp     nextState = &Monitor::getKey;
 #define GoPrm     nextState = &Monitor::prompt;
+#define GoWt      nextState = &Monitor::waitEnter;
 
 #define modeEcho  0x01
-#define BufSize   128
+#define modeNl    0x02
+
+#define BufSize   512
 
 class Monitor
 {
@@ -50,6 +53,12 @@ private:
   int       wrIdx;
   int       rdIdx;
   bool      blkOut;
+  bool      blkIn;
+
+  char      inChar[3];
+  int       inIdx;
+
+  char      *info;
 
   StatePtr  nextState;
 
@@ -57,6 +66,7 @@ private:
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
+  void  waitEnter();
   void  prompt();
   void  getKey();
   void  version();
@@ -75,9 +85,11 @@ public:
   // Konfiguration und Hilfsfunktionen
   // --------------------------------------------------------------------------
   //
+  void  setInfo(char *txt);
   int   putBuf(char c);
   int   putBuf(char *txt);
   char  getBuf();
+  void  clrBuf();
 
 
   // --------------------------------------------------------------------------
@@ -85,14 +97,20 @@ public:
   // --------------------------------------------------------------------------
   //
 
+  // Funktionen
+  //
   void run();
   void print(char *txt);
+  void println();
   void println(char *txt);
   void print(unsigned int iVal);
   void println(unsigned int iVal);
 
 
-};
+  // Steuerbits (Kommandobits)
+  //
+  bool  cFlag[10];
+  };
 
 // ----------------------------------------------------------------------------
 #endif // Monitor_h

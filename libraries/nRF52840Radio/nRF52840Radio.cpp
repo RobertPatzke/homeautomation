@@ -42,14 +42,16 @@ void  nRF52840Radio::setPacketParms(blePduType type)
   switch(type)
   {
     case bptAdv:
-      cfgData.pCnf0     = NrfRadioPtr->PCNF0      = PCNF0_LFLEN(8) | PCNF0_S0LEN(1) | PCNF0_S1LEN(8);
-      cfgData.pCnf1     = NrfRadioPtr->PCNF1      = PCNF1_MAXLEN(40) | PCNF1_BALEN(3) | PCNF1_WHITEEN(1);
-      cfgData.modeCnf0  = NrfRadioPtr->MODECNF0   = 1;
-      cfgData.crcCnf    = NrfRadioPtr->CRCCNF     = CRCCNF_LEN(3) | CRCCNF_SKIPADDR(1);
-      cfgData.crcPoly   = NrfRadioPtr->CRCPOLY    = PolynomCRC;
-      cfgData.crcInit   = NrfRadioPtr->CRCINIT    = AdvStartCRC;
-      cfgData.packetPtr = NrfRadioPtr->PACKETPTR  = (dword) pduMem;
-      cfgData.mode      = NrfRadioPtr->MODE       = 3;
+      cfgData.pCnf0     = NrfRadioPtr->PCNF0        = PCNF0_LFLEN(8) | PCNF0_S0LEN(1) | PCNF0_S1LEN(0);
+      cfgData.pCnf1     = NrfRadioPtr->PCNF1        = PCNF1_MAXLEN(40) | PCNF1_BALEN(3) | PCNF1_WHITEEN(1);
+      cfgData.modeCnf0  = NrfRadioPtr->MODECNF0     = 1;
+      cfgData.crcCnf    = NrfRadioPtr->CRCCNF       = CRCCNF_LEN(3) | CRCCNF_SKIPADDR(1);
+      cfgData.crcPoly   = NrfRadioPtr->CRCPOLY      = PolynomCRC;
+      cfgData.crcInit   = NrfRadioPtr->CRCINIT      = AdvStartCRC;
+      cfgData.packetPtr = NrfRadioPtr->PACKETPTR    = (dword) pduMem;
+      cfgData.mode      = NrfRadioPtr->MODE         = 3;
+      cfgData.dacnf     = NrfRadioPtr->DACNF        = 0x0FF00;
+      cfgData.rxAddrEn  = NrfRadioPtr->RXADDRESSES  = 0x0FF;
       break;
 
     case bptAux:
@@ -90,7 +92,11 @@ void nRF52840Radio::advChannel(int idx)
   cfgData.whiteInit = NrfRadioPtr->DATAWHITEIV = whitePres;
 }
 
-// einstellen der Sendeleistung
+// ----------------------------------------------------------------------------
+//                      S e n d e n
+// ----------------------------------------------------------------------------
+
+// Einstellen der Sendeleistung
 //
 void  nRF52840Radio::setPower(int DBm)
 {
@@ -121,6 +127,35 @@ int nRF52840Radio::sendSync(bcPduPtr inPduPtr, TxStatePtr refState)
   }
   return(retv);
 }
+
+// ----------------------------------------------------------------------------
+//                      E m p f a n g e n
+// ----------------------------------------------------------------------------
+
+// Starten des Datenempfangs
+//
+int nRF52840Radio::startRec()
+{
+  int   retv;
+  NrfRadioPtr->EVENTS_READY = 0;
+  NrfRadioPtr->EVENTS_END = 0;
+  NrfRadioPtr->EVENTS_ADDRESS = 0;
+  NrfRadioPtr->EVENTS_PAYLOAD = 0;
+  NrfRadioPtr->EVENTS_CRCOK = 0;
+  NrfRadioPtr->EVENTS_CRCERROR = 0;
+  NrfRadioPtr->TASKS_RXEN = 1;                  // Anlauf Empfänger starten
+  retv = 8;
+  while(NrfRadioPtr->EVENTS_READY != 1) retv++; // Warten bis angelaufen
+  NrfRadioPtr->TASKS_START = 1;                 // Starten des Empfangs
+  return(retv + 1);
+}
+
+// Empfangszustand abfragen
+//
+
+// ----------------------------------------------------------------------------
+//                      D e b u g - H i l f e n
+// ----------------------------------------------------------------------------
 
 void nRF52840Radio::hexAsc(char * dest, byte val)
 {
@@ -169,7 +204,7 @@ int   nRF52840Radio::cpyStr(char *dest, char *src)
   return(i);
 }
 
-void nRF52840Radio::binSeq(char *dest, dword dwVal)
+int nRF52840Radio::binSeq(char *dest, dword dwVal)
 {
   int   idx = 0;
   byte  bVal;
@@ -191,21 +226,60 @@ void nRF52840Radio::binSeq(char *dest, dword dwVal)
 
   bVal = dwVal;
   binAsc(&dest[idx], bVal);
+  idx += 8;
+
+  dest[idx] = '\0';
+  return(idx);
+}
+
+int nRF52840Radio::hexSeq(char *dest, dword dwVal)
+{
+  int   idx = 0;
+  byte  bVal;
+
+  bVal = dwVal >> 24;
+  hexAsc(&dest[idx], bVal);
+  idx += 2;
+
+  bVal = dwVal >> 16;
+  hexAsc(&dest[idx], bVal);
+  idx += 2;
+
+  bVal = dwVal >> 8;
+  hexAsc(&dest[idx], bVal);
+  idx += 2;
+
+  bVal = dwVal;
+  hexAsc(&dest[idx], bVal);
+  idx += 2;
+
+  dest[idx] = '\0';
+  return(idx);
 }
 
 // Konfigurationsdaten lesbar aufbereiten
 //
-void nRF52840Radio::getDataCfg(char *dest, int select)
+int nRF52840Radio::getDataCfg(char *dest, int select)
 {
   int   idx;
+
+  idx = cpyStr(dest, (char *) "Adr:");
 
   switch(select)
   {
     case 0:
-      idx = cpyStr(dest, (char *) "PCNF0 = ");
-      binSeq(&dest[idx], cfgData.pCnf0);
+      idx += hexSeq(&dest[idx], (dword) &NrfRadioPtr->PCNF0);
+      idx += cpyStr(&dest[idx], (char *) " PCNF0 = ");
+      idx += binSeq(&dest[idx], cfgData.pCnf0);
+      break;
+
+    case 1:
+      idx += hexSeq(&dest[idx], (dword) &NrfRadioPtr->PCNF1);
+      idx += cpyStr(&dest[idx], (char *) " PCNF1 = ");
+      idx += binSeq(&dest[idx], cfgData.pCnf1);
       break;
   }
+  return(idx);
 }
 
 

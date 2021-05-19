@@ -17,7 +17,6 @@
 
 #include "arduinoDefs.h"
 #include "bleSpec.h"
-#include "Beacon.h"
 
 typedef struct _TxState
 {

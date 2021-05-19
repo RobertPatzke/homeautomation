@@ -23,14 +23,17 @@
 
 Monitor::Monitor(int inMode, int inCpu)
 {
-  mode    = inMode;
-  cpu     = inCpu;
-  wrIdx   = 0;
-  rdIdx   = 0;
-  blkOut  = false;
+  mode        = inMode;
+  cpu         = inCpu;
+  wrIdx       = 0;
+  rdIdx       = 0;
+  blkOut      = false;
+  blkIn       = false;
+  inIdx       = 0;
+  info        = NULL;
 
   nextState =
-      &Monitor::prompt;
+      &Monitor::waitEnter;
 }
 
 //-----------------------------------------------------------------------------
@@ -39,6 +42,8 @@ Monitor::Monitor(int inMode, int inCpu)
 //
 int Monitor::putBuf(char c)
 {
+  if(blkIn) return(-1);
+
   int free = rdIdx - wrIdx - 1;
   if(free < 0) free += BufSize;
   if(free < 1) return(0);
@@ -50,6 +55,8 @@ int Monitor::putBuf(char c)
 
 int Monitor::putBuf(char *txt)
 {
+  if(blkIn) return(-1);
+
   int free = rdIdx - wrIdx - 1;
   int size = strlen(txt);
   if(free < 0) free += BufSize;
@@ -73,41 +80,103 @@ char Monitor::getBuf()
   return(c);
 }
 
+void Monitor::clrBuf()
+{
+  wrIdx = 0;
+  rdIdx = 0;
+}
+
 
 //-----------------------------------------------------------------------------
 // Lokale Abläufe
 //-----------------------------------------------------------------------------
 //
 
-void Monitor::getKey()
+void Monitor::waitEnter()
 {
   char  c;
 
   if(!keyHit()) return;
   c = keyIn();
-  if(mode & modeEcho)
-    out(c);
+  if(c != '\r' && c != '\n') return;
 
-  switch(c)
+  blkIn   = true;
+  blkOut  = true;
+  GoPrm
+}
+
+void Monitor::getKey()
+{
+  char  cin,cc;
+
+  if(!keyHit()) return;
+  cin = keyIn();
+  if(mode & modeEcho)
+    out(cin);
+
+  cc = '\0';
+
+  if(inIdx == 0)
+    cc = cin;
+  else if(inIdx == 1)
+    cc = inChar[0];
+  else if(inIdx == 2)
+    cc = inChar[1];
+
+  switch(cc)
   {
+    case '\r':
+      out("\r\n");
+      blkIn   = false;
+      blkOut  = false;
+      GoWt
+      break;
+
+    case 'c':
+    case 'C':
+      if(inIdx == 0)
+      {
+        inChar[inIdx] = cin;
+        inIdx++;
+      }
+      else if(inIdx == 1)
+      {
+        inIdx = 0;
+        if(cin >= '0' && cin <= '9')
+        {
+          int cIdx = cin - 0x30;
+          cFlag[cIdx] = true;
+        }
+        blkIn   = false;
+        blkOut  = false;
+        GoWt
+      }
+      break;
+
     case 'V':
     case 'v':
+      out(' ');
       nextState = &Monitor::version;
       break;
+
   }
 }
 
 void Monitor::prompt()
 {
-  out("\r\nM>");
+  if(mode & modeNl)
+    out('\n');
+
+  out("\rM>");
   GoInp
 }
 
 void Monitor::version()
 {
-  outl("Monitor: Version 0.1, May 16, 2021");
+  out("Monitor: Version 0.1, May 16, 2021");
   GoPrm
 }
+
 
 
 //-----------------------------------------------------------------------------
@@ -116,7 +185,8 @@ void Monitor::version()
 //
 void Monitor::print(char *txt, bool nl)
 {
-  putBuf(txt);
+  if(txt != NULL)
+    putBuf(txt);
   if(nl)
   {
     putBuf('\r');
@@ -165,6 +235,11 @@ void Monitor::println(char *txt)
   print(txt, true);
 }
 
+void Monitor::println()
+{
+  print((char *) NULL, true);
+}
+
 void Monitor::print(unsigned int iVal)
 {
   print(iVal, false);
@@ -175,5 +250,9 @@ void Monitor::println(unsigned int iVal)
   print(iVal, true);
 }
 
+void Monitor::setInfo(char *txt)
+{
+  info = txt;
+}
 
 

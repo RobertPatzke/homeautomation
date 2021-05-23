@@ -20,6 +20,13 @@
 #include "bleSpec.h"
 #include "IntrfRadio.h"
 
+typedef enum _RecMode
+{
+  StartRec,
+  ContinueRec,
+  EndRec
+}RecMode;
+
 // ----------------------------------------------------------------------------
 //                       S c a n n e r
 // ----------------------------------------------------------------------------
@@ -31,6 +38,7 @@ private:
   // ----------------------------------------------------------------------
   //
   IntrfRadio  *radio;
+  bcPdu       pdu;
 
 
   // ----------------------------------------------------------------------
@@ -50,8 +58,8 @@ public:
   // ----------------------------------------------------------------------
   // Konfiguration
   // ----------------------------------------------------------------------
-  void setDevAddress(BD_ADR bdAdr);
-  void setDevAddress(word head, dword body);
+  void setDevAddress(int sel, BD_ADR bdAdr);
+  void setDevAddress(int sel, word head, dword body);
   void setRadioInterface(IntrfRadio * inRadio);
 
 
@@ -59,8 +67,10 @@ public:
   // Steuerung
   // ----------------------------------------------------------------------
   //
-  void start();
-
+  void  start();
+  void  receive(RecMode mode);
+  int   check();
+  int   getPdu(bcPdu *dest, int nr);
 };
 
 

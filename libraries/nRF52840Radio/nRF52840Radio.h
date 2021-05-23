@@ -116,6 +116,16 @@ typedef struct _NRF_RADIO_Type
 #define NrfRadioBase    0x40001000
 #define NrfRadioPtr     ((nrfRadioPtr) NrfRadioBase)
 
+#ifndef NrfPowerBase
+#define NrfPowerBase    0x40000000
+#define nrfPowerDCDCEN  ((dword *) 0x40000578)
+#endif
+
+#ifndef NrfClockBase
+#define NrfClockBase    0x40000000
+#define nrfClockTASKS_HFCLKSTART  ((dword *) 0x40000000)
+#endif
+
 // Festlegungen für die Paketkonfigurationsregister
 //
 
@@ -146,13 +156,6 @@ typedef struct _NRF_RADIO_Type
 #define CRCCNF_SKIPADDR(x)  (x << 8)
 // Zugriffsadresse (Access Address) nicht im CRC (1), im CRC (0)
 
-// Zustand des Datenempfangs (Bit)
-//
-#define RECSTAT_ADDRESS   0x0001
-#define RECSTAT_PAYLOAD   0x0002
-#define RECSTAT_END       0x0004
-#define RECSTAT_CRCOK     0x0010
-#define RECSTAT_CRCERROR  0x0020
 
 typedef struct _nrf52840Cfg
 {
@@ -172,6 +175,7 @@ typedef struct _nrf52840Cfg
   dword   base0;
   dword   prefix0;
   dword   txAddr;
+  dword   rxAddr;
 
 }nrf52840Cfg, *nrf52840CfgPtr;
 
@@ -186,16 +190,6 @@ private:
   //
   byte        pduMem[256];
   nrf52840Cfg cfgData;
-
-  // --------------------------------------------------------------------------
-  // Lokale Funktionen
-  // --------------------------------------------------------------------------
-  //
-  void hexAsc(char * dest, byte val);
-  void binAsc(char *dest, byte val);
-  int   cpyStr(char *dest, char *src);
-  int  binSeq(char *dest, dword val);
-  int  hexSeq(char *dest, dword val);
 
 public:
   // --------------------------------------------------------------------------
@@ -219,13 +213,14 @@ public:
   int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
                                       // Senden eines Telegramms (und warten)
   int   startRec();                   // Datenempfang starten
+  int   contRec();                    // Datenempfang fortsetzen
+  int   endRec();                     // Datenempfang beenden
   int   checkRec();                   // Zustand Datenempfang feststellen
-  int   getRecData(byte *data, int max);  // Empfangene Daten lesen
+  int   getRecData(bcPduPtr data, int max);  // Empfangene Daten lesen
 
   void  setPower(int DBm);            // Leistung des Senders in DBm
 
   void  readCheckCfg();               // Konfigurationsdaten auslesen
-  int   getDataCfg(char *dest, int select);  // Konfigurationsdaten aufbereiten
 };
 
 #endif // NRF52840RADIO_H

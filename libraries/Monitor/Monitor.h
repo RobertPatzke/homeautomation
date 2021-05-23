@@ -13,6 +13,7 @@
 
 #include  "Arduino.h"
 #include  "environment.h"
+#include  "arduinoDefs.h"
 
 #ifndef Monitor_h
 #define Monitor_h
@@ -29,6 +30,10 @@
 #define modeEcho  0x01
 #define modeNl    0x02
 
+#define eolCR     0x01
+#define eolLF     0x02
+#define eolNL     0x03
+
 #define BufSize   512
 
 class Monitor
@@ -38,8 +43,6 @@ class Monitor
   // -------------------------------------------------------------------------
   //
   typedef void (Monitor::*StatePtr)(void);
-
-
 
 private:
   // --------------------------------------------------------------------------
@@ -55,12 +58,17 @@ private:
   bool      blkOut;
   bool      blkIn;
 
-  char      inChar[3];
+  char      inChar[16];
+  char      outChar[128];
+  char      tmpChar[8];
   int       inIdx;
 
   char      *info;
 
   StatePtr  nextState;
+
+  dword     readOffsAddr;
+  bool      doReadReg;
 
   // --------------------------------------------------------------------------
   // Lokale Funktionen
@@ -70,9 +78,24 @@ private:
   void  prompt();
   void  getKey();
   void  version();
+  void  getRdOffsAdr();
+  void  readRegVal();
 
-  void  print(char *txt, bool nl);
-  void  print(unsigned int iVal, bool nl);
+  void  print(char *txt, int eol);
+  void  print(byte *hex, int nr, char fill, int eol);
+  void  print(unsigned int iVal, int eol);
+
+  // --------------------------------------------------------------------------
+  // Datenaufbereitung
+  // --------------------------------------------------------------------------
+  //
+  void hexAsc(char * dest, byte val);
+  void binAsc(char *dest, byte val);
+  int  cpyStr(char *dest, char *src);
+  int  binSeq(char *dest, dword val);
+  int  hexSeq(char *dest, dword val);
+
+
 
 public:
   // --------------------------------------------------------------------------
@@ -101,10 +124,16 @@ public:
   //
   void run();
   void print(char *txt);
+  void print(unsigned int iVal);
+  void print(byte *iVal, int nr, char fill);
+  void printcr();
+  void printcr(char *txt);
+  void printcr(unsigned int iVal);
+  void printcr(byte *iVal, int nr, char fill);
   void println();
   void println(char *txt);
-  void print(unsigned int iVal);
   void println(unsigned int iVal);
+  void println(byte *iVal, int nr, char fill);
 
 
   // Steuerbits (Kommandobits)

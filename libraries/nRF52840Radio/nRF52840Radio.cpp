@@ -16,7 +16,15 @@
 
 nRF52840Radio::nRF52840Radio()
 {
-  NrfRadioPtr->TASKS_DISABLE;   // Sender abgeschaltet
+  NrfRadioPtr->TASKS_DISABLE;   // Sender/Empfänger abgeschaltet
+#ifdef nrfPowerDCDCEN
+  *nrfPowerDCDCEN = 1;
+#endif
+#ifdef nrfClockTASKS_HFCLKSTART
+  *nrfClockTASKS_HFCLKSTART = 1;
+#endif
+  NrfRadioPtr->POWER = 0;
+  NrfRadioPtr->POWER = 1;
 }
 
 // ----------------------------------------------------------------------------
@@ -28,11 +36,12 @@ nRF52840Radio::nRF52840Radio()
 void  nRF52840Radio::setAccessAddress(dword addr)
 {
   dword prefix = addr >> 24;
-  dword base = addr & 0x00FFFFFF;
+  dword base = addr << 8;
 
-  cfgData.base0   = NrfRadioPtr->BASE0      = base;
-  cfgData.prefix0 = NrfRadioPtr->PREFIX0    = prefix;
-  cfgData.txAddr  = NrfRadioPtr->TXADDRESS  = 0;
+  cfgData.base0   = NrfRadioPtr->BASE0        = base;
+  cfgData.prefix0 = NrfRadioPtr->PREFIX0      = prefix;
+  cfgData.txAddr  = NrfRadioPtr->TXADDRESS    = 0;
+  cfgData.rxAddr  = NrfRadioPtr->RXADDRESSES  = 0x01;
 }
 
 // Telegrammparameter setzen
@@ -51,7 +60,6 @@ void  nRF52840Radio::setPacketParms(blePduType type)
       cfgData.packetPtr = NrfRadioPtr->PACKETPTR    = (dword) pduMem;
       cfgData.mode      = NrfRadioPtr->MODE         = 3;
       cfgData.dacnf     = NrfRadioPtr->DACNF        = 0x0FF00;
-      cfgData.rxAddrEn  = NrfRadioPtr->RXADDRESSES  = 0x0FF;
       break;
 
     case bptAux:
@@ -108,6 +116,7 @@ void  nRF52840Radio::setPower(int DBm)
 int nRF52840Radio::sendSync(bcPduPtr inPduPtr, TxStatePtr refState)
 {
   int   retv = 0;
+  NrfRadioPtr->INTENCLR = 0xFFFFFFFF;
   NrfRadioPtr->EVENTS_READY = 0;
   NrfRadioPtr->EVENTS_END = 0;
   memcpy((void *)pduMem, (void *)inPduPtr, sizeof(bcPdu));  // Daten kopieren
@@ -137,6 +146,7 @@ int nRF52840Radio::sendSync(bcPduPtr inPduPtr, TxStatePtr refState)
 int nRF52840Radio::startRec()
 {
   int   retv;
+  NrfRadioPtr->INTENCLR = 0xFFFFFFFF;
   NrfRadioPtr->EVENTS_READY = 0;
   NrfRadioPtr->EVENTS_END = 0;
   NrfRadioPtr->EVENTS_ADDRESS = 0;
@@ -150,137 +160,80 @@ int nRF52840Radio::startRec()
   return(retv + 1);
 }
 
+// Fortsetzen des Datenempfangs
+//
+int nRF52840Radio::contRec()
+{
+  NrfRadioPtr->EVENTS_END = 0;
+  NrfRadioPtr->EVENTS_ADDRESS = 0;
+  NrfRadioPtr->EVENTS_PAYLOAD = 0;
+  NrfRadioPtr->EVENTS_CRCOK = 0;
+  NrfRadioPtr->EVENTS_CRCERROR = 0;
+  NrfRadioPtr->TASKS_START = 1;                 // Starten des Empfangs
+  return(6);
+}
+
+// Beenden des Datenempfangs
+//
+int nRF52840Radio::endRec()
+{
+  int   retv;
+  NrfRadioPtr->EVENTS_DISABLED = 0;
+  NrfRadioPtr->EVENTS_END = 0;
+  NrfRadioPtr->EVENTS_ADDRESS = 0;
+  NrfRadioPtr->EVENTS_PAYLOAD = 0;
+  NrfRadioPtr->EVENTS_CRCOK = 0;
+  NrfRadioPtr->EVENTS_CRCERROR = 0;
+  NrfRadioPtr->TASKS_DISABLE = 1;               // Anlauf Empfänger beenden
+  retv = 7;
+  while(NrfRadioPtr->EVENTS_DISABLED != 1) retv++; // Warten bis abgelaufen
+  return(retv);
+}
+
 // Empfangszustand abfragen
 //
+int nRF52840Radio::checkRec()
+{
+  int retv = 0;
+
+  if(NrfRadioPtr->EVENTS_ADDRESS != 0)
+    retv |= RECSTAT_ADDRESS;
+
+  if(NrfRadioPtr->EVENTS_PAYLOAD != 0)
+    retv |= RECSTAT_PAYLOAD;
+
+  if(NrfRadioPtr->EVENTS_END != 0)
+    retv |= RECSTAT_END;
+
+  if(NrfRadioPtr->CRCSTATUS != 0)
+    retv |= RECSTAT_CRCOK;
+
+  return(retv);
+}
+
+int   nRF52840Radio::getRecData(bcPduPtr data, int max)
+{
+  int retv = 0;
+  byte *bPtr = (byte *) data;
+
+  data->head = pduMem[0];
+  retv = data->len  = pduMem[1];
+
+  for(int i = 2; i < retv; i++)
+  {
+    if(i == max) break;
+    bPtr[i] = pduMem[i];
+  }
+
+  return(retv);
+}
+
 
 // ----------------------------------------------------------------------------
 //                      D e b u g - H i l f e n
 // ----------------------------------------------------------------------------
 
-void nRF52840Radio::hexAsc(char * dest, byte val)
-{
-  char cv;
 
-  cv = val >> 4;
-  if(cv < 10)
-    cv += 0x30;
-  else
-    cv += 0x37;
-  dest[0] = cv;
-
-  cv = val & 0x0F;
-  if(cv < 10)
-    cv += 0x30;
-  else
-    cv += 0x37;
-  dest[1] = cv;
-
-  dest[2] = '\0';
-}
-
-void nRF52840Radio::binAsc(char * dest, byte val)
-{
-  byte mask;
-
-  mask = 0x01;
-
-  for(int i = 0; i < 8; i++)
-  {
-    if((val & mask) != 0)
-      dest[i] = '1';
-    else
-      dest[i] = '0';
-    mask <<= 1;
-  }
-
-  dest[8] = '\0';
-}
-
-int   nRF52840Radio::cpyStr(char *dest, char *src)
-{
-  int   i = 0;
-
-  while((dest[i] = src[i]) != '\0') i++;
-  return(i);
-}
-
-int nRF52840Radio::binSeq(char *dest, dword dwVal)
-{
-  int   idx = 0;
-  byte  bVal;
-
-  bVal = dwVal >> 24;
-  binAsc(&dest[idx], bVal);
-  idx += 8;
-  dest[idx++] = ' ';
-
-  bVal = dwVal >> 16;
-  binAsc(&dest[idx], bVal);
-  idx += 8;
-  dest[idx++] = ' ';
-
-  bVal = dwVal >> 8;
-  binAsc(&dest[idx], bVal);
-  idx += 8;
-  dest[idx++] = ' ';
-
-  bVal = dwVal;
-  binAsc(&dest[idx], bVal);
-  idx += 8;
-
-  dest[idx] = '\0';
-  return(idx);
-}
-
-int nRF52840Radio::hexSeq(char *dest, dword dwVal)
-{
-  int   idx = 0;
-  byte  bVal;
-
-  bVal = dwVal >> 24;
-  hexAsc(&dest[idx], bVal);
-  idx += 2;
-
-  bVal = dwVal >> 16;
-  hexAsc(&dest[idx], bVal);
-  idx += 2;
-
-  bVal = dwVal >> 8;
-  hexAsc(&dest[idx], bVal);
-  idx += 2;
-
-  bVal = dwVal;
-  hexAsc(&dest[idx], bVal);
-  idx += 2;
-
-  dest[idx] = '\0';
-  return(idx);
-}
-
-// Konfigurationsdaten lesbar aufbereiten
-//
-int nRF52840Radio::getDataCfg(char *dest, int select)
-{
-  int   idx;
-
-  idx = cpyStr(dest, (char *) "Adr:");
-
-  switch(select)
-  {
-    case 0:
-      idx += hexSeq(&dest[idx], (dword) &NrfRadioPtr->PCNF0);
-      idx += cpyStr(&dest[idx], (char *) " PCNF0 = ");
-      idx += binSeq(&dest[idx], cfgData.pCnf0);
-      break;
-
-    case 1:
-      idx += hexSeq(&dest[idx], (dword) &NrfRadioPtr->PCNF1);
-      idx += cpyStr(&dest[idx], (char *) " PCNF1 = ");
-      idx += binSeq(&dest[idx], cfgData.pCnf1);
-      break;
-  }
-  return(idx);
-}
 
 
 

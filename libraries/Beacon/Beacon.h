@@ -98,7 +98,7 @@ public:
   //
   void  start();
   int   send();
-  int   send(TxStatePtr refState);
+  int   send(TxStatePtr refState, int chnr);
 
 };
 

@@ -74,30 +74,10 @@ void  nRF52840Radio::setPacketParms(blePduType type)
 
 // Schalten des Bewerbungskanals
 //
-void nRF52840Radio::advChannel(int idx)
+void nRF52840Radio::setChannel(int nr)
 {
-  int deltaF = 0;
-  int whitePres = 0x40;
-
-  switch(idx)
-  {
-    case 0:
-      deltaF = FrqOffsAdvChn1;
-      whitePres = WhiteOffsAdvChn1;
-      break;
-
-    case 1:
-      deltaF = FrqOffsADvChn2;
-      whitePres = WhiteOffsAdvChn2;
-      break;
-
-    case 2:
-      deltaF = FrqOffsAdvChn3;
-      whitePres = WhiteOffsAdvChn3;
-      break;
-  }
-  cfgData.frequency = NrfRadioPtr->FREQUENCY = deltaF;
-  cfgData.whiteInit = NrfRadioPtr->DATAWHITEIV = whitePres;
+  cfgData.frequency = NrfRadioPtr->FREQUENCY = channelList[nr].freq;
+  cfgData.whiteInit = NrfRadioPtr->DATAWHITEIV = channelList[nr].idx;
 }
 
 // ----------------------------------------------------------------------------

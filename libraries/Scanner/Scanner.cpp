@@ -73,9 +73,9 @@
 
   }
 
-  void Scanner::receive(RecMode mode)
+  void Scanner::receive(RecMode mode, int chn)
   {
-    radio->advChannel(0);
+    radio->setChannel(chn);
     if(mode == StartRec)
       radio->startRec();
     else if(mode == ContinueRec)

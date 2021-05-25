@@ -209,7 +209,7 @@ public:
   // Steuerfunktionen
   // --------------------------------------------------------------------------
   //
-  void  advChannel(int idx);          // Schalten Bewerbungskanal (advertizing)
+  void  setChannel(int nr);           // Schalten physikalischer Kanal
   int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
                                       // Senden eines Telegramms (und warten)
   int   startRec();                   // Datenempfang starten

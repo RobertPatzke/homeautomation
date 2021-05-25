@@ -95,10 +95,10 @@
 
   int  Beacon::send()
   {
-    return(send(NULL));
+    return(send(NULL, 0));
   }
 
-  int Beacon::send(TxStatePtr refState)
+  int Beacon::send(TxStatePtr refState, int chnr)
   {
     ((measBasePtr)pdu.data)->counter++;
     ((measBasePtr)pdu.data)->meas[0] = 0x1111;
@@ -107,7 +107,7 @@
     ((measBasePtr)pdu.data)->meas[3] = 0x4444;
     ((measBasePtr)pdu.data)->meas[4] = 0x5555;
     ((measBasePtr)pdu.data)->meas[5] = 0x6666;
-    radio->advChannel(0);
+    radio->setChannel(chnr);
     return(radio->sendSync(&pdu, refState));
   }
 

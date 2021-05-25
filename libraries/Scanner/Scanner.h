@@ -68,7 +68,7 @@ public:
   // ----------------------------------------------------------------------
   //
   void  start();
-  void  receive(RecMode mode);
+  void  receive(RecMode mode, int chn);
   int   check();
   int   getPdu(bcPdu *dest, int nr);
 };

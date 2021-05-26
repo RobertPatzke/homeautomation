@@ -13,7 +13,9 @@
 #ifndef _arduinoDefs_h
 #define _arduinoDefs_h
 
+#undef  byte
 #undef  word
+#undef  dword
 // ---------------------------------------------------------------------------
 // Simple type definitions
 // ---------------------------------------------------------------------------

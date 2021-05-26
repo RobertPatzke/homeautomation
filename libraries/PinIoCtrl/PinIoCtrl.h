@@ -19,13 +19,24 @@
   #include "Arduino.h"
 #endif
 
-// Test for type definitions of SAM3X
-//
-#ifndef PIO_PER_P0
-  #define Pio void
+#include "environment.h"
+
+#include "arduinoDefs.h"
+
+#ifdef smnSAMD21G18
+  #include "SamD21G18.h"
+  #define Pio PortReg
 #endif
 
-#include "environment.h"
+#define MSK(x)  ((dword) 0x00000001 << x)
+
+// Test for type definitions of SAM3X
+//
+#ifdef  smnSAM3X
+  #ifndef PIO_PER_P0
+    #define Pio void
+  #endif
+#endif
 
 #define InfoLED         13
 #define smnMaxMorseLen  256

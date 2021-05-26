@@ -112,6 +112,23 @@ int PinIoCtrl::initPerif()
     else
       pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
   #endif
+
+  #ifdef smnSAMD21G18
+    dword shMask = 0x00000001;
+    for(int i = 0; i < 32; i++)
+    {
+      if(pioInDescr.mask & shMask)
+        pioInDescr.pioPtr->PINCFG[i] = 0x02;
+      shMask <<= 1;
+    }
+    pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
+
+    pioOutDescr.pioPtr->DIRSET = pioOutDescr.mask;
+    if(cpl)
+      pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+    else
+      pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
+  #endif
   }
 #else
   alternativly set port/register direct
@@ -164,6 +181,10 @@ void PinIoCtrl::run()
     #ifdef smnSAM3X
       tmpInt32 = pioInDescr.pioPtr->PIO_PDSR & pioInDescr.mask;
     #endif
+
+    #ifdef smnSAMD21G18
+      tmpInt32 = pioInDescr.pioPtr->IN & pioInDescr.mask;
+    #endif
     }
   #else
     alternativly set port/register direct
@@ -190,6 +211,10 @@ void PinIoCtrl::run()
     {
     #ifdef smnSAM3X
       tmpInt32 = pioInDescr.pioPtr->PIO_PDSR & pioInDescr.mask;
+    #endif
+
+    #ifdef smnSAMD21G18
+      tmpInt32 = pioInDescr.pioPtr->IN & pioInDescr.mask;
     #endif
     }
   #else
@@ -237,6 +262,13 @@ void PinIoCtrl::run()
           else
             pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         #endif
+
+        #ifdef smnSAMD21G18
+          if(cpl)
+            pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+        #endif
         }
         #else
         alternativly set port/register direct
@@ -271,6 +303,13 @@ void PinIoCtrl::run()
           pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         else
           pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+      #endif
+
+      #ifdef smnSAMD21G18
+        if(cpl)
+          pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+        else
+          pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
       #endif
       }
     #else
@@ -312,7 +351,14 @@ void PinIoCtrl::run()
           else
             pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         #endif
-        }
+
+        #ifdef smnSAMD21G18
+          if(cpl)
+            pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+        #endif
+       }
         #else
         alternativly set port/register direct
         #endif
@@ -350,6 +396,13 @@ void PinIoCtrl::run()
             pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
           else
             pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+        #endif
+
+        #ifdef smnSAMD21G18
+          if(cpl)
+            pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
         #endif
         }
       #else
@@ -399,6 +452,13 @@ void PinIoCtrl::run()
             else
               pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
           #endif
+
+          #ifdef smnSAMD21G18
+            if(cpl)
+              pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+            else
+              pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
+          #endif
           }
         #else
           alternativly set port/register direct
@@ -427,6 +487,13 @@ void PinIoCtrl::run()
               pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
             else
               pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
+          #endif
+
+          #ifdef smnSAMD21G18
+            if(cpl)
+              pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
+            else
+              pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
           #endif
           }
         #else
@@ -473,6 +540,13 @@ void PinIoCtrl::run()
           else
             pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         #endif
+
+        #ifdef smnSAMD21G18
+          if(cpl)
+            pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
+          else
+            pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+        #endif
         }
         #else
         alternativly set port/register direct
@@ -504,6 +578,13 @@ void PinIoCtrl::run()
           pioOutDescr.pioPtr->PIO_CODR = pioOutDescr.mask;
         else
           pioOutDescr.pioPtr->PIO_SODR = pioOutDescr.mask;
+      #endif
+
+      #ifdef smnSAMD21G18
+        if(cpl)
+          pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
+        else
+          pioOutDescr.pioPtr->OUTSET = pioOutDescr.mask;
       #endif
       }
       #else
@@ -761,6 +842,17 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, i
       pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
       pmc_enable_periph_clk(perId);
     #endif
+
+    #ifdef smnSAMD21G18
+      dword shMask = 0x00000001;
+      for(int i = 0; i < 32; i++)
+      {
+        if(pioInDescr.mask & shMask)
+          pioInDescr.pioPtr->PINCFG[i] = 0x02;
+        shMask <<= 1;
+      }
+      pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
+    #endif
     }
     #else
       alternativly set port/register direct
@@ -798,6 +890,17 @@ void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, int perId)
   #ifdef smnSAM3X
     pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
     pmc_enable_periph_clk(perId);
+  #endif
+
+  #ifdef smnSAMD21G18
+    dword shMask = 0x00000001;
+    for(int i = 0; i < 32; i++)
+    {
+      if(pioInDescr.mask & shMask)
+        pioInDescr.pioPtr->PINCFG[i] = 0x02;
+      shMask <<= 1;
+    }
+    pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
   #endif
   }
 #else

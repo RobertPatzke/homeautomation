@@ -69,6 +69,14 @@
     #define smnSerial Serial
   #endif
 
+  #ifdef smnSLOESAMD21
+    #define smnDebugArduino
+    #define smnSloeber
+    #define smnArduinoZeroSamD21
+    #define smnSAMD21G18
+    #define smnSerial SerialUSB
+  #endif
+
 #else
 
 // Die Definitionen werden hier in den meisten Fällen grundsetzlich ausgewertet,

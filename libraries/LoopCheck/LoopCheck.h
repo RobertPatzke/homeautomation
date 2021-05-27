@@ -33,7 +33,19 @@
 
 
 #define NrOfOnceTasks       4
+
+#define lcOnce0  0
+#define lcOnce1  1
+#define lcOnce2  2
+#define lcOnce3  3
+
 #define NrOfToggleTasks     4
+
+#define lcToggle0  0
+#define lcToggle1  1
+#define lcToggle2  2
+#define lcToggle3  3
+
 #define CalcAverageDepth    32
 
 #ifdef UseGithubPath

@@ -147,7 +147,10 @@ void Monitor::getKey()
         if(cin >= '0' && cin <= '9')
         {
           int cIdx = cin - 0x30;
-          cFlag[cIdx] = true;
+          if(cFlag[cIdx])
+            cFlag[cIdx] = false;
+          else
+            cFlag[cIdx] = true;
         }
         out(' ');
         blkIn   = false;

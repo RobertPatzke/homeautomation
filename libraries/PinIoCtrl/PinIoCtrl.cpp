@@ -114,6 +114,7 @@ int PinIoCtrl::initPerif()
   #endif
 
   #ifdef smnSAMD21G18
+    /*
     dword shMask = 0x00000001;
     for(int i = 0; i < 32; i++)
     {
@@ -121,9 +122,12 @@ int PinIoCtrl::initPerif()
         pioInDescr.pioPtr->PINCFG[i] = 0x02;
       shMask <<= 1;
     }
+
     pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
+    */
 
     pioOutDescr.pioPtr->DIRSET = pioOutDescr.mask;
+
     if(cpl)
       pioOutDescr.pioPtr->OUTCLR = pioOutDescr.mask;
     else
@@ -335,7 +339,7 @@ void PinIoCtrl::run()
         #ifdef smnArduino
         if(pioOutDescr.pioPtr == NULL)
         {
-        #ifndef smnSAM3X
+        #if !defined smnSAM3X && !defined smnSAMD21G18
           analogWrite(pioOutDescr.mask, 0);
         #endif
           if(cpl)

@@ -34,5 +34,23 @@ typedef struct
 
 #define PaPtr   ((PortRegPtr) PortA)
 #define PbPtr   ((PortRegPtr) PortB)
+
+#define Dio00   { PaPtr, MSK(11) }
+#define Dio01   { PaPtr, MSK(10) }
+#define Dio02   { PaPtr, MSK(15) }
+#define Dio03   { PaPtr, MSK(09) }
+#define Dio04   { PaPtr, MSK(08) }
+#define Dio05   { PaPtr, MSK(13) }
+#define Dio06   { PaPtr, MSK(20) }
+#define Dio07   { PaPtr, MSK(21) }
+#define Dio08   { PaPtr, MSK(06) }
+#define Dio09   { PaPtr, MSK(07) }
+#define Dio10   { PaPtr, MSK(18) }
+#define Dio11   { PaPtr, MSK(16) }
+#define Dio12   { PaPtr, MSK(11) }
+#define Dio13   { PaPtr, MSK(17) }
+#define Dio20   { PaPtr, MSK(22) }
+#define Dio21   { PaPtr, MSK(23) }
+
 //-----------------------------------------------------------------------------
 #endif //_SamD21G18_h

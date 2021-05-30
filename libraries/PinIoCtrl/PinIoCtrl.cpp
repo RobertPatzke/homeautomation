@@ -92,6 +92,11 @@ void PinIoCtrl::init(Pio *pio, uint32_t portMask)
 //
 int PinIoCtrl::initPerif()
 {
+  return(initPerif(false));
+}
+
+int PinIoCtrl::initPerif(bool strong)
+{
   int retv = 0;
 
 #ifdef smnArduino
@@ -114,17 +119,18 @@ int PinIoCtrl::initPerif()
   #endif
 
   #ifdef smnSAMD21G18
-    /*
+
+    byte pinCfg = DioCnfInBuffEnable;
+    if(strong)
+      pinCfg |= DioCnfOutStrong;
+
     dword shMask = 0x00000001;
     for(int i = 0; i < 32; i++)
     {
-      if(pioInDescr.mask & shMask)
-        pioInDescr.pioPtr->PINCFG[i] = 0x02;
+      if(pioOutDescr.mask & shMask)
+        pioOutDescr.pioPtr->PINCFG[i] = pinCfg;
       shMask <<= 1;
     }
-
-    pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
-    */
 
     pioOutDescr.pioPtr->DIRSET = pioOutDescr.mask;
 
@@ -146,13 +152,25 @@ int PinIoCtrl::initPerif()
 int PinIoCtrl::initPerif(PioDescr pioData)
 {
   pioOutDescr = pioData;
-  return(initPerif());
+  return(initPerif(false));
+}
+
+int PinIoCtrl::initPerif(PioDescr pioData, bool strong)
+{
+  pioOutDescr = pioData;
+  return(initPerif(strong));
 }
 
 int PinIoCtrl::initPerif(int port)
 {
   PioDescr pioDescr = {NULL, (uint32_t) port};
   return(initPerif(pioDescr));
+}
+
+int PinIoCtrl::initPerif(int port, bool strong)
+{
+  PioDescr pioDescr = {NULL, (uint32_t) port};
+  return(initPerif(pioDescr, strong));
 }
 
 // ---------------------------------------------------------------------------
@@ -820,10 +838,10 @@ void PinIoCtrl::invert()
 bool PinIoCtrl::inDigLevel(int port, int highLow, int periodTime)
 {
   PioDescr pioData = { NULL, (uint32_t) port };
-  return(inDigLevel(pioData, highLow, periodTime, 0));
+  return(inDigLevel(pioData, highLow, periodTime, DioIn));
 }
 
-bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, int perId)
+bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, DioPinMode inPinMode)
 {
   if(chkInCnt > 0)
     return(false);
@@ -836,6 +854,7 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, i
     pioInDescr.mask     = pioData.mask;
 
   #ifdef smnArduino
+  // --------------------------------------------------------------------------
     if(pioInDescr.pioPtr == NULL)
     {
       pinMode(pioInDescr.mask, INPUT);
@@ -843,24 +862,40 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, i
     else
     {
     #ifdef smnSAM3X
+    // ------------------------------------------------------------------------
       pioInDescr.pioPtr->PIO_ODR = pioInDescr.mask;
       pmc_enable_periph_clk(perId);
+    // ------------------------------------------------------------------------
     #endif
 
     #ifdef smnSAMD21G18
+    // ------------------------------------------------------------------------
+      byte pinCfg = DioCnfInBuffEnable;
+      if(inPinMode == DioInPullUp || inPinMode == DioInPullDown)
+        pinCfg |= DioCnfPullEnable;
+
       dword shMask = 0x00000001;
       for(int i = 0; i < 32; i++)
       {
         if(pioInDescr.mask & shMask)
-          pioInDescr.pioPtr->PINCFG[i] = 0x02;
+          pioInDescr.pioPtr->PINCFG[i] = pinCfg;
         shMask <<= 1;
       }
+
+      if(inPinMode == DioInPullDown)
+        pioInDescr.pioPtr->OUTCLR = pioInDescr.mask;
+      else if(inPinMode == DioInPullUp)
+        pioInDescr.pioPtr->OUTSET = pioInDescr.mask;
+
       pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
-    #endif
+    // ------------------------------------------------------------------------
+    #endif  //smnSAMD21G18
     }
-    #else
+  // --------------------------------------------------------------------------
+  #else
       alternativly set port/register direct
-    #endif
+  // --------------------------------------------------------------------------
+  #endif
 
     return(false);
   }
@@ -873,7 +908,7 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, i
 // watch and evaluate digital input level
 // ---------------------------------------------------------------------------
 //
-void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, int perId)
+void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, DioPinMode inPinMode)
 {
   if(periodTime == 0)
   {
@@ -897,13 +932,24 @@ void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, int perId)
   #endif
 
   #ifdef smnSAMD21G18
+  // ------------------------------------------------------------------------
+    byte pinCfg = DioCnfInBuffEnable;
+    if(inPinMode == DioInPullUp || inPinMode == DioInPullDown)
+      pinCfg |= DioCnfPullEnable;
+
     dword shMask = 0x00000001;
     for(int i = 0; i < 32; i++)
     {
       if(pioInDescr.mask & shMask)
-        pioInDescr.pioPtr->PINCFG[i] = 0x02;
+        pioInDescr.pioPtr->PINCFG[i] = pinCfg;
       shMask <<= 1;
     }
+
+    if(inPinMode == DioInPullDown)
+      pioInDescr.pioPtr->OUTCLR = pioInDescr.mask;
+    else if(inPinMode == DioInPullUp)
+      pioInDescr.pioPtr->OUTSET = pioInDescr.mask;
+
     pioInDescr.pioPtr->DIRCLR = pioInDescr.mask;
   #endif
   }

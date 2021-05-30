@@ -26,6 +26,10 @@
 #ifdef smnSAMD21G18
   #include "SamD21G18.h"
   #define Pio PortReg
+  #define DioCnfOutStrong     0x40
+  #define DioCnfPullEnable    0x04
+  #define DioCnfInBuffEnable  0x02
+  #define DioCnfPerMultiP     0x01
 #endif
 
 #define MSK(x)  ((dword) 0x00000001 << x)
@@ -66,6 +70,15 @@ typedef struct
   Pio       *pioPtr;
   uint32_t  mask;
 } PioDescr, *ptrPioDescr;
+
+typedef enum _DioPinMode
+{
+  DioOut,
+  DioIn,
+  DioOutStrong,
+  DioInPullUp,
+  DioInPullDown
+} DioPinMode;
 
 
 // ---------------------------------------------------------------------------
@@ -133,6 +146,7 @@ public:
   PinIoCtrl(); PinIoCtrl(int frequency); PinIoCtrl(int frequency, int outport);
   PinIoCtrl(int frequency, PioDescr pioData);
   int initPerif(); int initPerif(int port); int initPerif(PioDescr pioData);
+  int initPerif(bool strong); int initPerif(int port, bool strong); int initPerif(PioDescr pioData, bool strong);
   void init(int port); void init(Pio *pio, uint32_t portMask);
 
   // -------------------------------------------------------------------------
@@ -153,8 +167,8 @@ public:
   void  turn(boolean onOff);        // Switch Info LED on or off
   void  sos(boolean repeat);        // Start morsing SOS
   bool  inDigLevel(int port, int highLow, int periodTime); // check stay input
-  bool  inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, int perId);
-  void  watchDigLevel(PioDescr pioData, int periodTime, int perId);
+  bool  inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, DioPinMode inPinMode);
+  void  watchDigLevel(PioDescr pioData, int periodTime, DioPinMode inPinMode);
   bool  stableDigLevel(uint32_t highLow);
   bool  getDigLevel(uint32_t *highLow);
 };

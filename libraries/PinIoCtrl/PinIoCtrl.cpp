@@ -841,7 +841,7 @@ bool PinIoCtrl::inDigLevel(int port, int highLow, int periodTime)
   return(inDigLevel(pioData, highLow, periodTime, DioIn));
 }
 
-bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, DioPinMode inPinMode)
+bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, DioPinMode inPinMode, int perId)
 {
   if(chkInCnt > 0)
     return(false);
@@ -908,7 +908,22 @@ bool PinIoCtrl::inDigLevel(PioDescr pioData, uint32_t highLow, int periodTime, D
 // watch and evaluate digital input level
 // ---------------------------------------------------------------------------
 //
+void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime)
+{
+  watchDigLevel(pioData, periodTime, DioIn, 0);
+}
+
+void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, int perId)
+{
+  watchDigLevel(pioData, periodTime, DioIn, perId);
+}
+
 void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, DioPinMode inPinMode)
+{
+  watchDigLevel(pioData, periodTime, inPinMode, 0);
+}
+
+void PinIoCtrl::watchDigLevel(PioDescr pioData, int periodTime, DioPinMode inPinMode, int perId)
 {
   if(periodTime == 0)
   {

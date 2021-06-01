@@ -21,7 +21,7 @@
 // Initialisierungen
 //-----------------------------------------------------------------------------
 
-Monitor::Monitor(int inMode, int inCpu)
+void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr)
 {
   mode          = inMode;
   cpu           = inCpu;
@@ -33,9 +33,21 @@ Monitor::Monitor(int inMode, int inCpu)
   info          = NULL;
   readOffsAddr  = 0;
   doReadReg     = false;
+  extraIn       = false;
+  lcPtr         = inLcPtr;
 
   nextState =
       &Monitor::waitEnter;
+}
+
+Monitor::Monitor(int inMode, int inCpu)
+{
+  init(inMode, inCpu, NULL);
+}
+
+Monitor::Monitor(int inMode, int inCpu, LoopCheck *inLcPtr)
+{
+  init(inMode, inCpu, inLcPtr);
 }
 
 //-----------------------------------------------------------------------------
@@ -177,6 +189,30 @@ void Monitor::getKey()
       }
       break;
 
+    case 't':
+    case 'T':
+      if(inIdx == 0)
+      {
+        inChar[inIdx] = cin;
+        inIdx++;
+      }
+      else if(inIdx == 1)
+      {
+        inIdx = 0;
+        out(' ');
+        if(cin == 'l' || cin == 'L')
+        {
+          nextState = &Monitor::getTiming;
+          extraIn = false;
+        }
+        else if(cin == 'r' || cin == 'R')
+        {
+          nextState = &Monitor::getTiming;
+          extraIn = true;
+        }
+      }
+      break;
+
     case 'V':
     case 'v':
       out(' ');
@@ -299,6 +335,24 @@ void Monitor::readRegVal()
     inIdx = 0;
     GoPrm
   }
+}
+
+void Monitor::getTiming()
+{
+  LoopStatistics lStat;
+
+  if(lcPtr == NULL)
+  {
+    outl("Kein LoopCheck.");
+    GoPrm
+    return;
+  }
+
+  lcPtr->getStatistics(&lStat);
+  out(lStat.loopMaxTime); out("/"); out(lStat.loopMinTime); out("/"); out(lStat.loopAvgTime); out("\r");
+  if(extraIn)
+    lcPtr->resetStatistics();
+  GoPrm
 }
 
 //-----------------------------------------------------------------------------

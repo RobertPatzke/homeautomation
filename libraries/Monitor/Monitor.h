@@ -14,6 +14,7 @@
 #include  "Arduino.h"
 #include  "environment.h"
 #include  "arduinoDefs.h"
+#include  "LoopCheck.h"
 
 #ifndef Monitor_h
 #define Monitor_h
@@ -62,10 +63,12 @@ private:
   char      outChar[128];
   char      tmpChar[8];
   int       inIdx;
+  bool      extraIn;
 
   char      *info;
 
   StatePtr  nextState;
+  LoopCheck *lcPtr;
 
   dword     readOffsAddr;
   bool      doReadReg;
@@ -74,12 +77,14 @@ private:
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
+  void  init(int mode, int cpu, LoopCheck *inLcPtr);
   void  waitEnter();
   void  prompt();
   void  getKey();
   void  version();
   void  getRdOffsAdr();
   void  readRegVal();
+  void  getTiming();
 
   void  print(char *txt, int eol);
   void  print(byte *hex, int nr, char fill, int eol);
@@ -103,6 +108,7 @@ public:
   // --------------------------------------------------------------------------
 
   Monitor(int mode, int cpu);
+  Monitor(int mode, int cpu, LoopCheck *inLcPtr);
 
   // --------------------------------------------------------------------------
   // Konfiguration und Hilfsfunktionen

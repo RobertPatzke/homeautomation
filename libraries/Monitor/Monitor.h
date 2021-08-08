@@ -65,6 +65,9 @@ private:
   int       inIdx;
   bool      extraIn;
 
+  char      cmdMode1;
+  char      cmdMode2;
+
   char      *info;
 
   StatePtr  nextState;
@@ -85,6 +88,7 @@ private:
   void  getRdOffsAdr();
   void  readRegVal();
   void  getTiming();
+  void  getLoopMeasure();
 
   void  print(char *txt, int eol);
   void  print(byte *hex, int nr, char fill, int eol);

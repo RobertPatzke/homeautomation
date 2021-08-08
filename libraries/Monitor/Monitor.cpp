@@ -156,18 +156,22 @@ void Monitor::getKey()
       else if(inIdx == 1)
       {
         inIdx = 0;
+        out('=');
         if(cin >= '0' && cin <= '9')
         {
           int cIdx = cin - 0x30;
           if(cFlag[cIdx])
+          {
             cFlag[cIdx] = false;
+            out('0');
+          }
           else
+          {
             cFlag[cIdx] = true;
+            out('1');
+          }
         }
-        out(' ');
-        blkIn   = false;
-        blkOut  = false;
-        GoWt
+        GoPrm
       }
       break;
 
@@ -199,16 +203,31 @@ void Monitor::getKey()
       else if(inIdx == 1)
       {
         inIdx = 0;
-        out(' ');
+        nextState = &Monitor::getTiming;
         if(cin == 'l' || cin == 'L')
         {
-          nextState = &Monitor::getTiming;
-          extraIn = false;
+          cmdMode1 = 'L';
+        }
+        else if(cin == 'b' || cin == 'B')
+        {
+          cmdMode1 = 'B';
+        }
+        else if(cin == 'c' || cin == 'C')
+        {
+          cmdMode1 = 'C';
         }
         else if(cin == 'r' || cin == 'R')
         {
-          nextState = &Monitor::getTiming;
-          extraIn = true;
+          if(lcPtr != NULL)
+          {
+            lcPtr->resetStatistics();
+            out(' ');
+          }
+          GoPrm
+        }
+        else
+        {
+          GoPrm
         }
       }
       break;
@@ -339,7 +358,11 @@ void Monitor::readRegVal()
 
 void Monitor::getTiming()
 {
-  LoopStatistics lStat;
+  LoopStatistics  lStat;
+  unsigned int    maxVal;
+  unsigned int    minVal;
+  unsigned int    avgVal;
+  char  cin;
 
   if(lcPtr == NULL)
   {
@@ -348,10 +371,90 @@ void Monitor::getTiming()
     return;
   }
 
-  lcPtr->getStatistics(&lStat);
-  out(lStat.loopMaxTime); out("/"); out(lStat.loopMinTime); out("/"); out(lStat.loopAvgTime); out("\r");
-  if(extraIn)
+  if(!keyHit()) return;
+  cin = keyIn();
+  if(mode & modeEcho)
+    out(cin);
+
+  if(cin == 'r' || cin == 'R')
+  {
+    out(' ');
+    lcPtr->getStatistics(&lStat);
+    if(cmdMode1 == 'L')
+    {
+      maxVal = lStat.loopMaxTime;
+      minVal = lStat.loopMinTime;
+      avgVal = lStat.loopAvgTime;
+    }
+    else if(cmdMode1 == 'B')
+    {
+      maxVal = lStat.bgMaxTime;
+      minVal = lStat.bgMinTime;
+      avgVal = lStat.bgAvgTime;
+    }
+    else if(cmdMode1 == 'C')
+    {
+      maxVal = lStat.maxPeriod;
+      minVal = lStat.minPeriod;
+      avgVal = lStat.avgPeriod;
+    }
+    else
+    {
+      maxVal = 0;
+      minVal = 0;
+      avgVal = 0;
+    }
+
+    out(maxVal); out("/"); out(minVal); out("/"); out(avgVal); out("\r");
+    GoPrm
+  }
+  else if(cin == 'm' || cin == 'M')
+  {
     lcPtr->resetStatistics();
+    lcPtr->startTimeMeasure();
+    nextState = &Monitor::getLoopMeasure;
+  }
+
+}
+
+void Monitor::getLoopMeasure()
+{
+  LoopStatistics  lStat;
+  unsigned int    maxVal;
+  unsigned int    minVal;
+  unsigned int    avgVal;
+
+  if(lcPtr->getTimeMeasure() < 100000)
+    return;
+
+  out(' ');
+  lcPtr->getStatistics(&lStat);
+  if(cmdMode1 == 'L')
+  {
+    maxVal = lStat.loopMaxTime;
+    minVal = lStat.loopMinTime;
+    avgVal = lStat.loopAvgTime;
+  }
+  else if(cmdMode1 == 'B')
+  {
+    maxVal = lStat.bgMaxTime;
+    minVal = lStat.bgMinTime;
+    avgVal = lStat.bgAvgTime;
+  }
+  else if(cmdMode1 == 'C')
+  {
+    maxVal = lStat.maxPeriod;
+    minVal = lStat.minPeriod;
+    avgVal = lStat.avgPeriod;
+  }
+  else
+  {
+    maxVal = 0;
+    minVal = 0;
+    avgVal = 0;
+  }
+
+  out(maxVal); out("/"); out(minVal); out("/"); out(avgVal); out("\r");
   GoPrm
 }
 

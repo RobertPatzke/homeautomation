@@ -13,25 +13,29 @@
 #ifndef _arduinoDefs_h
 #define _arduinoDefs_h
 
-#undef  byte
-//#undef  word
-#undef  dword
 // ---------------------------------------------------------------------------
-// Simple type definitions
+// Simple type definitions and settings
 // ---------------------------------------------------------------------------
 //
-#ifndef byte
-  typedef unsigned char byte;
-#endif
+#undef  byte
+#undef  word
+#undef  dword
 
-#ifndef word
-  typedef unsigned short word;
-#endif
+#define byte unsigned char
+#define word unsigned short
+#define dword unsigned long
 
-#ifndef dword
-  typedef unsigned long  dword;
-#endif
+#ifdef smnLinGcc64
 
+#undef  byte
+#undef  word
+#undef  dword
+
+#define byte unsigned char
+#define word unsigned short
+#define dword unsigned int
+
+#endif
 
 // ---------------------------------------------------------------------------
 // Complex type definitions

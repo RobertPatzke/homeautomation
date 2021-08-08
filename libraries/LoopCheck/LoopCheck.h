@@ -112,6 +112,7 @@ typedef struct _LoopStatistics
   unsigned int  loopPeriod;     // Zeit zwischen loop-Aufrufen
   unsigned int  maxPeriod;      // Maximale Aufrufdistanz
   unsigned int  minPeriod;      // Minimale Aufrufdistanz
+  unsigned int  avgPeriod;      // Mittlere Aufrufdistanz
 
   bool          periodAlarm;    // Aufrufdistanz > PeriodMinTime
   unsigned int  alarmCount;     // Anzahl der Überschreitungen
@@ -214,6 +215,9 @@ private:
   unsigned int  periodMicros;           // Zeit zwischen zwei loop-Aufrufen
   unsigned int  periodMinMicros;
   unsigned int  periodMaxMicros;
+  unsigned int  periodAvgMicros;
+  unsigned int  periodSumMicros;
+
   bool          periodFailAlarm;        // periodMicros > Millisekunde
   unsigned int  periodFailCount;        // Anzahl der Überschreitungen
 
@@ -247,6 +251,9 @@ public:
   //
   void begin();     // Diese Funktion muss am Anfang der Schleife aufgerufen
                     // werden.
+
+  unsigned int done();  // Diese Funktion kann vor dem Aufruf von end()
+                        // genutzt werden und liefert die Laufzeit bis dahin
 
   void end();       // Diese Funktion muss am Ende der Schleife aufgerufen
                     // werden.

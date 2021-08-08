@@ -288,6 +288,7 @@
       periodMicros = loopStartMicros - lastStartMicros;
       if(periodMicros > periodMaxMicros)
         periodMaxMicros = periodMicros;
+      periodSumMicros += periodMicros;
       if(periodMicros < periodMinMicros)
         periodMinMicros = periodMicros;
       if(periodMicros > PeriodMinTime)
@@ -311,6 +312,11 @@
   }
 
 
+  unsigned int LoopCheck::done()
+  {
+    return(SYSMICSEC - loopStartMicros);
+  }
+
   void LoopCheck::end()
   {
     loopEndMicros = SYSMICSEC;
@@ -329,9 +335,11 @@
       {
         loopAvgMicros = loopSumMicros / CalcAverageDepth;
         backgroundAvgMicros = backgroundSumMicros / CalcAverageDepth;
+        periodAvgMicros = periodSumMicros / CalcAverageDepth;
         calcAvgCounter = 0;
         loopSumMicros = 0;
         backgroundSumMicros = 0;
+        periodSumMicros = 0;
       }
     }
     else
@@ -544,6 +552,7 @@
     statistics->loopPeriod  =   periodMicros;
     statistics->maxPeriod   =   periodMaxMicros;
     statistics->minPeriod   =   periodMinMicros;
+    statistics->avgPeriod   =   periodAvgMicros;
 
     for (int i = 0; i < LoopScreeningGrades; i++)
       statistics->rtScreening[i] = loopScreening[i];
@@ -568,6 +577,7 @@
     periodFailCount         = 0;
     periodMaxMicros         = 0;
     periodMinMicros         = (unsigned int) -1;
+    periodAvgMicros         = 0;
     periodMicros            = 0;
     periodFailAlarm         = false;
 

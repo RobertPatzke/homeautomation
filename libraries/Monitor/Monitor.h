@@ -146,6 +146,10 @@ public:
   void println(byte *iVal, int nr, char fill);
 
 
+  // Zustände (Variablen)
+  //
+  bool  busy;
+
   // Steuerbits (Kommandobits)
   //
   bool  cFlag[10];

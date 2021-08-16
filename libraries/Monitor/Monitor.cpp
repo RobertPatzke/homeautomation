@@ -110,9 +110,13 @@ void Monitor::waitEnter()
 {
   char  c;
 
+  busy = false;
+
   if(!keyHit()) return;
   c = keyIn();
   if(c != '\r' && c != '\n') return;
+
+  busy = true;
 
   blkIn   = true;
   blkOut  = true;

@@ -42,6 +42,7 @@ TwiError nRF52840Twi::begin(TwiParamsPtr inParPtr)
     twiPtr    = NrfTwiPtr0;
     clrAllEvents();
     instPtr0  = this;
+    curIRQ    = 3;
 
     // Interruptvektor setzen
     //
@@ -54,6 +55,7 @@ TwiError nRF52840Twi::begin(TwiParamsPtr inParPtr)
     twiPtr    = NrfTwiPtr1;
     clrAllEvents();
     instPtr1  = this;
+    curIRQ    = 4;
 
     // Interruptvektor setzen
     //
@@ -132,7 +134,8 @@ TwiError nRF52840Twi::begin(TwiParamsPtr inParPtr)
 
   // Interrupts freischalten
   //
-  twiPtr->INTENSET = (TwiInt_TXDSENT | TwiInt_RXDREADY | TwiInt_ERROR | TwiInt_STOPPED);
+  curIntEn = (TwiInt_TXDSENT | TwiInt_RXDREADY | TwiInt_ERROR | TwiInt_STOPPED);
+  twiPtr->INTENSET = curIntEn;
 
   // Und bereit machen
   //
@@ -159,26 +162,6 @@ void nRF52840Twi::clrAllEvents()
 }
 
 // ----------------------------------------------------------------------------
-// Ereignisbearbeitung und Interrupts
-// ----------------------------------------------------------------------------
-//
-nRF52840Twi *nRF52840Twi::instPtr0 = NULL;
-
-void nRF52840Twi::irqHandler0()
-{
-  if(instPtr0 == NULL) return;
-  instPtr0->irqHandler();
-}
-
-nRF52840Twi *nRF52840Twi::instPtr1 = NULL;
-
-void nRF52840Twi::irqHandler1()
-{
-  if(instPtr1 == NULL) return;
-  instPtr1->irqHandler();
-}
-
-// ----------------------------------------------------------------------------
 //                      M a s t e r
 // ----------------------------------------------------------------------------
 //
@@ -187,10 +170,12 @@ void nRF52840Twi::irqHandler1()
   // Datenaustausch
   // --------------------------------------------------------------------------
   //
-TwiError nRF52840Twi::writeByte(int adr, TwiBytePtr refByte)
+TwiError nRF52840Twi::sendByte(int adr, TwiBytePtr refByte)
 {
   TwiError retv = TEnoError;
   lastError     = 0;
+
+  resetIrqList();
 
   byteStruPtr     = refByte;
   twiPtr->ADDRESS = adr;
@@ -204,7 +189,51 @@ TwiError nRF52840Twi::writeByte(int adr, TwiBytePtr refByte)
   return(retv);
 }
 
-TwiError nRF52840Twi::readByteReg(int adr, int reg, TwiBytePtr refByte)
+TwiError nRF52840Twi::sendByteReg(int adr, int reg, TwiBytePtr refByte)
+{
+  TwiError retv = TEnoError;
+
+  //dynHand = &nRF52840Twi::irqHandler;
+
+  resetIrqList();
+
+  byteStruPtr     = refByte;
+  twiPtr->ADDRESS = adr;
+
+  byteStruPtr->twiStatus  = TwStWrReq;
+  trfMode                 = ttmWriteByteReg;
+  comIdx                  = 1;
+  irqIdx                  = 0;
+
+  twiPtr->TASKS_STARTTX   = 1;
+  twiPtr->TXD             = reg;
+
+  return(retv);
+}
+
+TwiStatus nRF52840Twi::writeByteReg(int adr, int reg, byte value)
+{
+  twiPtr->INTENCLR = curIntEn;
+
+  tmpByte.value = value;
+
+  sendByteReg(adr, reg, &tmpByte);
+
+  while(tmpByte.twiStatus != TwStFin)
+  {
+    irqHandler();
+
+    if(tmpByte.twiStatus & TwStError)
+      break;
+  }
+
+  twiPtr->INTENSET = curIntEn;
+
+  return(tmpByte.twiStatus);
+}
+
+
+TwiError nRF52840Twi::recByteReg(int adr, int reg, TwiBytePtr refByte)
 {
   TwiError retv = TEnoError;
 
@@ -213,6 +242,8 @@ TwiError nRF52840Twi::readByteReg(int adr, int reg, TwiBytePtr refByte)
   byteStruPtr     = refByte;
   twiPtr->ADDRESS = adr;
 
+  resetIrqList();
+
   byteStruPtr->twiStatus  = TwStRdReq;
   trfMode                 = ttmReadByteReg;
 
@@ -222,14 +253,39 @@ TwiError nRF52840Twi::readByteReg(int adr, int reg, TwiBytePtr refByte)
   return(retv);
 }
 
-TwiError nRF52840Twi::readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq)
+int nRF52840Twi::readByteReg(int adr, int reg)
+{
+  twiPtr->INTENCLR = curIntEn;
+
+  recByteReg(adr, reg, &tmpByte);
+
+  while(tmpByte.twiStatus != TwStFin)
+  {
+    irqHandler();
+
+    if(tmpByte.twiStatus & TwStError)
+      break;
+  }
+
+  twiPtr->INTENSET = curIntEn;
+
+  if(tmpByte.twiStatus == TwStFin)
+    return(tmpByte.value);
+  else
+    return(-1);
+}
+
+
+TwiError nRF52840Twi::recByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq)
 {
   TwiError retv = TEnoError;
 
   //dynHand = &nRF52840Twi::irqHandler;
 
+  resetIrqList();
+
   byteSeqPtr      = refByteSeq;
-  recIdx          = 0;
+  comIdx          = 0;
   twiPtr->ADDRESS = adr;
 
   byteStruPtr->twiStatus  = TwStRdReq;
@@ -241,6 +297,27 @@ TwiError nRF52840Twi::readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq)
   return(retv);
 }
 
+// ----------------------------------------------------------------------------
+// Ereignisbearbeitung und Interrupts
+// ----------------------------------------------------------------------------
+//
+nRF52840Twi *nRF52840Twi::instPtr0 = NULL;
+
+void nRF52840Twi::irqHandler0()
+{
+  if(instPtr0 == NULL) return;
+  instPtr0->irqCounter++;
+  instPtr0->irqHandler();
+}
+
+nRF52840Twi *nRF52840Twi::instPtr1 = NULL;
+
+void nRF52840Twi::irqHandler1()
+{
+  if(instPtr1 == NULL) return;
+  instPtr1->irqCounter++;
+  instPtr1->irqHandler();
+}
 
 
   // --------------------------------------------------------------------------
@@ -249,11 +326,46 @@ TwiError nRF52840Twi::readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq)
   //
 void nRF52840Twi::irqHandler()
 {
-  irqCounter++;
-
   switch(trfMode)
   {
     case ttmWriteByte:
+    // ------------------------------------------------------------------------
+
+      if(twiPtr->EVENTS_ERROR)
+      {
+        twiPtr->EVENTS_ERROR    = 0;
+        lastError               = twiPtr->ERRORSRC;
+        twiPtr->ERRORSRC        = (lastError & 0x06);   // Clear AdrNak/DataNak
+        byteStruPtr->twiStatus  = (TwiStatus) ( (int) TwStError + lastError);
+        twiPtr->TASKS_STOP      = 1;
+
+        irqList[irqIdx++] = 8;
+        return;
+      }
+
+      if(twiPtr->EVENTS_TXDSENT)
+      {
+        twiPtr->EVENTS_TXDSENT   = 0;
+        byteStruPtr->twiStatus   = TwStSent;
+        twiPtr->TASKS_STOP       = 1;
+
+        irqList[irqIdx++] = 1;
+        return;
+      }
+
+      if(twiPtr->EVENTS_STOPPED)
+      {
+        twiPtr->EVENTS_STOPPED  = 0;
+        if(lastError == 0)
+          byteStruPtr->twiStatus  = TwStFin;
+
+        irqList[irqIdx++] = 3;
+        return;
+      }
+
+      break;
+
+    case ttmWriteByteReg:
     // ------------------------------------------------------------------------
 
       if(twiPtr->EVENTS_ERROR)
@@ -270,7 +382,13 @@ void nRF52840Twi::irqHandler()
       {
         twiPtr->EVENTS_TXDSENT   = 0;
         byteStruPtr->twiStatus   = TwStSent;
-        twiPtr->TASKS_STOP       = 1;
+        if(comIdx == 1)
+        {
+          comIdx = 0;
+          twiPtr->TXD = byteStruPtr->value;
+        }
+        else
+          twiPtr->TASKS_STOP    = 1;
         return;
       }
 
@@ -279,6 +397,7 @@ void nRF52840Twi::irqHandler()
         twiPtr->EVENTS_STOPPED  = 0;
         if(lastError == 0)
           byteStruPtr->twiStatus  = TwStFin;
+        return;
       }
 
       break;
@@ -293,14 +412,19 @@ void nRF52840Twi::irqHandler()
         twiPtr->ERRORSRC        = (lastError & 0x06);   // Clear AdrNak/DataNak
         byteStruPtr->twiStatus  = (TwiStatus) ( (int) TwStError + lastError);
         twiPtr->TASKS_STOP      = 1;
+
+        irqList[irqIdx++] = 8;
         return;
       }
 
       if(twiPtr->EVENTS_TXDSENT)
       {
-        twiPtr->EVENTS_TXDSENT   = 0;
-        byteStruPtr->twiStatus   = TwStSent;
-        twiPtr->TASKS_STARTRX    = 1;
+        twiPtr->EVENTS_TXDSENT  = 0;
+        byteStruPtr->twiStatus  = TwStSent;
+        twiPtr->TASKS_STARTRX   = 1;
+        twiPtr->SHORTS          = 2;
+
+        irqList[irqIdx++] = 1;
         return;
       }
 
@@ -309,6 +433,9 @@ void nRF52840Twi::irqHandler()
         twiPtr->EVENTS_STOPPED  = 0;
         if(lastError == 0)
           byteStruPtr->twiStatus  = TwStFin;
+
+        irqList[irqIdx++] = 3;
+        twiPtr->SHORTS = 0;
         return;
       }
 
@@ -316,8 +443,9 @@ void nRF52840Twi::irqHandler()
       {
         twiPtr->EVENTS_RXDREADY = 0;
         byteStruPtr->twiStatus  = TwStRecvd;
-        twiPtr->TASKS_STOP      = 1;
         byteStruPtr->value      = twiPtr->RXD;
+
+        irqList[irqIdx++] = 2;
         return;
       }
 
@@ -357,10 +485,10 @@ void nRF52840Twi::irqHandler()
         twiPtr->EVENTS_RXDREADY       = 0;
         byteSeqPtr->twiStatus         = TwStRecvd;
 
-        if(recIdx == (byteSeqPtr->len - 1))
+        if(comIdx == (byteSeqPtr->len - 1))
           twiPtr->TASKS_STOP          = 1;
-        byteSeqPtr->valueRef[recIdx]  = twiPtr->RXD;
-        recIdx++;
+        byteSeqPtr->valueRef[comIdx]  = twiPtr->RXD;
+        comIdx++;
         return;
       }
 
@@ -418,7 +546,29 @@ dword nRF52840Twi::getIrqCount()
   return(irqCounter);
 }
 
+void nRF52840Twi::resetIrqList()
+{
+  irqIdx = 0;
+  firstRead = true;
 
+  for(int i = 0; i < 8; i++)
+    irqList[i] = 0;
+}
+
+void nRF52840Twi::getIrqList(char *dest)
+{
+  int destIdx = 0;
+
+  for(int i = 0; i < 8; i++)
+  {
+    if(irqList[i] == 0) break;
+
+    dest[destIdx++] = ' ';
+    dest[destIdx++] = irqList[i] + 0x30;
+  }
+
+  dest[destIdx] = '\0';
+}
 
 
 

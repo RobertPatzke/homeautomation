@@ -114,7 +114,11 @@ void Monitor::waitEnter()
 
   if(!keyHit()) return;
   c = keyIn();
-  if(c != '\r' && c != '\n') return;
+  if(c != '\r' && c != '\n')
+  {
+    lastKeyIn = c;
+    return;
+  }
 
   busy = true;
 

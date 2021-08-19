@@ -69,8 +69,8 @@ typedef struct _nrfTwi
 
 typedef enum _TwiTrfMode
 {
-  ttmUndef,
-  ttmWriteByte,
+  ttmWriteByte = 1,
+  ttmWriteByteReg,
   ttmReadByteReg,
   ttmReadByteRegSeq
 } TwiTrfMode;
@@ -168,7 +168,12 @@ private:
 
   TwiTrfMode    trfMode;
   dword         lastError;
-  int           recIdx;
+  int           comIdx;
+
+  int           curIRQ;
+  dword         curIntEn;
+
+  TwiByte       tmpByte;
 
   //void (nRF52840Twi::* dynHand)();
 
@@ -196,10 +201,17 @@ public:
   // Datenaustausch
   // --------------------------------------------------------------------------
   //
-  TwiError writeByte(int adr, TwiBytePtr refByte);
-  TwiError readByteReg(int addr, int reg, TwiBytePtr refByte);
-  TwiError readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq);
+  // asynchrone Kommunikation, Zustand in TwiByte.twiStatus
+  //
+  TwiError sendByte(int adr, TwiBytePtr refByte);
+  TwiError sendByteReg(int addr, int reg, TwiBytePtr refByte);
+  TwiError recByteReg(int addr, int reg, TwiBytePtr refByte);
+  TwiError recByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq);
 
+  // synchrone Kommunikation
+  //
+  TwiStatus writeByteReg(int adr, int reg, byte value);
+  int       readByteReg(int adr, int reg);
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts
@@ -217,7 +229,15 @@ public:
   //                      D e b u g - H i l f e n
   // ----------------------------------------------------------------------------
   //
+  int           irqIdx;
+  int           irqList[8];
+
+  byte          extraValue;
+  bool          firstRead;
+
   dword   getIrqCount();
+  void    resetIrqList();
+  void    getIrqList(char *dest);
 
 };
 

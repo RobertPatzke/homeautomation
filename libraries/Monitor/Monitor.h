@@ -149,6 +149,7 @@ public:
   // Zustände (Variablen)
   //
   bool  busy;
+  char  lastKeyIn;
 
   // Steuerbits (Kommandobits)
   //

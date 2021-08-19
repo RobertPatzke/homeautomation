@@ -108,10 +108,17 @@ public:
   // Datenaustausch
   // --------------------------------------------------------------------------
   //
-  virtual TwiError writeByte(int adr, TwiBytePtr refByte);
-  virtual TwiError readByteReg(int adr, int reg, TwiBytePtr refByte);
-  virtual TwiError readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq);
+  // asynchrone Kommunikation, Zustand in TwiByte.twiStatus
+  //
+  virtual TwiError sendByte(int adr, TwiBytePtr refByte);
+  virtual TwiError sendByteReg(int adr, int reg, TwiBytePtr refByte);
+  virtual TwiError recByteReg(int adr, int reg, TwiBytePtr refByte);
+  virtual TwiError recByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq);
 
+  // synchrone Kommunikation
+  //
+  virtual TwiStatus writeByteReg(int adr, int reg, byte value);
+  virtual int       readByteReg(int adr, int reg);
 
 };
 

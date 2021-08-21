@@ -21,7 +21,7 @@
 // Initialisierungen
 //-----------------------------------------------------------------------------
 
-void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr)
+void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr)
 {
   mode          = inMode;
   cpu           = inCpu;
@@ -35,19 +35,26 @@ void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr)
   doReadReg     = false;
   extraIn       = false;
   lcPtr         = inLcPtr;
+  twiPtr        = inTwPtr;
 
   nextState =
       &Monitor::waitEnter;
 }
 
+
 Monitor::Monitor(int inMode, int inCpu)
 {
-  init(inMode, inCpu, NULL);
+  init(inMode, inCpu, NULL, NULL);
 }
 
 Monitor::Monitor(int inMode, int inCpu, LoopCheck *inLcPtr)
 {
-  init(inMode, inCpu, inLcPtr);
+  init(inMode, inCpu, inLcPtr, NULL);
+}
+
+Monitor::Monitor(int inMode, int inCpu, LoopCheck *inLcPtr, IntrfTw *inTwiPtr)
+{
+  init(inMode, inCpu, inLcPtr, inTwiPtr);
 }
 
 //-----------------------------------------------------------------------------
@@ -183,6 +190,28 @@ void Monitor::getKey()
       }
       break;
 
+    case 'i':
+    case 'I':
+      if(inIdx == 0)
+      {
+        inChar[inIdx] = cin;
+        inIdx++;
+      }
+      else if(inIdx == 1)
+      {
+        inIdx = 0;
+        out(' ');
+        if(cin == 'a' || cin == 'A')
+          nextState = &Monitor::getTwiAdr;
+        else if(cin == 'l' || cin == 'L')
+          nextState = &Monitor::readTwiList;
+        else if(cin == 'r' || cin == 'R')
+          nextState = &Monitor::readTwiByte;
+        else if(cin == 'w' || cin == 'W')
+          nextState = &Monitor::writeTwiByte;
+      }
+      break;
+
     case 'r':
     case 'R':
       if(inIdx == 0)
@@ -309,7 +338,6 @@ void Monitor::getRdOffsAdr()
     inIdx = 0;
     GoPrm
   }
-
 }
 
 void Monitor::readRegVal()
@@ -466,6 +494,214 @@ void Monitor::getLoopMeasure()
   GoPrm
 }
 
+
+void Monitor::getTwiAdr()
+{
+  char  cin;
+
+  if(!keyHit()) return;
+  cin = keyIn();
+  twiAdr = 0;
+
+  if(cin != '\r')
+  {
+    if(cin >= '0' && cin <= '9')
+      inChar[inIdx] = cin - 0x30;
+    else if(cin >= 'A' && cin <= 'F')
+      inChar[inIdx] = cin - 0x37;
+    else if(cin >= 'a' && cin <= 'f')
+      inChar[inIdx] = cin - 0x57;
+    else
+      return;
+
+    out(cin);
+    if(inIdx < 2)
+      inIdx++;
+    else
+      out((char) 0x08);
+  }
+  else
+  {
+    twiAdr = (inChar[0] << 4) | inChar[1];
+
+    out(" = ");
+    out(twiAdr);
+
+    inIdx = 0;
+    GoPrm
+  }
+}
+
+void Monitor::readTwiList()
+{
+  char  cin;
+  int   reg;
+  int   anz;
+
+  char  tmpOut[3];
+
+  TwiStatus twiStatus;
+
+  if(twiPtr == NULL)
+  {
+    out("no Twi");
+    inIdx = 0;
+    GoPrm
+  }
+
+  if(!keyHit()) return;
+  cin = keyIn();
+
+  if(cin != '\r')
+  {
+    if(cin >= '0' && cin <= '9')
+      inChar[inIdx] = cin - 0x30;
+    else if(cin >= 'A' && cin <= 'F')
+      inChar[inIdx] = cin - 0x37;
+    else if(cin >= 'a' && cin <= 'f')
+      inChar[inIdx] = cin - 0x57;
+    else
+      return;
+
+    out(cin);
+    if(inIdx == 1)
+      out(" ");
+
+    if(inIdx < 4)
+      inIdx++;
+    else
+      out((char) 0x08);
+  }
+  else
+  {
+    reg = (inChar[0] << 4) | inChar[1];
+    anz = (inChar[2] << 4) | inChar[3];
+
+    twiByteSeq.len = anz;
+    twiByteSeq.valueRef = byteArray;
+
+    twiStatus = twiPtr->readByteRegSeq(twiAdr, reg, &twiByteSeq);
+
+    out(" [");
+    out((int) twiStatus);
+    out("] ");
+
+    if((int) twiStatus == 128)
+    {
+      for(int i = 0; i < anz; i++)
+      {
+        hexAsc(tmpOut, byteArray[i]);
+        out(tmpOut);
+        if(i != (anz-1)) out(':');
+      }
+    }
+
+    inIdx = 0;
+    GoPrm
+  }
+}
+
+void Monitor::readTwiByte()
+{
+  char  cin;
+  int   reg;
+  byte  val;
+
+  if(twiPtr == NULL)
+  {
+    out("no Twi");
+    inIdx = 0;
+    GoPrm
+  }
+
+  if(!keyHit()) return;
+  cin = keyIn();
+
+  if(cin != '\r')
+  {
+    if(cin >= '0' && cin <= '9')
+      inChar[inIdx] = cin - 0x30;
+    else if(cin >= 'A' && cin <= 'F')
+      inChar[inIdx] = cin - 0x37;
+    else if(cin >= 'a' && cin <= 'f')
+      inChar[inIdx] = cin - 0x57;
+    else
+      return;
+
+    out(cin);
+    if(inIdx < 2)
+      inIdx++;
+    else
+      out((char) 0x08);
+  }
+  else
+  {
+    reg = (inChar[0] << 4) | inChar[1];
+
+    val = twiPtr->readByteReg(twiAdr, reg);
+
+    out(" = ");
+    binAsc(outChar, val);
+    out(outChar);
+
+    inIdx = 0;
+    GoPrm
+  }
+}
+
+void Monitor::writeTwiByte()
+{
+  char  cin;
+  int   reg;
+  int   val;
+
+  TwiStatus twiStatus;
+
+  if(twiPtr == NULL)
+  {
+    out("no Twi");
+    inIdx = 0;
+    GoPrm
+  }
+
+  if(!keyHit()) return;
+  cin = keyIn();
+
+  if(cin != '\r')
+  {
+    if(cin >= '0' && cin <= '9')
+      inChar[inIdx] = cin - 0x30;
+    else if(cin >= 'A' && cin <= 'F')
+      inChar[inIdx] = cin - 0x37;
+    else if(cin >= 'a' && cin <= 'f')
+      inChar[inIdx] = cin - 0x57;
+    else
+      return;
+
+    out(cin);
+    if(inIdx == 1)
+      out(" ");
+
+    if(inIdx < 4)
+      inIdx++;
+    else
+      out((char) 0x08);
+  }
+  else
+  {
+    reg = (inChar[0] << 4) | inChar[1];
+    val = (inChar[2] << 4) | inChar[3];
+
+    twiStatus = twiPtr->writeByteReg(twiAdr, reg, val);
+
+    out(" : ");
+    out((int) twiStatus);
+
+    inIdx = 0;
+    GoPrm
+  }
+}
+
 //-----------------------------------------------------------------------------
 // Lokale Schnittstelle
 //-----------------------------------------------------------------------------
@@ -539,7 +775,7 @@ void Monitor::binAsc(char * dest, byte val)
 {
   byte mask;
 
-  mask = 0x01;
+  mask = 0x80;
 
   for(int i = 0; i < 8; i++)
   {
@@ -547,7 +783,7 @@ void Monitor::binAsc(char * dest, byte val)
       dest[i] = '1';
     else
       dest[i] = '0';
-    mask <<= 1;
+    mask >>= 1;
   }
 
   dest[8] = '\0';

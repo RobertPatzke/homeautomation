@@ -15,6 +15,7 @@
 #include  "environment.h"
 #include  "arduinoDefs.h"
 #include  "LoopCheck.h"
+#include  "IntrfTw.h"
 
 #ifndef Monitor_h
 #define Monitor_h
@@ -73,6 +74,11 @@ private:
   StatePtr  nextState;
   LoopCheck *lcPtr;
 
+  IntrfTw     *twiPtr;
+  int         twiAdr;
+  TwiByteSeq  twiByteSeq;
+  byte        byteArray[32];
+
   dword     readOffsAddr;
   bool      doReadReg;
 
@@ -80,7 +86,10 @@ private:
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
+  void  init(int mode, int cpu);
   void  init(int mode, int cpu, LoopCheck *inLcPtr);
+  void  init(int mode, int cpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr);
+
   void  waitEnter();
   void  prompt();
   void  getKey();
@@ -89,6 +98,11 @@ private:
   void  readRegVal();
   void  getTiming();
   void  getLoopMeasure();
+
+  void  getTwiAdr();
+  void  readTwiList();
+  void  readTwiByte();
+  void  writeTwiByte();
 
   void  print(char *txt, int eol);
   void  print(byte *hex, int nr, char fill, int eol);
@@ -113,6 +127,7 @@ public:
 
   Monitor(int mode, int cpu);
   Monitor(int mode, int cpu, LoopCheck *inLcPtr);
+  Monitor(int mode, int cpu, LoopCheck *inLcPtr, IntrfTw *inTwiPtr);
 
   // --------------------------------------------------------------------------
   // Konfiguration und Hilfsfunktionen

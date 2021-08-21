@@ -212,6 +212,7 @@ public:
   //
   TwiStatus writeByteReg(int adr, int reg, byte value);
   int       readByteReg(int adr, int reg);
+  TwiStatus readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq);
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts

@@ -280,21 +280,44 @@ TwiError nRF52840Twi::recByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq)
 {
   TwiError retv = TEnoError;
 
-  //dynHand = &nRF52840Twi::irqHandler;
-
-  resetIrqList();
-
   byteSeqPtr      = refByteSeq;
   comIdx          = 0;
   twiPtr->ADDRESS = adr;
 
-  byteStruPtr->twiStatus  = TwStRdReq;
-  trfMode                 = ttmReadByteReg;
+  byteSeqPtr->twiStatus   = TwStRdReq;
+  trfMode                 = ttmReadByteRegSeq;
 
   twiPtr->TASKS_STARTTX   = 1;
   twiPtr->TXD             = reg;
 
   return(retv);
+}
+
+TwiStatus nRF52840Twi::readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq)
+{
+  byteSeqPtr      = refByteSeq;
+  comIdx          = 0;
+  twiPtr->ADDRESS = adr;
+
+  byteSeqPtr->twiStatus   = TwStRdReq;
+  trfMode                 = ttmReadByteRegSeq;
+
+  twiPtr->INTENCLR        = curIntEn;
+
+  twiPtr->TASKS_STARTTX   = 1;
+  twiPtr->TXD             = reg;
+
+  while(byteSeqPtr->twiStatus != TwStFin)
+  {
+    irqHandler();
+
+    if(byteSeqPtr->twiStatus & TwStError)
+      break;
+  }
+
+  twiPtr->INTENSET        = curIntEn;
+
+  return(byteSeqPtr->twiStatus);
 }
 
 // ----------------------------------------------------------------------------
@@ -466,9 +489,9 @@ void nRF52840Twi::irqHandler()
 
       if(twiPtr->EVENTS_TXDSENT)
       {
-        twiPtr->EVENTS_TXDSENT   = 0;
-        byteSeqPtr->twiStatus    = TwStSent;
-        twiPtr->TASKS_STARTRX    = 1;
+        twiPtr->EVENTS_TXDSENT  = 0;
+        byteSeqPtr->twiStatus   = TwStSent;
+        twiPtr->TASKS_STARTRX   = 1;
         return;
       }
 
@@ -477,6 +500,7 @@ void nRF52840Twi::irqHandler()
         twiPtr->EVENTS_STOPPED   = 0;
         if(lastError == 0)
           byteSeqPtr->twiStatus  = TwStFin;
+        twiPtr->SHORTS = 0;
         return;
       }
 
@@ -485,8 +509,8 @@ void nRF52840Twi::irqHandler()
         twiPtr->EVENTS_RXDREADY       = 0;
         byteSeqPtr->twiStatus         = TwStRecvd;
 
-        if(comIdx == (byteSeqPtr->len - 1))
-          twiPtr->TASKS_STOP          = 1;
+        if(comIdx == (byteSeqPtr->len - 2))
+          twiPtr->SHORTS              = 2;
         byteSeqPtr->valueRef[comIdx]  = twiPtr->RXD;
         comIdx++;
         return;
@@ -495,39 +519,6 @@ void nRF52840Twi::irqHandler()
       break;
 
   }
-
-  /*
-  if(twiPtr->EVENTS_ERROR)
-  {
-    twiPtr->EVENTS_ERROR    = 0;
-    byteStruPtr->twiStatus  = (TwiStatus) ( (int) TwStError +  twiPtr->ERRORSRC);
-    return;
-  }
-
-  if(twiPtr->EVENTS_TXDSENT)
-  {
-    twiPtr->EVENTS_TXDSENT  = 0;
-    byteStruPtr->twiStatus  = TwStSent;
-    twiPtr->TASKS_STARTRX   = 1;
-    return;
-  }
-
-  if(twiPtr->EVENTS_RXDREADY)
-  {
-    twiPtr->EVENTS_RXDREADY = 0;
-    byteStruPtr->twiStatus  = TwStRecvd;
-    byteStruPtr->value      = twiPtr->RXD;
-    twiPtr->TASKS_STOP      = 1;
-    return;
-  }
-
-  if(twiPtr->EVENTS_STOPPED)
-  {
-    twiPtr->EVENTS_STOPPED  = 0;
-    byteStruPtr->twiStatus  = TwStFin;
-  }
-  */
-
 }
 
 // ----------------------------------------------------------------------------

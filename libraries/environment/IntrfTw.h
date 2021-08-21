@@ -119,6 +119,7 @@ public:
   //
   virtual TwiStatus writeByteReg(int adr, int reg, byte value);
   virtual int       readByteReg(int adr, int reg);
+  virtual TwiStatus readByteRegSeq(int adr, int reg, TwiByteSeqPtr refByteSeq);
 
 };
 

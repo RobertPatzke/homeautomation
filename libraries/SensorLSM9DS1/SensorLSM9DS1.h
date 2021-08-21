@@ -57,8 +57,50 @@
 // ------------------------ Magnetic Field -------
 #define M_Ctrl1   0x20
 #define M_Ctrl2   0x21
+#define M_Ctrl3   0x23
+#define M_Ctrl4   0x24
 #define M_Id      0x0F
 
+// Control 1
+#define M_Rate(x)       (x << 2)
+#define M_Odr0_625      0x00
+#define M_Odr1_25       0x04
+#define M_Odr2_5        0x08
+#define M_Odr5          0x0C
+#define M_Odr10         0x10
+#define M_Odr20         0x14
+#define M_Odr40         0x18
+#define M_Odr80         0x1C
+
+#define M_Temp(x)       (x << 7)
+#define M_TmpOn         0x80
+#define M_TmpOff        0x00
+
+#define Mxy_Power(x)    (x << 6)
+#define Mxy_PmLow       0x00
+#define Mxy_PmMed       0x20
+#define Mxy_PmHigh      0x40
+#define Mxy_PmUhigh     0x60
+
+// Control 2
+#define M_FullScale(x)  (x << 5)
+#define M_Fs4G          0x00
+#define M_Fs8G          0x20
+#define M_Fs12G         0x40
+#define M_Fs16G         0x60
+
+// Control 3
+#define M_OpMode(x)     (x)
+#define M_Contin        0x00
+#define M_Single        0x01
+#define M_Down          0x10
+
+// Control 4
+#define Mz_Power(x)    (x << 2)
+#define Mz_PmLow       0x00
+#define Mz_PmMed       0x04
+#define Mz_PmHigh      0x08
+#define Mz_PmUhigh     0x0C
 
 
 class SensorLSM9DS1
@@ -91,6 +133,14 @@ public:
   // scValueAG = Abtastrate
   // scValueA  = Vollausschlag und Tiefpass für Beschleunigung
   // scValueB  = Vollausschlag und Tiefpass für Gyrometer
+
+  void setScanM(byte scValue1, byte scValue2, byte scValue3, byte scValue4);
+  // Messparameter für Magnetfeld
+  // scValue1 = Abtastrate, Temperaturkompensation und XY-Powermode
+  // scValue2 = Vollausschlag
+  // scValue3 = Betriebsart
+  // scValue4 = Z-Powermode
+
 
   void begin();
 

@@ -141,6 +141,7 @@ TwiError nRF52840Twi::begin(TwiParamsPtr inParPtr)
   //
   twiPtr->ENABLE = TwiEnable;
 
+  delay(5);
 
   return(retv);
 }

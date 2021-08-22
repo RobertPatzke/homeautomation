@@ -19,10 +19,12 @@
 // ------------------------ Acceleration and Gyroscope -------
 #define AG_Adr    0x6B
 // ------------------------ Acceleration and Gyroscope -------
+#define AG_Id     0x0F
 #define AG_Ctrl1  0x10
+#define G_Out     0x18
 #define AG_Ctrl6  0x20
 #define AG_Ctrl8  0x22
-#define AG_Id     0x0F
+#define AG_Status 0x27
 
 #define AG_Rate(x)      (x << 5)
 #define AG_Odr14_9      0x20
@@ -103,6 +105,46 @@
 #define Mz_PmUhigh     0x0C
 
 
+typedef enum _RunState
+{
+  rsInit,
+  rsScanReq,
+  rsScanChk,
+  rsFetch
+} RunState;
+
+typedef struct _RawValue
+{
+  short int   x;
+  short int   y;
+  short int   z;
+} RawValue;
+
+typedef struct _RawValueAG
+{
+  RawValue  G;
+  RawValue  A;
+} RawValueAG;
+
+typedef union _RawData
+{
+  byte        byteArray[12];
+  RawValueAG  valueAG;
+} RawData, *RawDataPtr;
+
+typedef struct _CalValue
+{
+  float   x;
+  float   y;
+  float   z;
+} CalValue;
+
+typedef struct _CalValueAG
+{
+  CalValue  G;
+  CalValue  A;
+} CalValueAG, *CalValueAGPtr;
+
 class SensorLSM9DS1
 {
 private:
@@ -110,8 +152,19 @@ private:
   // Lokale Daten und Funktionen
   // --------------------------------------------------------------------------
   //
-  IntrfTw *twPtr;
-  TwiByte twiByte;
+  IntrfTw     *twPtr;
+  TwiByte     twiByte;
+  TwiByteSeq  twiByteSeq;
+  byte        byteArray[12];
+
+  bool        newValue;
+  byte        valueArray[12];
+
+  int         fullScaleA;
+  int         fullScaleG;
+  int         fullScaleM;
+
+  RunState    runState;
 
 public:
   // --------------------------------------------------------------------------
@@ -148,12 +201,14 @@ public:
   // Steuerfunktionen
   // --------------------------------------------------------------------------
   //
+  void run();
 
   // --------------------------------------------------------------------------
   // Datenaustausch
   // --------------------------------------------------------------------------
   //
-
+  bool  getValues(RawDataPtr rdptr);
+  bool  getValues(CalValueAGPtr calPtr);
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts

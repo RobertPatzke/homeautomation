@@ -460,7 +460,7 @@ void Monitor::getLoopMeasure()
   unsigned int    minVal;
   unsigned int    avgVal;
 
-  if(lcPtr->getTimeMeasure() < 100000)
+  if(lcPtr->getTimeMeasure() < 1000000)
     return;
 
   out(' ');

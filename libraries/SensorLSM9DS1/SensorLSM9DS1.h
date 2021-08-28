@@ -34,6 +34,16 @@
 #define AG_Odr476       0xA0
 #define AG_Odr952       0xC0
 
+typedef enum _FreqAG
+{
+  FreqAG14_9  = AG_Odr14_9,
+  FreqAG59_5  = AG_Odr59_5,
+  FreqAG119   = AG_Odr119,
+  FreqAG238   = AG_Odr238,
+  FreqAG476   = AG_Odr476,
+  FreqAG952   = AG_Odr952
+} FreqAG;
+
 #define AG_FullScale(x) (x << 3)
 #define A_Fs2g          0x00
 #define A_Fs4g          0x10
@@ -42,6 +52,21 @@
 #define G_Fs245         0x00
 #define G_Fs2000        0x18
 #define G_Fs500         0x08
+
+typedef enum _MaxA
+{
+  MaxAcc2g    = A_Fs2g,
+  MaxAcc4g    = A_Fs4g,
+  MaxAcc8g    = A_Fs8g,
+  MaxAcc16g   = A_Fs16g
+} MaxA;
+
+typedef enum _MaxG
+{
+  MaxGyro245dps   = G_Fs245,
+  MaxGyro500dps   = G_Fs500,
+  MaxGyro2000dps  = G_Fs2000
+} MaxG;
 
 #define AG_LowPass(x)   (x)
 #define A_LpAuto        0x00
@@ -57,11 +82,13 @@
 // ------------------------ Magnetic Field -------
 #define M_Adr     0x1E
 // ------------------------ Magnetic Field -------
+#define M_Id      0x0F
 #define M_Ctrl1   0x20
 #define M_Ctrl2   0x21
 #define M_Ctrl3   0x23
 #define M_Ctrl4   0x24
-#define M_Id      0x0F
+#define M_Status  0x27
+#define M_Out     0x28
 
 // Control 1
 #define M_Rate(x)       (x << 2)
@@ -73,6 +100,19 @@
 #define M_Odr20         0x14
 #define M_Odr40         0x18
 #define M_Odr80         0x1C
+
+typedef enum _FreqM
+{
+  FreqM_OFF   = 0xFF,
+  FreqM0_625  = M_Odr0_625,
+  FreqM1_25   = M_Odr1_25,
+  FreqM2_5    = M_Odr2_5,
+  FreqM5      = M_Odr5,
+  FreqM10     = M_Odr10,
+  FreqM20     = M_Odr20,
+  FreqM40     = M_Odr40,
+  FreqM80     = M_Odr80
+} FreqM;
 
 #define M_Temp(x)       (x << 7)
 #define M_TmpOn         0x80
@@ -91,6 +131,15 @@
 #define M_Fs12G         0x40
 #define M_Fs16G         0x60
 
+typedef enum _MaxM
+{
+  MaxMag4G      = M_Fs4G,
+  MaxMag8G      = M_Fs8G,
+  MaxMag12G     = M_Fs12G,
+  MaxMag16G     = M_Fs16G
+} MaxM;
+
+
 // Control 3
 #define M_OpMode(x)     (x)
 #define M_Contin        0x00
@@ -108,9 +157,13 @@
 typedef enum _RunState
 {
   rsInit,
-  rsScanReq,
-  rsScanChk,
-  rsFetch
+  rsScanAGReq,
+  rsWaitAG,
+  rsScanAGChk,
+  rsFetchAG,
+  rsScanMReq,
+  rsScanMChk,
+  rsFetchM
 } RunState;
 
 typedef struct _RawValue
@@ -120,30 +173,48 @@ typedef struct _RawValue
   short int   z;
 } RawValue;
 
+typedef struct _SumValue
+{
+  int   x;
+  int   y;
+  int   z;
+} SumValue, *SumValuePtr;
+
 typedef struct _RawValueAG
 {
   RawValue  G;
   RawValue  A;
 } RawValueAG;
 
-typedef union _RawData
+typedef union _RawDataAG
 {
   byte        byteArray[12];
   RawValueAG  valueAG;
-} RawData, *RawDataPtr;
+} RawDataAG, *RawDataAGPtr;
+
+typedef union _RawDataM
+{
+  byte        byteArray[6];
+  RawValue    valueM;
+} RawDataM, *RawDataMPtr;
 
 typedef struct _CalValue
 {
   float   x;
   float   y;
   float   z;
-} CalValue;
+} CalValue, *CalValuePtr;
 
 typedef struct _CalValueAG
 {
   CalValue  G;
   CalValue  A;
 } CalValueAG, *CalValueAGPtr;
+
+typedef struct _SensorErrors
+{
+
+} SensorErrors, *SensorErrorsPtr;
 
 class SensorLSM9DS1
 {
@@ -157,21 +228,52 @@ private:
   TwiByteSeq  twiByteSeq;
   byte        byteArray[12];
 
-  bool        newValue;
-  byte        valueArray[12];
+  bool        newValueAG;
+  RawDataAG   rawDataAG;
+  RawDataAG   tmpDataAG;
+
+  bool        newValueM;
+  RawDataM    rawDataM;
 
   int         fullScaleA;
   int         fullScaleG;
   int         fullScaleM;
 
+  SumValue    sumA;
+  SumValue    sumG;
+  int         avgSetAG;
+  int         avgCntAG;
+
+  SumValue    sumM;
+  int         avgSetM;
+  int         avgCntM;
+
+  dword       timeOutTwiStatus;
+  dword       timeOutTwiDataAG;
+  dword       timeOutTwiDataM;
+
+  dword       timeOutStatusAG;
+  dword       toValueStatusAG;
+  dword       timeOutStatusM;
+  dword       toValueStatusM;
+
+  int         twiCycle;
+  int         twiStatusCycle;
+  int         twiDataCycleAG;
+  int         twiDataCycleM;
+
   RunState    runState;
+  int         waitCnt;
+  int         runCycle;
+
+  void setTimeOutValues(FreqAG fAG, FreqM fM);
 
 public:
   // --------------------------------------------------------------------------
   // Initialisierungen der Basis-Klasse
   // --------------------------------------------------------------------------
 
-  SensorLSM9DS1(IntrfTw *refI2C);
+  SensorLSM9DS1(IntrfTw *refI2C, int inRunCycle);
 
   // --------------------------------------------------------------------------
   // Konfigurationen
@@ -195,6 +297,7 @@ public:
   // scValue4 = Z-Powermode
 
 
+  void begin(FreqAG freqAG, int avgAG, MaxA maxA, MaxG maxG, FreqM freqM, int avgM, MaxM maxM);
   void begin();
 
   // --------------------------------------------------------------------------
@@ -202,13 +305,34 @@ public:
   // --------------------------------------------------------------------------
   //
   void run();
+  void run0();
+  void run1();
 
   // --------------------------------------------------------------------------
   // Datenaustausch
   // --------------------------------------------------------------------------
   //
-  bool  getValues(RawDataPtr rdptr);
-  bool  getValues(CalValueAGPtr calPtr);
+  dword       errorCntOverAG;
+  dword       errorCntAdrNakAG;
+  dword       errorCntDataNakAG;
+
+  dword       errorCntOverM;
+  dword       errorCntAdrNakM;
+  dword       errorCntDataNakM;
+
+  dword       toCntTwiStatusAG;
+  dword       toCntTwiStatusM;
+  dword       toCntTwiDataAG;
+  dword       toCntTwiDataM;
+  dword       toCntStatusAG;
+  dword       toCntStatusM;
+
+  void  syncValuesAG();
+  bool  getValuesAG(RawDataAGPtr rdptr);
+  bool  getValuesAG(CalValueAGPtr calPtr);
+  bool  getAvgValuesAG(CalValueAGPtr calPtr);
+  bool  getValuesM(RawDataMPtr rdptr);
+  bool  getValuesM(CalValuePtr calPtr);
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts
@@ -219,6 +343,7 @@ public:
   //                      D e b u g - H i l f e n
   // ----------------------------------------------------------------------------
   //
+  dword debGetDword(int code);
 
 };
 

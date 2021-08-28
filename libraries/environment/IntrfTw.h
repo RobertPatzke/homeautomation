@@ -25,12 +25,9 @@ typedef enum _TwiDevType
 
 typedef enum _TwiSpeed
 {
-  Twi100k,      // Stadard, sollte unterstützt werden
+  Twi100k,      // Standard, sollte unterstützt werden
   Twi250k,
-  Twi400k,      // Schnell, sollte unterstützt werden
-  Twi1000k,
-  Twi3400k,
-  Twi5000k
+  Twi400k       // Schnell, sollte unterstützt werden
 } TwiSpeed;
 
 typedef struct _TwiParams
@@ -98,6 +95,7 @@ public:
   // Konfigurationen
   // --------------------------------------------------------------------------
   //
+  virtual void getParams(TwiParamsPtr parPtr);
 
   // --------------------------------------------------------------------------
   // Steuerfunktionen

@@ -34,6 +34,8 @@ TwiError nRF52840Twi::begin(TwiParamsPtr inParPtr)
 
   retv = TEnoError;
 
+  params = *inParPtr;
+
   // Setzen des Peripheriezeigers anhand der Instanz
   // und Initialisieren weiterer Variablen/Zeiger
   //
@@ -141,11 +143,16 @@ TwiError nRF52840Twi::begin(TwiParamsPtr inParPtr)
   //
   twiPtr->ENABLE = TwiEnable;
 
-  delay(5);
+  delay(10);
 
   return(retv);
 }
 
+
+void nRF52840Twi::getParams(TwiParamsPtr parPtr)
+{
+  *parPtr = params;
+}
 
 
 // ----------------------------------------------------------------------------

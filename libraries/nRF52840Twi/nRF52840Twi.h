@@ -175,7 +175,7 @@ private:
 
   TwiByte       tmpByte;
 
-  //void (nRF52840Twi::* dynHand)();
+  TwiParams     params;
 
   void clrAllEvents();
 
@@ -191,6 +191,8 @@ public:
   // --------------------------------------------------------------------------
   //
   TwiError begin(TwiParamsPtr inParPtr);
+  void getParams(TwiParamsPtr parPtr);
+
 
   // --------------------------------------------------------------------------
   // Steuerfunktionen

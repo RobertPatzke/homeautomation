@@ -68,6 +68,8 @@ public:
   //
   virtual void  setChannel(int chnr);         // Schalten physikalischer Kanal
   virtual int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
+  virtual void  send(bcPduPtr inPduPtr, TxStatePtr refState);
+
                                               // Senden eines Telegramms (und warten)
   virtual int   startRec();                   // Datenempfang starten
   virtual int   contRec();                    // Datenempfang fortsetzen

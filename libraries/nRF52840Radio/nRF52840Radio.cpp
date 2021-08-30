@@ -52,7 +52,7 @@ void  nRF52840Radio::setPacketParms(blePduType type)
   {
     case bptAdv:
       cfgData.pCnf0     = NrfRadioPtr->PCNF0        = PCNF0_LFLEN(8) | PCNF0_S0LEN(1) | PCNF0_S1LEN(0);
-      cfgData.pCnf1     = NrfRadioPtr->PCNF1        = PCNF1_MAXLEN(40) | PCNF1_BALEN(3) | PCNF1_WHITEEN(1);
+      cfgData.pCnf1     = NrfRadioPtr->PCNF1        = PCNF1_MAXLEN(42) | PCNF1_BALEN(3) | PCNF1_WHITEEN(1);
       cfgData.modeCnf0  = NrfRadioPtr->MODECNF0     = 1;
       cfgData.crcCnf    = NrfRadioPtr->CRCCNF       = CRCCNF_LEN(3) | CRCCNF_SKIPADDR(1);
       cfgData.crcPoly   = NrfRadioPtr->CRCPOLY      = PolynomCRC;
@@ -115,6 +115,11 @@ int nRF52840Radio::sendSync(bcPduPtr inPduPtr, TxStatePtr refState)
     refState->txBufferPtr = pduMem;
   }
   return(retv);
+}
+
+void  nRF52840Radio::send(bcPduPtr inPduPtr, TxStatePtr refState)
+{
+
 }
 
 // ----------------------------------------------------------------------------
@@ -193,13 +198,13 @@ int nRF52840Radio::checkRec()
 
 int   nRF52840Radio::getRecData(bcPduPtr data, int max)
 {
-  int retv = 0;
+  int retv;
   byte *bPtr = (byte *) data;
 
   data->head = pduMem[0];
   retv = data->len  = pduMem[1];
 
-  for(int i = 2; i < retv; i++)
+  for(int i = 2; i < (retv + 2); i++)
   {
     if(i == max) break;
     bPtr[i] = pduMem[i];
@@ -212,7 +217,19 @@ int   nRF52840Radio::getRecData(bcPduPtr data, int max)
 // ----------------------------------------------------------------------------
 //                      D e b u g - H i l f e n
 // ----------------------------------------------------------------------------
+//
+int   nRF52840Radio::getPduMem(byte *dest, int start, int end)
+{
+  int i,j;
 
+  j = 0;
+
+  for(i = start; i < end; i++)
+  {
+    dest[j++] = pduMem[i];
+  }
+  return(j);
+}
 
 
 

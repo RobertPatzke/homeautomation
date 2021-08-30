@@ -101,7 +101,7 @@
     dest->head = pdu.head;
     retv = dest->len  = pdu.len;
 
-    for(int i = 2; i < retv; i++)
+    for(int i = 2; i < retv + 2; i++)
     {
       if(i == nr) break;
       dPtr[i] = sPtr[i];

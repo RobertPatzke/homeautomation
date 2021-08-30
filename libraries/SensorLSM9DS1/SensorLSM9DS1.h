@@ -36,6 +36,7 @@
 
 typedef enum _FreqAG
 {
+  FreqAG_OFF  = 0xFF,
   FreqAG14_9  = AG_Odr14_9,
   FreqAG59_5  = AG_Odr59_5,
   FreqAG119   = AG_Odr119,
@@ -228,10 +229,12 @@ private:
   TwiByteSeq  twiByteSeq;
   byte        byteArray[12];
 
+  bool        enableMeasAG;
   bool        newValueAG;
   RawDataAG   rawDataAG;
   RawDataAG   tmpDataAG;
 
+  bool        enableMeasM;
   bool        newValueM;
   RawDataM    rawDataM;
 

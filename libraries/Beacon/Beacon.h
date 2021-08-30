@@ -31,9 +31,10 @@ typedef struct _measBase
 {
   byte  counter;    // zyklischer Telegrammmzähler
   byte  type;       // Kennzeichnung der Datenstruktur
-  byte  id;         // Kennzeichnung der Inhalte (Verteilung)
-  dword time;       // Zeit der Messwertermittlung
+  word  timeLow;    // Zeit der Messwertermittlung
+  word  timeHigh;
   word  meas[12];   // Liste/Array der Messwerte
+  byte  id;         // Kennzeichnung der Inhalte (Verteilung)
 } measBase, *measBasePtr;
 
 // Datentypen (type in measBase) bzw. Beacontypen
@@ -46,7 +47,9 @@ typedef enum _mbcType
   iBeacon,            // von Apple definiert, Datenstruktur im Internet
   eddy,               // von Google definiert, Datenstruktur im Internet
   mbcBasic,           // zyklische Messwertübertragung, no scan, no connection
-  mbcPlus             // zyklische Messw.. mit Nachfrage (scan)
+  mbcPlus,            // zyklische Messw.. mit Nachfrage (scan)
+  mbcPoll,            // Polling (ähnlich DIN-Messbus)
+  mbcData             // maximale Datenlänge
 } mbcType, *mbcTypePtr;
 
 // Identifikator für die Art der Daten
@@ -99,6 +102,12 @@ public:
   void  start();
   int   send();
   int   send(TxStatePtr refState, int chnr);
+
+  // --------------------------------------------------------------------------
+  // Debugging
+  // --------------------------------------------------------------------------
+  //
+  int   getPdu(byte *dest, unsigned int max);
 
 };
 

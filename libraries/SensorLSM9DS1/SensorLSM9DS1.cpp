@@ -83,6 +83,8 @@ SensorLSM9DS1::SensorLSM9DS1(IntrfTw *refI2C, int inRunCycle)
   twiDataCycleAG  = 140 * twiCycle;
   twiDataCycleM   = 80 * twiCycle;
 
+  enableMeasAG  = false;
+  enableMeasM   = false;
 }
 
 // ----------------------------------------------------------------------------
@@ -136,6 +138,8 @@ void SensorLSM9DS1::setTimeOutValues(FreqAG fAG, FreqM fM)
   int freqA = 1190, freqM = 40000;
   int cycleA, cycleM;
 
+  enableMeasAG = true;
+
   switch(fAG)
   {
     case FreqAG14_9:
@@ -161,13 +165,20 @@ void SensorLSM9DS1::setTimeOutValues(FreqAG fAG, FreqM fM)
     case FreqAG952:
       freqA = 9520;
       break;
+
+    case FreqAG_OFF:
+      freqA = 1190;
+      enableMeasAG = false;
+      break;
   }
 
   cycleA = (freqA * runCycle) / 10;     // Zyklusfrequenz
-  toValueStatusAG = 1100000 / cycleA;   // Mikrosekunden + 10% Verlängerung
+  toValueStatusAG = 1200000 / cycleA;   // Mikrosekunden + 20% Verlängerung
 
   // Test
-  toValueStatusAG += 2;
+  //toValueStatusAG += 2;
+
+  enableMeasM = true;
 
   switch(fM)
   {
@@ -205,14 +216,15 @@ void SensorLSM9DS1::setTimeOutValues(FreqAG fAG, FreqM fM)
 
     case FreqM_OFF:
       freqM = 40000;
+      enableMeasM = false;
       break;
   }
 
   cycleM = (freqM * runCycle) / 1000;   // Zyklusfrequenz
-  toValueStatusM = 1100000 / cycleM;    // Mikrosekunden + 10% Verlängerung
+  toValueStatusM = 1200000 / cycleM;    // Mikrosekunden + 20% Verlängerung
 
   // Test
-  toValueStatusM += 3;
+  //toValueStatusM += 3;
 
 }
 
@@ -435,6 +447,12 @@ void SensorLSM9DS1::run()
       // ------------ Accel & Gyro ------------
 
     case rsScanAGReq:
+      if(!enableMeasAG)
+      {
+        runState = rsScanMReq;
+        break;
+      }
+
       twPtr->recByteReg(AG_Adr, AG_Status, &twiByte);
       timeOutTwiStatus = twiStatusCycle / runCycle + 1;
       runState = rsScanAGChk;
@@ -556,6 +574,12 @@ void SensorLSM9DS1::run()
       break;
 
     case rsScanMChk:
+      if(!enableMeasM)
+      {
+        runState = rsScanAGReq;
+        break;
+      }
+
       if((twiByte.twiStatus != TwStFin) && ((twiByte.twiStatus & TwStError) == 0))
       {
         if(timeOutTwiStatus > 0)

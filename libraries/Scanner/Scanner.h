@@ -39,6 +39,7 @@ private:
   //
   IntrfRadio  *radio;
   bcPdu       pdu;
+  byte        tmpBuf[64];
 
 
   // ----------------------------------------------------------------------
@@ -69,7 +70,7 @@ public:
   //
   void  start();
   void  receive(RecMode mode, int chn);
-  int   check();
+  int   check();                        // Abfrage des Empfangszustandes
   int   getPdu(bcPdu *dest, int nr);
 };
 

@@ -211,6 +211,8 @@ public:
   //
   void  setChannel(int nr);           // Schalten physikalischer Kanal
   int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
+  void  send(bcPduPtr inPduPtr, TxStatePtr refState);
+
                                       // Senden eines Telegramms (und warten)
   int   startRec();                   // Datenempfang starten
   int   contRec();                    // Datenempfang fortsetzen
@@ -221,7 +223,17 @@ public:
   void  setPower(int DBm);            // Leistung des Senders in DBm
 
   void  readCheckCfg();               // Konfigurationsdaten auslesen
+
+
+  // ----------------------------------------------------------------------------
+  //                      D e b u g - H i l f e n
+  // ----------------------------------------------------------------------------
+  //
+  int   getPduMem(byte *dest, int start, int end);
+
+
 };
+
 
 #endif // NRF52840RADIO_H
 

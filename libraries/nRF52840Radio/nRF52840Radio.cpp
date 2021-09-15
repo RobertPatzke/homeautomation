@@ -7,6 +7,7 @@
 // Lizenz:  CC-BY-SA  (wikipedia: Creative Commons)
 //
 
+#include "Arduino.h"
 #include "nRF52840Radio.h"
 #include <string.h>
 
@@ -25,11 +26,29 @@ nRF52840Radio::nRF52840Radio()
 #endif
   NrfRadioPtr->POWER = 0;
   NrfRadioPtr->POWER = 1;
+
+  irqCounter = 0;
+  trfMode = txmBase;
 }
 
 // ----------------------------------------------------------------------------
 // Konfiguration
 // ----------------------------------------------------------------------------
+
+// Allgemeine Vorbereitungen
+//
+void  nRF52840Radio::begin()
+{
+  instPtr0 = this;      // Verzweigung im statischen Bereich setzen
+
+  NrfRadioPtr->INTENCLR = 0xFFFFFFFF;   // Vorsichtshalber keine Interrupts
+
+  // Interruptvektor setzen
+  //
+  __NVIC_SetVector((IRQn_Type) 1, (dword) nRF52840Radio::irqHandler0);
+  __NVIC_SetPriority((IRQn_Type) 1, 1);
+  __NVIC_EnableIRQ((IRQn_Type) 1);
+}
 
 // Setzen der Zugriffsadresse
 //
@@ -117,9 +136,179 @@ int nRF52840Radio::sendSync(bcPduPtr inPduPtr, TxStatePtr refState)
   return(retv);
 }
 
-void  nRF52840Radio::send(bcPduPtr inPduPtr, TxStatePtr refState)
+void  nRF52840Radio::send(bcPduPtr inPduPtr, TxMode txMode)
 {
+  NrfRadioPtr->INTENCLR         = 0xFFFFFFFF;
+  NrfRadioPtr->EVENTS_READY     = 0;
+  NrfRadioPtr->EVENTS_END       = 0;
+  NrfRadioPtr->EVENTS_DISABLED  = 0;
+  NrfRadioPtr->EVENTS_RXREADY   = 0;
+  NrfRadioPtr->EVENTS_TXREADY   = 0;
+  NrfRadioPtr->EVENTS_ADDRESS   = 0;
 
+  memcpy((void *)pduMem, (void *)inPduPtr, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
+  memcpy((void *)pduSent, (void *)inPduPtr, sizeof(bcPdu));   // Daten in extra Puffer kopieren
+
+  trfMode = txMode;
+
+  switch(txMode)
+  {
+    case txmBase:
+      NrfRadioPtr->SHORTS = NrfScREADY_START | NrfScEND_DISABLE;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+
+    case txmRepStart:
+      NrfRadioPtr->SHORTS = NrfScREADY_START;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+
+    case txmRepCont:
+      NrfRadioPtr->SHORTS = 0;
+      NrfRadioPtr->TASKS_START = 1;
+      break;
+
+    case txmRepEnd:
+      NrfRadioPtr->SHORTS = NrfScEND_DISABLE;
+      NrfRadioPtr->TASKS_START = 1;
+      break;
+
+    case txmReadPrep:
+      NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+
+    case txmRead:
+      NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
+      NrfRadioPtr->INTENSET = NrfIntADDRESS | NrfIntEND;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+  }
+}
+
+void nRF52840Radio::disable(TxMode txMode)
+{
+  switch(txMode)
+   {
+     case txmBase:
+       break;
+
+     case txmRepStart:
+       break;
+
+     case txmRepCont:
+       break;
+
+     case txmRepEnd:
+       break;
+
+     case txmReadPrep:
+       break;
+
+     case txmRead:
+       NrfRadioPtr->TASKS_DISABLE = 1;
+       break;
+   }
+  NrfRadioPtr->SHORTS = 0;
+}
+
+bool nRF52840Radio::disabled(TxMode txMode)
+{
+  bool retv = false;
+
+  switch(txMode)
+   {
+     case txmBase:
+       break;
+
+     case txmRepStart:
+       break;
+
+     case txmRepCont:
+       break;
+
+     case txmRepEnd:
+       break;
+
+     case txmReadPrep:
+       break;
+
+     case txmRead:
+       if(NrfRadioPtr->EVENTS_DISABLED == 1)
+       {
+         NrfRadioPtr->EVENTS_DISABLED = 0;
+         retv = true;
+       }
+       else
+       {
+         if(NrfRadioPtr->STATE == NrfStDISABLED)
+           retv = true;
+       }
+       break;
+   }
+  return(retv);
+}
+
+bool nRF52840Radio::fin(TxMode txMode)
+{
+  bool retv = false;
+
+  switch(txMode)
+   {
+     case txmBase:
+       break;
+
+     case txmRepStart:
+       break;
+
+     case txmRepCont:
+       break;
+
+     case txmRepEnd:
+       break;
+
+     case txmReadPrep:
+       break;
+
+     case txmRead:
+       if(NrfRadioPtr->EVENTS_END == 1)
+       {
+         NrfRadioPtr->EVENTS_END = 0;
+         retv = true;
+       }
+       else
+       {
+         if(NrfRadioPtr->STATE == NrfStRXIDLE)
+           retv = true;
+       }
+       break;
+   }
+  return(retv);
+}
+
+void nRF52840Radio::cont(TxMode txMode)
+{
+  switch(txMode)
+   {
+     case txmBase:
+       break;
+
+     case txmRepStart:
+       break;
+
+     case txmRepCont:
+       break;
+
+     case txmRepEnd:
+       break;
+
+     case txmReadPrep:
+       break;
+
+     case txmRead:
+       NrfRadioPtr->TASKS_START = 1;
+       break;
+   }
 }
 
 // ----------------------------------------------------------------------------
@@ -193,6 +382,9 @@ int nRF52840Radio::checkRec()
   if(NrfRadioPtr->CRCSTATUS != 0)
     retv |= RECSTAT_CRCOK;
 
+  if(NrfRadioPtr->EVENTS_DISABLED != 0)
+    retv |= RECSTAT_DISABLED;
+
   return(retv);
 }
 
@@ -213,7 +405,55 @@ int   nRF52840Radio::getRecData(bcPduPtr data, int max)
   return(retv);
 }
 
+// ----------------------------------------------------------------------------
+// Interruptverarbeitung
+// ----------------------------------------------------------------------------
+//
 
+nRF52840Radio *nRF52840Radio::instPtr0 = NULL;
+
+void nRF52840Radio::irqHandler0()
+{
+  if(instPtr0 == NULL) return;
+  instPtr0->irqCounter++;
+  instPtr0->irqHandler();
+}
+
+void nRF52840Radio::irqHandler()
+{
+  switch(trfMode)
+  {
+    case txmRead:
+
+      if((NrfRadioPtr->STATE & 0x08) != 0)  // Noch im Sendemodus
+      { // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_ADDRESS == 1)  // AC-Adr gesendet
+        {
+          NrfRadioPtr->EVENTS_ADDRESS = 0;    // nur quittieren
+        }
+
+        if(NrfRadioPtr->EVENTS_END == 1)      // Senden fertig
+        {
+          NrfRadioPtr->EVENTS_END = 0;        // nur quittieren
+        }
+      }
+      else                                  // im Empfangsmodus
+      { // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_ADDRESS == 1)  // AC-Adr empfangen
+        {
+          NrfRadioPtr->EVENTS_ADDRESS = 0;    // quittieren
+          NrfRadioPtr->SHORTS = 0;            // Direktverbindungen löschen
+        }
+
+        if(NrfRadioPtr->EVENTS_END == 1)      // Senden fertig
+        {
+          NrfRadioPtr->EVENTS_END = 0;        // nur quittieren
+        }
+      }
+
+      break;
+  }
+}
 // ----------------------------------------------------------------------------
 //                      D e b u g - H i l f e n
 // ----------------------------------------------------------------------------
@@ -227,6 +467,19 @@ int   nRF52840Radio::getPduMem(byte *dest, int start, int end)
   for(i = start; i < end; i++)
   {
     dest[j++] = pduMem[i];
+  }
+  return(j);
+}
+
+int   nRF52840Radio::getPduSent(byte *dest, int start, int end)
+{
+  int i,j;
+
+  j = 0;
+
+  for(i = start; i < end; i++)
+  {
+    dest[j++] = pduSent[i];
   }
   return(j);
 }

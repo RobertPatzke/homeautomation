@@ -101,20 +101,22 @@
   int Beacon::send(TxStatePtr refState, int chnr)
   {
     ((measBasePtr)pdu.data)->counter++;
-    ((measBasePtr)pdu.data)->meas[0] = 0x111C;
-    ((measBasePtr)pdu.data)->meas[1] = 0x222B;
-    ((measBasePtr)pdu.data)->meas[2] = 0x333A;
-    ((measBasePtr)pdu.data)->meas[3] = 0x4449;
-    ((measBasePtr)pdu.data)->meas[4] = 0x5558;
-    ((measBasePtr)pdu.data)->meas[5] = 0x6667;
-    ((measBasePtr)pdu.data)->meas[6] = 0x7776;
-    ((measBasePtr)pdu.data)->meas[7] = 0x8885;
-    ((measBasePtr)pdu.data)->meas[8] = 0x9994;
-    ((measBasePtr)pdu.data)->meas[9] = 0xAAA3;
+    ((measBasePtr)pdu.data)->meas[0]  = 0x111C;
+    ((measBasePtr)pdu.data)->meas[1]  = 0x222B;
+    ((measBasePtr)pdu.data)->meas[2]  = 0x333A;
+    ((measBasePtr)pdu.data)->meas[3]  = 0x4449;
+    ((measBasePtr)pdu.data)->meas[4]  = 0x5558;
+    ((measBasePtr)pdu.data)->meas[5]  = 0x6667;
+    ((measBasePtr)pdu.data)->meas[6]  = 0x7776;
+    ((measBasePtr)pdu.data)->meas[7]  = 0x8885;
+    ((measBasePtr)pdu.data)->meas[8]  = 0x9994;
+    ((measBasePtr)pdu.data)->meas[9]  = 0xAAA3;
     ((measBasePtr)pdu.data)->meas[10] = 0xBBB2;
     ((measBasePtr)pdu.data)->meas[11] = 0xCCC1;
     radio->setChannel(chnr);
-    return(radio->sendSync(&pdu, refState));
+    //return(radio->sendSync(&pdu, refState));
+    radio->send(&pdu,txmBase);
+    return(0);
   }
 
   // --------------------------------------------------------------------------

@@ -139,6 +139,7 @@ public:
   void      enterListAt(StatePtr fin, int index, int delayTime);
 
   bool      firstEnter();       // true only, if the state is first entered
+  void      resetEnter();       // reset first enter mark
   bool      cycle(int cnt);     // true only, if called <cnt> times
   bool      cycleSec();         // true only, if a second passed
   bool      toggle();           // alternating return true and false

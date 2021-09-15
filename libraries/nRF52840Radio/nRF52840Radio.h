@@ -126,6 +126,35 @@ typedef struct _NRF_RADIO_Type
 #define nrfClockTASKS_HFCLKSTART  ((dword *) 0x40000000)
 #endif
 
+// Direktverbindungen (shortcuts) zwischen events und Tasks
+//
+#define NrfScREADY_START    0x00000001
+#define NrfScEND_DISABLE    0x00000002
+#define NrfScDISABLED_RXEN  0x00000008
+#define NrfScTXREADY_START  0x00040000
+#define NrfScRXREADY_START  0x00080000
+
+// Interrupts
+//
+#define NrfIntREADY         0x00000001
+#define NrfIntADDRESS       0x00000002
+#define NrfIntPAYLOAD       0x00000004
+#define NrfIntEND           0x00000008
+#define NrfIntDISABLED      0x00000010
+#define NrfIntRSSIEND       0x00000080
+
+// Zustände
+//
+#define NrfStDISABLED       0
+#define NrfStRXRU           1
+#define NrfStRXIDLE         2
+#define NrfStRX             3
+#define NrfStRXDISABLE      4
+#define NrfStTXRU           9
+#define NrfStTXIDLE         10
+#define NrfStTX             11
+#define NrfStTXDISABLE      12
+
 // Festlegungen für die Paketkonfigurationsregister
 //
 
@@ -189,7 +218,12 @@ private:
   // --------------------------------------------------------------------------
   //
   byte        pduMem[256];
+  byte        pduSent[256];
+
   nrf52840Cfg cfgData;
+
+  dword       irqCounter;
+  TxMode      trfMode;
 
 public:
   // --------------------------------------------------------------------------
@@ -202,6 +236,7 @@ public:
   // Konfigurationen
   // --------------------------------------------------------------------------
   //
+  void  begin();
   void  setAccessAddress(dword addr); // Setzen der Zugriffsadresse
   void  setPacketParms(blePduType type);
 
@@ -211,8 +246,12 @@ public:
   //
   void  setChannel(int nr);           // Schalten physikalischer Kanal
   int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
-  void  send(bcPduPtr inPduPtr, TxStatePtr refState);
 
+  void  send(bcPduPtr inPduPtr, TxMode txMode);
+  void  disable(TxMode txMode);
+  bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet
+  void  cont(TxMode txMode);
+  bool  fin(TxMode txMode);
                                       // Senden eines Telegramms (und warten)
   int   startRec();                   // Datenempfang starten
   int   contRec();                    // Datenempfang fortsetzen
@@ -224,12 +263,17 @@ public:
 
   void  readCheckCfg();               // Konfigurationsdaten auslesen
 
+  static  nRF52840Radio *instPtr0;
+  static  void irqHandler0();
+
+  void    irqHandler();
 
   // ----------------------------------------------------------------------------
   //                      D e b u g - H i l f e n
   // ----------------------------------------------------------------------------
   //
   int   getPduMem(byte *dest, int start, int end);
+  int   getPduSent(byte *dest, int start, int end);
 
 
 };

@@ -362,6 +362,13 @@ bool StateMachine::firstEnter()
   return(true);
 }
 
+// reset first enter detector
+//
+void StateMachine::resetEnter()
+{
+  firstEnterToggle = true;
+}
+
 // counting local cycles
 //
 bool StateMachine::cycle(int cnt)

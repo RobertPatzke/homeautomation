@@ -37,12 +37,28 @@ typedef struct  _Channel
 #define RECSTAT_ADDRESS   0x0001
 #define RECSTAT_PAYLOAD   0x0002
 #define RECSTAT_END       0x0004
+#define RECSTAT_DISABLED  0x0008
 #define RECSTAT_CRCOK     0x0010
+
+// Modi für das Senden von Telegrammen
+//
+typedef enum _TxMode
+{
+  txmBase,      // Einzelne Sendung, Endezustand DISABLED
+  txmRepStart,  // Wiederholte Sendung Start, Endezustand END
+  txmRepCont,   // Wiederholte Sendung Fortsetzung, Endezustand END
+  txmRepEnd,    // Wiederholte Sendung Ende, Endezustand DISABLED
+  txmReadPrep,  // Einzelne Sendung mit Empfangsvorbereitung, Endezustand READY
+  txmRead       // Einzelne Sendung und Empfang, Endezustand END
+} TxMode;
 
 class IntrfRadio
 {
 public:
   // Kanalfrequenzen (Offsets zur Basisfrequenz) und Whitening-Preset
+  // Die ersten 3 Kanäle sind Bewerbungskanäle.
+  // Daran anschließend sind die Kanäle grob nach Frequenz einsortiert.
+  // Diese Liste kann zur Laufzeit an Störungen angepasst werden und wird aufsteigend angewendet
   //
   Channel channelList[40] =
   {
@@ -59,6 +75,7 @@ public:
   // Konfigurationen
   // --------------------------------------------------------------------------
   //
+  virtual void  begin();
   virtual void  setAccessAddress(dword addr);
   virtual void  setPacketParms(blePduType type);
 
@@ -68,9 +85,14 @@ public:
   //
   virtual void  setChannel(int chnr);         // Schalten physikalischer Kanal
   virtual int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
-  virtual void  send(bcPduPtr inPduPtr, TxStatePtr refState);
 
-                                              // Senden eines Telegramms (und warten)
+  virtual void  send(bcPduPtr inPduPtr, TxMode txMode);
+  // Senden (und/oder Empfang) eines Telegramms in einem festgelegten Modus
+  virtual void  disable(TxMode txMode);       // Funk AUS für Betriebswechsel
+  virtual bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet
+  virtual void  cont(TxMode txMode);          // aktuellen Vorgang fortsetzen
+  virtual bool  fin(TxMode txMode);     // Abfrage ob aktueller Vorgang beendet
+
   virtual int   startRec();                   // Datenempfang starten
   virtual int   contRec();                    // Datenempfang fortsetzen
   virtual int   endRec();                     // Datenempfang beenden

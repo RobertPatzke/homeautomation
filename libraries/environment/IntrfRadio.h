@@ -24,13 +24,13 @@ typedef struct _TxState
   unsigned int  evtLoopRampUp;
   unsigned int  evtLoopTrans;
   byte  *       txBufferPtr;
-}TxState, *TxStatePtr;
+} TxState, *TxStatePtr;
 
 typedef struct  _Channel
 {
   int   idx;
   int   freq;
-}Channel, *ChannelPtr;
+} Channel, *ChannelPtr;
 
 // Zustand des Datenempfangs (Bit)
 //
@@ -49,8 +49,26 @@ typedef enum _TxMode
   txmRepCont,   // Wiederholte Sendung Fortsetzung, Endezustand END
   txmRepEnd,    // Wiederholte Sendung Ende, Endezustand DISABLED
   txmReadPrep,  // Einzelne Sendung mit Empfangsvorbereitung, Endezustand READY
-  txmRead       // Einzelne Sendung und Empfang, Endezustand END
+  txmRead,      // Einzelne Sendung und Empfang, Endezustand END
+  txmRespE,     // Empfang für spezifische Antwort (leeres Polling)
+  txmRespR,     // Empfang für spezifische Antwort (Datenempfang)
+  txmRespS      // Empfang für spezifische Antwort (Datensendung)
 } TxMode;
+//
+#define NrOfTxModes   9
+
+// Modeabhängige Statistikdaten
+//
+typedef struct _TxStatistics
+{
+  TxMode      mode;
+  dword       pollAcks;
+  dword       pollNaks;
+  dword       aliens;
+  dword       wrongs;
+  dword       sendings;
+  dword       interrupts;
+} TxStatistics, *TxStatisticsPtr;
 
 class IntrfRadio
 {
@@ -101,6 +119,12 @@ public:
 
   virtual void  setPower(int DBm);            // Leistung des Senders in DBm
 
+  // --------------------------------------------------------------------------
+  // Datenzugriffe
+  // --------------------------------------------------------------------------
+  //
+  virtual int   getStatistics(TxStatisticsPtr dest);
+  virtual int   getState();                   // Chip-abhängiger Funk-Status
 
 };
 

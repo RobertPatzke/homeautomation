@@ -222,8 +222,14 @@ private:
 
   nrf52840Cfg cfgData;
 
+  bool        recMode;
+
   dword       irqCounter;
   TxMode      trfMode;
+
+  TxStatistics    statList[NrOfTxModes];
+  TxStatisticsPtr statisticPtr;
+
 
 public:
   // --------------------------------------------------------------------------
@@ -267,6 +273,13 @@ public:
   static  void irqHandler0();
 
   void    irqHandler();
+
+  // --------------------------------------------------------------------------
+  // Datenzugriffe
+  // --------------------------------------------------------------------------
+  //
+  int   getStatistics(TxStatisticsPtr dest);
+  int   getState();
 
   // ----------------------------------------------------------------------------
   //                      D e b u g - H i l f e n

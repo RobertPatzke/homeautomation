@@ -31,6 +31,13 @@ nRF52840Radio::nRF52840Radio()
   trfMode = txmBase;
   statisticPtr = NULL;
   recMode = true;
+  pmPtr = (bcPduPtr) pduMem;
+  psPtr = (bcPduPtr) pduSentS;
+  pePtr = (bcPduPtr) pduSentE;
+  eadM = false;
+  nakM = false;
+  comFin = false;
+  newValues = false;
 }
 
 // ----------------------------------------------------------------------------
@@ -140,6 +147,11 @@ int nRF52840Radio::sendSync(bcPduPtr inPduPtr, TxStatePtr refState)
 
 void  nRF52840Radio::send(bcPduPtr inPduPtr, TxMode txMode)
 {
+  send(inPduPtr, NULL, txMode, false);
+}
+
+void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode, bool inNewValues)
+{
   NrfRadioPtr->INTENCLR         = 0xFFFFFFFF;
   NrfRadioPtr->EVENTS_READY     = 0;
   NrfRadioPtr->EVENTS_END       = 0;
@@ -148,8 +160,13 @@ void  nRF52840Radio::send(bcPduPtr inPduPtr, TxMode txMode)
   NrfRadioPtr->EVENTS_TXREADY   = 0;
   NrfRadioPtr->EVENTS_ADDRESS   = 0;
 
-  memcpy((void *)pduMem, (void *)inPduPtr, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
-  memcpy((void *)pduSent, (void *)inPduPtr, sizeof(bcPdu));   // Daten in extra Puffer kopieren
+  memcpy((void *)pduMem, (void *)inPduPtrE, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
+  memcpy((void *)pduSentE, (void *)inPduPtrE, sizeof(bcPdu));  // Daten in extra Puffer kopieren
+  if(inPduPtrS != NULL)
+    memcpy((void *)pduSentS, (void *)inPduPtrS, sizeof(bcPdu));// Daten in extra Puffer kopieren
+
+  comFin = false;
+  newValues = inNewValues;
 
   trfMode = txMode;
   statisticPtr = &statList[(int) txMode];
@@ -182,23 +199,24 @@ void  nRF52840Radio::send(bcPduPtr inPduPtr, TxMode txMode)
       NrfRadioPtr->TASKS_TXEN = 1;
       break;
 
+    case txmReadS:
+      NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
+      NrfRadioPtr->INTENSET = NrfIntADDRESS;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+
     case txmRead:
       NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
       NrfRadioPtr->INTENSET = NrfIntADDRESS | NrfIntEND;
       NrfRadioPtr->TASKS_TXEN = 1;
       break;
 
+    case txmResp:
     case txmRespE:
       recMode = true;
       NrfRadioPtr->SHORTS = NrfScREADY_START;
       NrfRadioPtr->INTENSET = NrfIntEND;
       NrfRadioPtr->TASKS_RXEN = 1;
-      break;
-
-    case txmRespS:
-      break;
-
-    case txmRespR:
       break;
   }
 }
@@ -226,6 +244,7 @@ void nRF52840Radio::disable(TxMode txMode)
        NrfRadioPtr->TASKS_DISABLE = 1;
        break;
 
+     case txmResp:
      case txmRespE:
        NrfRadioPtr->TASKS_DISABLE = 1;
        break;
@@ -267,6 +286,7 @@ bool nRF52840Radio::disabled(TxMode txMode)
        }
        break;
 
+     case txmResp:
      case txmRespE:
        if(NrfRadioPtr->EVENTS_DISABLED == 1)
        {
@@ -304,6 +324,10 @@ bool nRF52840Radio::fin(TxMode txMode)
      case txmReadPrep:
        break;
 
+     case txmReadS:
+       retv = comFin;
+       break;
+
      case txmRead:
        if(NrfRadioPtr->EVENTS_END == 1)
        {
@@ -315,6 +339,10 @@ bool nRF52840Radio::fin(TxMode txMode)
          if(NrfRadioPtr->STATE == NrfStRXIDLE)
            retv = true;
        }
+       break;
+
+     case txmResp:
+       retv = comFin;
        break;
 
      case txmRespE:
@@ -465,7 +493,7 @@ void nRF52840Radio::irqHandler()
   switch(trfMode)
   {
     // ------------------------------------------------------------------------
-    case txmRead:               // Standard Polling für Master
+    case txmRead:               // Empty Polling für Master
     // ------------------------------------------------------------------------
 
       if((NrfRadioPtr->STATE & 0x08) != 0)  // Noch im Sendemodus
@@ -488,7 +516,7 @@ void nRF52840Radio::irqHandler()
           NrfRadioPtr->SHORTS = 0;            // Direktverbindungen löschen
         }
 
-        if(NrfRadioPtr->EVENTS_END == 1)      // Senden fertig
+        if(NrfRadioPtr->EVENTS_END == 1)      // Empfang fertig
         {
           NrfRadioPtr->EVENTS_END = 0;        // nur quittieren
         }
@@ -496,9 +524,37 @@ void nRF52840Radio::irqHandler()
 
       break;
 
-      // ----------------------------------------------------------------------
-      case txmRespE:              // Empty Polling für Slave
-      // ----------------------------------------------------------------------
+    // ------------------------------------------------------------------------
+    case txmReadS:              // Datenübertragung für Master (Slave->Master)
+    // ------------------------------------------------------------------------
+
+      if(NrfRadioPtr->EVENTS_ADDRESS == 1)    // AC-Adr gesendet
+      {
+        NrfRadioPtr->EVENTS_ADDRESS = 0;      // quittieren
+
+        if((NrfRadioPtr->STATE & 0x08) != 0)  // im Sendezustand
+          break;                              // nichts weiter
+        // --------------------------------------------------------------------
+        else                                  // Im Empfangszustand
+        {
+          NrfRadioPtr->SHORTS = NrfScEND_DISABLE; // automatisch abschalten
+          NrfRadioPtr->INTENCLR = 0xFFFFFFFF;     // und nur noch DISABLED
+          NrfRadioPtr->INTENSET = NrfIntDISABLED; // Interrupt freischalten
+        }
+      }
+
+      if(NrfRadioPtr->EVENTS_DISABLED == 1)   // Übertragung fertig
+      {
+        NrfRadioPtr->EVENTS_DISABLED = 0;     // quittieren
+        comFin = true;
+      }
+
+
+      break;
+
+    // ----------------------------------------------------------------------
+    case txmRespE:              // Empty Polling für Slave
+    // ----------------------------------------------------------------------
 
         // --------------------------------------------------------------------
         if(NrfRadioPtr->EVENTS_END == 1)        // Übertragung beendet
@@ -514,11 +570,11 @@ void nRF52840Radio::irqHandler()
             // Reaktion
             // ----------------------------------------------------------------
             //
-            if((pduSent[5] == pduMem[5]) && (pduSent[5] == pduMem[5]) && (pduSent[5] == pduMem[5]))
+            if((pduSentE[5] == pduMem[5]) && (pduSentE[6] == pduMem[6]) && (pduSentE[7] == pduMem[7]))
             {
               // Die richtige Protokollumgebung (z.B. Soaap)
               //
-              if(pduSent[2] != pduMem[2])
+              if(pduSentE[2] != pduMem[2])
               {
                 // aber die falsche Adresse
                 // Datenempfang fortsetzen
@@ -564,9 +620,6 @@ void nRF52840Radio::irqHandler()
 
           if(recMode)
           {
-            // Daten in Funkpuffer kopieren
-            memcpy((void *)pduMem, (void *)pduSent, sizeof(bcPdu));
-
             // zunächst alle Funk-Interrupts sperren
             NrfRadioPtr->INTENCLR = 0xFFFFFFFF;
 
@@ -578,11 +631,135 @@ void nRF52840Radio::irqHandler()
 
             NrfRadioPtr->TASKS_TXEN = 1;             // Sender einschalten
             recMode = false;
+
+            // Daten in Funkpuffer kopieren
+            memcpy((void *)pduMem, (void *)pduSentE, sizeof(bcPdu));
           }
           else
           {
             NrfRadioPtr->SHORTS = 0;
             statisticPtr->sendings++;
+          }
+        }
+
+        break;
+
+      // ----------------------------------------------------------------------
+      case txmResp:               // Datenübertragung Slave
+      // ----------------------------------------------------------------------
+
+        // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_END == 1)        // Übertragung beendet
+        // --------------------------------------------------------------------
+        {
+          NrfRadioPtr->EVENTS_END = 0;          // Event quittieren
+
+          if(recMode)                           // im Empfangsmodus (SADR/EADR)
+          { // ----------------------------------------------------------------
+            NrfRadioPtr->SHORTS = 0;            // keine direkte Kopplung mehr
+
+            // ----------------------------------------------------------------
+            // Reaktion
+            // ----------------------------------------------------------------
+            //
+            if((pduSentE[5] == pduMem[5]) && (pduSentE[6] == pduMem[6]) && (pduSentE[7] == pduMem[7]))
+            {
+              // Die richtige Protokollumgebung (z.B. Soaap)
+              //
+              if(pduSentE[2] != pduMem[2])
+              {
+                // aber die falsche Adresse
+                // Datenempfang fortsetzen
+                statisticPtr->wrongs++;
+                NrfRadioPtr->TASKS_START = 1;
+              }
+              else
+              { // richtige Adresse, Antwort schicken
+                // ------------------------------------------------------------
+                eadM = ((pduMem[3] & SOAAP_EADR) != 0);
+                nakM = ((pduMem[3] & SOAAP_NAK) != 0);
+
+                if(nakM)
+                  statisticPtr->pollNaks++;
+                else
+                  statisticPtr->pollAcks++;
+
+                // zunächst alle Funk-Interrupts sperren
+                NrfRadioPtr->INTENCLR = 0xFFFFFFFF;
+
+                // Interrupt freigeben für "Abgeschaltet"
+                NrfRadioPtr->INTENSET = NrfIntDISABLED;
+
+                // Empfangsbetrieb abschalten
+                NrfRadioPtr->TASKS_DISABLE = 1;
+              }
+
+            }
+            else
+            {
+              // Fremde Umgebung (nicht akzeptierte PDU)
+              // Datenempfang fortsetzen
+              statisticPtr->aliens++;
+              NrfRadioPtr->TASKS_START = 1;
+            }
+          }
+          else                                      // im Sendemodus
+          { // ----------------------------------------------------------------
+            //
+            // Das wäre ein Fehler, kein END beim Senden erwartet sondern DISABLED
+          }
+        }
+
+        // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_DISABLED == 1)       // ausgeschaltet
+        // --------------------------------------------------------------------
+        {
+          NrfRadioPtr->EVENTS_DISABLED = 0;         // quittieren
+
+          if(recMode)   // *** im Empfangsmodus ***
+          {
+            // zunächst alle Funk-Interrupts sperren
+            NrfRadioPtr->INTENCLR = 0xFFFFFFFF;
+
+            // Interrupt freigeben für "Abgeschaltet" (nach dem Senden)
+            NrfRadioPtr->INTENSET = NrfIntDISABLED;
+
+            // Kopplung automatisch starten und abschalten nach Ende
+            NrfRadioPtr->SHORTS = NrfScREADY_START | NrfScEND_DISABLE;
+
+            // Daten in Funkpuffer kopieren
+            if(eadM)
+              // ToDo: Hier auch auf Empfangspolling reagieren
+              memcpy((void *)pduMem, (void *)pduSentE, sizeof(bcPdu));
+            else
+            {
+              // Sendepolling, Daten je nach Modus manipulieren
+              // --------------------------------------------------------------
+
+              if(newValues || !nakM)
+              // neue Messwerte oder Polling ohne Nak-Bit
+              {
+                newValues = false;  // neue Messwerte quittieren
+                memcpy((void *)pduMem, (void *)pduSentS, sizeof(bcPdu));
+                // ansonsten ist das Telegramm in pduSentS schon das Richtige
+              }
+              else
+              // keine Daten, nur NAK
+              {
+                memcpy((void *)pduMem, (void *)pduSentS, PollPduSize);
+                BLE_LEN = PollAdrSize;
+                BLE_ADR1 |= SOAAP_NAK;
+              }
+            }
+
+            NrfRadioPtr->TASKS_TXEN = 1;            // Sender einschalten
+            recMode = false;
+          }
+          else        // *** im Sendemodus ***
+          {
+            NrfRadioPtr->SHORTS = 0;
+            statisticPtr->sendings++;
+            comFin = true;                          // Pollvorgang abgeschlossen
           }
         }
 
@@ -640,7 +817,7 @@ int   nRF52840Radio::getPduSent(byte *dest, int start, int end)
 
   for(i = start; i < end; i++)
   {
-    dest[j++] = pduSent[i];
+    dest[j++] = pduSentE[i];
   }
   return(j);
 }

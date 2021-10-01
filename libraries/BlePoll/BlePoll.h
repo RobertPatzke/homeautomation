@@ -31,8 +31,8 @@ typedef enum _PlMode
   plmIdle,        // Ruhezustand, Gerät nicht im Netz aktiv
   plmTest,        // Low Level Tests
   plmEmpty,       // Leeres Polling (Aufbau Adressliste)
-  plmScan,        // Daten aller aktiven Teilnehmer holen
-  plmSend         // Daten übertragen (Slave)
+  plmScan,        // Daten aller aktiven Teilnehmer holen (Master)
+  plmXchg         // Daten übertragen (Slave, beide Richtungen)
 } PlMode;
 
 // Grundsätzliche Datenstruktur für die Nutzdaten
@@ -70,28 +70,28 @@ typedef enum _PlpType
 typedef struct _PlpFullMeas
 {
   word    meas[12]; // Liste von 12 Messwerten
-  byte    appId;    // Kennzeichnung für Dateninhalte
+  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
   byte    align;    // Wird nicht gesendet, kennzeichnet Alignement
 } PlpFullMeas, *PlpFullMeasPtr;
 
 typedef struct _PlpMeas3
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte
-  byte    reserve;  // Für spätere Spezifikation (z.Zt. Alignement)
+  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    measCnt;  // Zähler für Messwertaktualisierung
   word    meas[3];  // Liste von 3 Messwerten
 } PlpMeas3, *PlpMeas3Ptr;
 
 typedef struct _PlpMeas6
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte
-  byte    reserve;  // Für spätere Spezifikation (z.Zt. Alignement)
-  word    meas[6];  // Liste von 9 Messwerten
+  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    measCnt;  // Zähler für Messwertaktualisierung
+  word    meas[6];  // Liste von 6 Messwerten
 } PlpMeas6, *PlpMeas6Ptr;
 
 typedef struct _PlpMeas9
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte
-  byte    reserve;  // Für spätere Spezifikation (z.Zt. Alignement)
+  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    measCnt;  // Zähler für Messwertaktualisierung
   word    meas[9];  // Liste von 9 Messwerten
 } PlpMeas9, *PlpMeas9Ptr;
 
@@ -109,6 +109,7 @@ typedef struct _Slave
   byte    adr;
   byte    area;
   byte    chn;
+  byte    pIdx;
 } Slave, *SlavePtr;
 
 
@@ -117,6 +118,17 @@ typedef struct _PollInfo
   dword   aliens;     // Anzahl der netzfremden Aktivitäten
   dword   wrongs;     // Anzahl ungewünschter Netzaktivitäten
 } PollInfo, *PollInfoPtr;
+
+typedef struct _PollState
+{
+  byte    slIdx;      // Index in der Slave-Liste
+  byte    prioCnt;    // Prioritätszähler
+  byte    prioSet;    // Priorität
+  byte    status;     // Zustand
+} PollState, *PollStatePtr;
+
+#define psSlaveWasPresent 0x01
+#define psSlaveIsPresent  0x02
 
 // ----------------------------------------------------------------------------
 //                            B l e P o l l
@@ -131,7 +143,8 @@ public:
   typedef enum _ComType
   {
     ctMASTER,
-    ctSLAVE
+    ctSLAVE,
+    ctHybrid
   } ComType;
 
   // Identifikator für die Anwendung
@@ -175,16 +188,24 @@ private:
   bool        nak;
 
   PlMode      plMode;
+  PlMode      oldPlMode;
   PlpType     plpType;
 
-  Slave       slaveList[MAXSLAVE+1];
-  Slave       *curSlave;
-  int         pollIdx;
+  Slave         slaveList[MAXSLAVE+1];
+  SlavePtr      curSlave;
+  int           slaveIdx;
+  PollState     pollList[MAXSLAVE+1];
+  PollStatePtr  curPoll;
+  int           pollIdx;
+  int           pollNr;
+  int           pollOldNr;
+
   int         maxAdr;
   dword       cntPolling;
-  bool        epStop;
-  bool        epStopped;
+  bool        pollStop;
+  bool        pollStopped;
 
+  dword       cntAllNaks;
   dword       cntAlien;
   dword       cntWrong;
   dword       cntWaitDisabled;
@@ -201,12 +222,14 @@ private:
   // --------------------------------------------------------------------------
   //
   void setPduAddress();
+  void setPduAddress(bcPduPtr pduPtr);
   void setTimeOut(dword value);
   bool timeOut();
 
   // Zustandsmaschine
   // -----------------------------
   void smInit();
+  void smIdle();
 
   // Leeres Polling Master
   //
@@ -219,6 +242,28 @@ private:
   //
   void smWaitEadr();
   void smEvalPoll();
+
+  // Datenübertragung
+  //
+  void smStartCom();
+
+  // Master: Master -> Slave
+  //
+  void smReqComE();
+  void smWaitAckComE();
+  void smEndComE();
+
+  // Master: Slave -> Master
+  //
+  void smReqComS();
+  void smWaitAckComS();
+  void smEndComS();
+
+  // Slave: Master <-> Slave
+  //
+  void smStartComES();
+  void smWaitComES();
+  void smEvalComES();
 
   // Test
   //
@@ -259,6 +304,15 @@ public:
   void resumeEP();
   bool stoppedEP();
 
+  // Laufender Betrieb
+  //
+  void start(PlMode inPlMode);
+
+  // --------------------------------------------------------------------------
+  // Zugriff auf Polling-Informationen
+  // --------------------------------------------------------------------------
+  //
+  int getSlaveList(byte *dest, int maxByte);
 
 
   // --------------------------------------------------------------------------

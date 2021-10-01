@@ -218,11 +218,20 @@ private:
   // --------------------------------------------------------------------------
   //
   byte        pduMem[256];
-  byte        pduSent[256];
+  byte        pduSentE[256];
+  byte        pduSentS[256];
+
+  bcPduPtr    pmPtr;
+  bcPduPtr    pePtr;
+  bcPduPtr    psPtr;
 
   nrf52840Cfg cfgData;
 
   bool        recMode;
+  bool        eadM;
+  bool        nakM;
+  bool        comFin;
+  bool        newValues;
 
   dword       irqCounter;
   TxMode      trfMode;
@@ -254,6 +263,8 @@ public:
   int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
 
   void  send(bcPduPtr inPduPtr, TxMode txMode);
+  void  send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode, bool newValues);
+
   void  disable(TxMode txMode);
   bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet
   void  cont(TxMode txMode);

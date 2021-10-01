@@ -50,12 +50,25 @@ typedef enum _TxMode
   txmRepEnd,    // Wiederholte Sendung Ende, Endezustand DISABLED
   txmReadPrep,  // Einzelne Sendung mit Empfangsvorbereitung, Endezustand READY
   txmRead,      // Einzelne Sendung und Empfang, Endezustand END
+  txmReadS,     // Einzelne sendung und Empfang mit Daten, Endezustand END
   txmRespE,     // Empfang für spezifische Antwort (leeres Polling)
-  txmRespR,     // Empfang für spezifische Antwort (Datenempfang)
-  txmRespS      // Empfang für spezifische Antwort (Datensendung)
+  txmResp       // Empfang für spezifische Antwort (Datenübertragung)
 } TxMode;
 //
-#define NrOfTxModes   9
+#define NrOfTxModes   8
+
+// Protokollspezifische Adresseninhalte und Festlegungen
+//
+#define PollPduSize   8
+#define PollAdrSize   6
+
+// len = PduMem[1]
+#define BLE_LEN       pduMem[1]
+// Adr[1] = PduMem[3]
+#define BLE_ADR1      pduMem[3]
+
+#define SOAAP_NAK     0x40
+#define SOAAP_EADR    0x80
 
 // Modeabhängige Statistikdaten
 //
@@ -105,7 +118,9 @@ public:
   virtual int   sendSync(bcPduPtr inPduPtr, TxStatePtr refState);
 
   virtual void  send(bcPduPtr inPduPtr, TxMode txMode);
+  virtual void  send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode, bool newValues);
   // Senden (und/oder Empfang) eines Telegramms in einem festgelegten Modus
+
   virtual void  disable(TxMode txMode);       // Funk AUS für Betriebswechsel
   virtual bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet
   virtual void  cont(TxMode txMode);          // aktuellen Vorgang fortsetzen

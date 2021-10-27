@@ -37,6 +37,7 @@
 #define eolNL     0x03
 
 #define BufSize   512
+#define MaxChn    32
 
 class Monitor
 {
@@ -45,6 +46,13 @@ class Monitor
   // -------------------------------------------------------------------------
   //
   typedef void (Monitor::*StatePtr)(void);
+  typedef struct _ConfMeasChannel
+  {
+    word    maxVal;
+    word    minVal;
+    char    *name;
+    char    type;
+  } CfgMeasChn, *CfgMeasChnPtr;
 
 private:
   // --------------------------------------------------------------------------
@@ -79,8 +87,11 @@ private:
   TwiByteSeq  twiByteSeq;
   byte        byteArray[32];
 
-  dword     readOffsAddr;
-  bool      doReadReg;
+  dword       readOffsAddr;
+  bool        doReadReg;
+
+  CfgMeasChn  cfgChnArr[MaxChn];
+  char        nrOfChnChar;
 
   // --------------------------------------------------------------------------
   // Lokale Funktionen
@@ -104,6 +115,7 @@ private:
   void  readTwiByte();
   void  writeTwiByte();
 
+  void  print(char c, int eol);
   void  print(char *txt, int eol);
   void  print(byte *hex, int nr, char fill, int eol);
   void  print(unsigned int iVal, int eol);
@@ -112,13 +124,13 @@ private:
   // Datenaufbereitung
   // --------------------------------------------------------------------------
   //
-  void hexAsc(char * dest, byte val);
-  void binAsc(char *dest, byte val);
+  void hexByte(char *dest, byte val);
+  void binByte(char *dest, byte val);
+  void hexWord(char *dest, word val);
+  void binWord(char *dest, word val);
+  void hexDword(char *dest, dword val);
+  void binDword(char *dest, dword val);
   int  cpyStr(char *dest, char *src);
-  int  binSeq(char *dest, dword val);
-  int  hexSeq(char *dest, dword val);
-
-
 
 public:
   // --------------------------------------------------------------------------
@@ -138,6 +150,7 @@ public:
   int   putBuf(char *txt);
   char  getBuf();
   void  clrBuf();
+  void  sendConfig();
 
 
   // --------------------------------------------------------------------------
@@ -148,17 +161,23 @@ public:
   // Funktionen
   //
   void run();
+  void cprint(char c);
   void print(char *txt);
   void print(unsigned int iVal);
   void print(byte *iVal, int nr, char fill);
   void printcr();
+  void cprintcr(char c);
   void printcr(char *txt);
   void printcr(unsigned int iVal);
   void printcr(byte *iVal, int nr, char fill);
   void println();
+  void cprintln(char c);
   void println(char *txt);
   void println(unsigned int iVal);
   void println(byte *iVal, int nr, char fill);
+
+  void config(int inNrOfChn);
+  void config(int inChn, char inType, word inMax, word inMin, char *inName);
 
 
   // Zustände (Variablen)

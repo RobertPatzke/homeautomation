@@ -79,12 +79,14 @@ SensorLSM9DS1::SensorLSM9DS1(IntrfTw *refI2C, int inRunCycle)
       break;
   }
 
-  twiStatusCycle  = 30 * twiCycle;
-  twiDataCycleAG  = 140 * twiCycle;
-  twiDataCycleM   = 80 * twiCycle;
+  twiStatusCycle  = 40 * twiCycle;
+  twiDataCycleAG  = 160 * twiCycle;
+  twiDataCycleM   = 100 * twiCycle;
 
   enableMeasAG  = false;
   enableMeasM   = false;
+
+  runStateCntTotal = 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -436,9 +438,14 @@ void SensorLSM9DS1::run1()
 
 void SensorLSM9DS1::run()
 {
+  runStateCntTotal++;
+
   switch(runState)
   {
+    // ------------------------------------------------------------------------
     case rsInit:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsInit]++;
       runState = rsScanAGReq;
       timeOutStatusAG = toValueStatusAG;
       timeOutStatusM  = toValueStatusM;
@@ -446,7 +453,10 @@ void SensorLSM9DS1::run()
 
       // ------------ Accel & Gyro ------------
 
+    // ------------------------------------------------------------------------
     case rsScanAGReq:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsScanAGReq]++;
       if(!enableMeasAG)
       {
         runState = rsScanMReq;
@@ -458,7 +468,16 @@ void SensorLSM9DS1::run()
       runState = rsScanAGChk;
       break;
 
+    // ------------------------------------------------------------------------
+    case rsWaitAG:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsWaitAG]++;
+      break;
+
+    // ------------------------------------------------------------------------
     case rsScanAGChk:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsScanAGChk]++;
       if((twiByte.twiStatus != TwStFin) && ((twiByte.twiStatus & TwStError) == 0))
       {
         if(timeOutTwiStatus > 0)
@@ -497,13 +516,17 @@ void SensorLSM9DS1::run()
         break;
       }
 
+      timeOutStatusAG = toValueStatusAG;
       twiByteSeq.len = 12;
       twPtr->recByteRegSeq(AG_Adr, G_Out, &twiByteSeq);
       timeOutTwiDataAG = twiDataCycleAG / runCycle + 1;
       runState = rsFetchAG;
       break;
 
+    // ------------------------------------------------------------------------
     case rsFetchAG:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsFetchAG]++;
       if((twiByteSeq.twiStatus != TwStFin) && ((twiByte.twiStatus & TwStError) == 0))
       {
         if(timeOutTwiDataAG > 0)
@@ -562,24 +585,27 @@ void SensorLSM9DS1::run()
       runState = rsScanAGReq;
       break;
 
-    case rsWaitAG:
-      break;
-
       // ------------ Magnet ------------
 
+    // ------------------------------------------------------------------------
     case rsScanMReq:
-      twPtr->recByteReg(M_Adr, M_Status, &twiByte);
-      timeOutTwiStatus = twiStatusCycle / runCycle + 1;
-      runState = rsScanMChk;
-      break;
-
-    case rsScanMChk:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsScanMReq]++;
       if(!enableMeasM)
       {
         runState = rsScanAGReq;
         break;
       }
 
+      twPtr->recByteReg(M_Adr, M_Status, &twiByte);
+      timeOutTwiStatus = twiStatusCycle / runCycle + 1;
+      runState = rsScanMChk;
+      break;
+
+    // ------------------------------------------------------------------------
+    case rsScanMChk:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsScanMChk]++;
       if((twiByte.twiStatus != TwStFin) && ((twiByte.twiStatus & TwStError) == 0))
       {
         if(timeOutTwiStatus > 0)
@@ -618,13 +644,17 @@ void SensorLSM9DS1::run()
         break;
       }
 
+      timeOutStatusM = toValueStatusM;
       twiByteSeq.len = 6;
       twPtr->recByteRegSeq(M_Adr, M_Out, &twiByteSeq);
       timeOutTwiDataM = twiDataCycleM / runCycle + 1;
       runState = rsFetchM;
       break;
 
+    // ------------------------------------------------------------------------
     case rsFetchM:
+    // ------------------------------------------------------------------------
+      runStateCntArray[rsFetchM]++;
       if((twiByteSeq.twiStatus != TwStFin) && ((twiByte.twiStatus & TwStError) == 0))
       {
         if(timeOutTwiDataM > 0)

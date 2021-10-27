@@ -63,6 +63,7 @@ void BlePoll::init(IntrfRadio *refRadio, dword inCycleMics, MicsecFuPtr inMicroF
   pollStopped = false;
   pollStop = false;
   runCounter = 0;
+  newValue = false;
 
   for(int i = 1; i <= MAXSLAVE; i++)
   {
@@ -123,6 +124,21 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType)
 
   pduOut.head = HeadS0B;
   pduIn.head = HeadS0B;
+
+  pduOut.data[0] = 0;         // Pdu-Zähler (CNT)
+  pduIn.data[0] = 0;
+
+  pduOut.data[1] = appType;   // Pdu-Typ (TYPE)
+  pduIn.data[1] = appType;
+
+  if(appType == atSOAAP)
+  {
+    valuePdu.appId = plptMeas6;
+    plMode = plmSoaapM;
+    fullCycle = true;
+  }
+
+  valuePdu.measCnt = 0;
 }
 
 
@@ -153,6 +169,13 @@ void BlePoll::setPduAddress(bcPduPtr pduPtr)
   if(eadr) pduPtr->adr1 |= 0x80;
   pduPtr->adr2 = (byte) chn;
   if(master) pduPtr->adr2 |= 0x80;
+}
+
+void BlePoll::setEmptyPollParams(int cycleTotal, int cycleRun, dword timeOut)
+{
+  epCycleTotal  = cycleTotal;
+  epCycleRun    = cycleRun;
+  epTimeOut     = timeOut;
 }
 
 // --------------------------------------------------------------------------
@@ -192,6 +215,21 @@ bool BlePoll::timeOut()
       return(true);
   }
 }
+
+bool BlePoll::getValues(bcPduPtr pduPtr)
+{
+  bool retv = false;
+
+  pduPtr->len = 28;
+  pduPtr->data[2] = valuePdu.appId;
+  if(newValue)
+  {
+    retv = true;
+    pduPtr->data[3]++;              // measCnt
+  }
+  return(retv);
+}
+
 
 // --------------------------------------------------------------------------
 // Steuerung des Polling
@@ -249,13 +287,13 @@ int BlePoll::getSlaveList(byte *dest, int maxByte)
 {
   int           slIdx;
 
-  for(int i = 0; i < pollOldNr; i++)
+  for(int i = 0; i < pollMaxNr; i++)
   {
     if(i == maxByte) break;
     slIdx = pollList[i+1].slIdx;
     dest[i] = slaveList[slIdx].adr;
   }
-  return(pollOldNr);
+  return(pollMaxNr);
 }
 
 
@@ -283,10 +321,16 @@ void BlePoll::smInit()
       break;
 
     case plmEmpty:
+      epCycleTotal = -1;
+      epCycleRun = -1;
       next(smStartEP);
       break;
 
     case plmScan:
+      break;
+
+    case plmSoaapM:
+      next(smStartEP);
       break;
 
     case plmXchg:
@@ -377,8 +421,9 @@ void BlePoll::smStartEP()
 {
   bleState = 1000;
 
-  pduOut.len  = 6;
+  pduOut.len  = 6;          // Nur Adresse
   radio->setChannel(chn);
+  pollMaxNr = 0;
 
   nak = true;
 
@@ -404,12 +449,17 @@ void BlePoll::smReqEadr()
 {
   bleState = 1100;
 
+  // Der Durchlauf startet mit abgeschaltetem Radio
+  // ggf. muss es abgeschaltet werden
+  //
   if(!radio->disabled(txmRead))
   {
     radio->disable(txmRead);
     return;
   }
 
+  // Datenstruktur für den Slave definieren
+  //
   curSlave = &slaveList[slaveIdx];
   curSlave->adr  = adr;
   curSlave->area = area;
@@ -418,9 +468,7 @@ void BlePoll::smReqEadr()
   curPoll = &pollList[pollIdx];
 
   setPduAddress();
-  //setTimeOut(2000);
-  // Test
-  setTimeOut(1000000);
+  setTimeOut(epTimeOut);
   radio->send(&pduOut, txmRead);
   radio->getStatistics(&statistic);
   cntPolling++;
@@ -433,13 +481,23 @@ void BlePoll::smWaitNak()
 
   if(timeOut())
   {
+    // Für die Adresse ist kein Teilnehmer vorhanden, oder die Übertragung ist gestört
+    //
     radio->disable(txmRead);
 
     if(curSlave->pIdx != 0)
     {
+      // Wenn der Teilnehmer bereits in die Poll-Liste eingetragen ist
+      // dann wird darin seine temporäre Abwesenheit markiert
       pollList[(int) curSlave->pIdx].status &= ~psSlaveIsPresent;
     }
+
+    // Der Time-Out-Zähler macht erkenntlich, wie stark sich Störungen auswirken
+    //
     curSlave->cntTo++;
+
+    // Nächste Adresse und zur Anforderung
+    //
     slaveIdx++;
     adr++;
     if(adr > maxAdr)
@@ -452,42 +510,75 @@ void BlePoll::smWaitNak()
 
   if(radio->fin(txmRead))
   {
+    // Auf dem Kanal wurde ein Datensatz (BLE-Beacon) empfangen
+    // und es werden die ersten 8 Byte (Header, Len und Adresse) geholt
+    //
     radio->getRecData(&pduIn, 8);
 
     if(pduIn.adr3 != pduOut.adr3 || pduIn.adr4 != pduOut.adr4 || pduIn.adr5 != pduOut.adr5)
     {
+      // Wenn die höherwertigen 3 Byte der Adresse nicht mit der Anwendungskodierung
+      // übereinstimmen, dann ist es ein Fremd-Beacon.
+      // Diese werden gezählt und kennzeichnen, wie stark aktiv ein anderes
+      // BLE-Netzwerk in Reichweite ist.
+      //
       cntAlien++;
+
+      // Der Empfang wird fortgesetzt, weil innerhalb des Time-Out ja noch die richtige
+      // Antwort eintreffen könnte.
+      //
       radio->cont(txmRead);
       return;
     }
 
     if(pduIn.adr0 != pduOut.adr0 || (pduIn.adr1 & 0x3F) != (pduOut.adr1 & 0x3F))
     {
+      // Wenn die Teinehmernummer oder die Gebietsnummer falsch sind, dann ist
+      // möglicherweise ein weiterer Master aktiv, der fehlerhafterweise denselben
+      // Kanal verwendet.
+      // Auch dieses ereignis wird gezählt und der empfang wird fortgesetzt.
       cntWrong++;
       radio->cont(txmRead);
       return;
     }
 
+    // Alles korrekt, der adressierte Teilnehmer hat rechtzeitig geantwortet
+    // Radio wird abgeschaltet
+    //
     radio->disable(txmRead);
 
     if(curSlave->pIdx != 0)
     {
+      // Wenn der Teilnehmer bereits in die Poll-Liste eingetragen ist,
+      // dann wird er darin als aktuell anwesend markiert
+      //
       pollList[(int) curSlave->pIdx].status |= psSlaveIsPresent;
     }
     else
     {
+      // Wenn nicht, wird der aktuelle Listeneintrag definiert
+      //
       curPoll->status |= psSlaveIsPresent | psSlaveWasPresent;
-      curPoll->slIdx = slaveIdx;
-      curSlave->pIdx = pollIdx;
-      pollIdx++;
-      pollNr++;
+      curPoll->slIdx = slaveIdx;  // Querverweis zur Liste möglicher Teilnehmer
+      curSlave->pIdx = pollIdx;   // Und in der Liste auch ein Verweis zur Poll-Liste
+      pollIdx++;                  // Weiter mit nächstem Listenplatz
+      pollNr++;                   // Anzahl der beantworteten Pollings
     }
-    curSlave->cntNakEP++;
-    cntAllNaks++;
+
+    // Die Nak-Antworten werden gezählt
+    //
+    curSlave->cntNakEP++; // Teilnehmerspezifisch
+    cntAllNaks++;         // und insgesamt
+
+    // Weiter mit nächstem Teilnehmer und nächster Adresse (TN-Nummer)
+    //
     slaveIdx++;
-
-
     adr++;
+
+    // Wenn die vorgegeben Endadresse erreicht ist
+    // dann zum Ende des Polldurchgangs über alle möglichen Teilnehmer,
+    // ansonsten nächsten Teilnehmer pollen
+    //
     if(adr > maxAdr)
       next(smEndEP);
     else
@@ -498,16 +589,68 @@ void BlePoll::smWaitNak()
 
 void BlePoll::smEndEP()
 {
+  // Nach jedem vollständigen Polldurchlauf kann das Polling
+  // abgebrochen werden.
+  //
   if(pollStop || pollStopped)
   {
     pollStopped = true;
     next(smIdle);
     return;
   }
-  // Von vorne (zur Zeit, Test)
+
+  // Es werden die Maximalwerte der rechtzeitigen Antworten gebildet
   //
-  if(pollNr > pollOldNr)
-    pollOldNr = pollNr;
+  if(pollNr > pollMaxNr)
+    pollMaxNr = pollNr;
+
+  if(pollMaxNr == 0)
+  {
+    // Wenn noch kein Teilnehmer angeschlossen ist (oder Kanal total gestört)
+    //
+    if(epCycleTotal > 0)
+    {
+      // dann wird der Pollvorgang so oft wie vorgegeben wiederholt
+      //
+      epCycleTotal--;
+      pollNr = 0;
+      pollIdx = 1;
+      slaveIdx = 1;
+      adr = 1;
+      next(smReqEadr);
+      return;
+    }
+    else
+    {
+      // und anschließend der Idle-Zustand angenommen
+      next(smIdle);
+      return;
+    }
+  }
+  else
+  {
+    // Wenn wenigstens schon ein Teilnehmer geantwortet hat
+    //
+    if(epCycleRun > 0)
+    {
+      // dann wird der Pollvorgang auch so oft wie anderweitig vorgegeben wiederholt
+      //
+      epCycleRun--;
+      pollNr = 0;
+      pollIdx = 1;
+      slaveIdx = 1;
+      adr = 1;
+      next(smReqEadr);
+      return;
+    }
+    else
+    {
+      // und anschließend die Datenübertragung gestartet
+      next(smIdle);
+      return;
+    }
+  }
+
   pollNr = 0;
   pollIdx = 1;
   slaveIdx = 1;

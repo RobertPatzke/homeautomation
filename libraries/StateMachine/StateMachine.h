@@ -88,10 +88,10 @@ public:
   //
   static int   StateMachine_InstCounter;
 
-  int   noStateCounter;         // Counter for empty running of state machine
-  int   instNumber;             // Number of this instance
-  int   runCounter;             // Counter for running states
-  int   curStateNumber;         // Number of current state
+  unsigned int    noStateCounter;       // Counter for empty running of state machine
+  unsigned int    instNumber;           // Number of this instance
+  unsigned int    runCounter;           // Counter for running states
+  unsigned int    curStateNumber;       // Number of current state
 
   unsigned long   curStateRuntime;      // run time of latest state
   unsigned long   maxStateRuntime[4];   // Maximum run time of a state

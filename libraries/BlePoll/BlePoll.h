@@ -32,6 +32,7 @@ typedef enum _PlMode
   plmTest,        // Low Level Tests
   plmEmpty,       // Leeres Polling (Aufbau Adressliste)
   plmScan,        // Daten aller aktiven Teilnehmer holen (Master)
+  plmSoaapM,      // Vollständiger Betrieb SOAAP (Master)
   plmXchg         // Daten übertragen (Slave, beide Richtungen)
 } PlMode;
 
@@ -40,7 +41,7 @@ typedef enum _PlMode
 typedef struct _PlPduBase
 {
   byte  counter;      // zyklischer Telegrammmzähler
-  byte  type;         // Kennzeichnung der Datenstruktur
+  byte  type;         // Kennzeichnung der Datenstruktur (AppType)
   byte  plData[29];   // weitere spezifische Nutzdaten
 } PlPduBase, *PlPduBasePtr;
 
@@ -49,7 +50,7 @@ typedef struct _PlPduBase
 typedef struct _PlPduExtd
 {
   byte  counter;      // zyklischer Telegrammmzähler
-  byte  type;         // Kennzeichnung der Datenstruktur
+  byte  type;         // Kennzeichnung der Datenstruktur (AppType)
   byte  plData[247];  // weitere spezifische Nutzdaten
 } PlPduExtd, *PlPduExtdPtr;
 
@@ -70,27 +71,27 @@ typedef enum _PlpType
 typedef struct _PlpFullMeas
 {
   word    meas[12]; // Liste von 12 Messwerten
-  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
   byte    align;    // Wird nicht gesendet, kennzeichnet Alignement
 } PlpFullMeas, *PlpFullMeasPtr;
 
 typedef struct _PlpMeas3
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
   byte    measCnt;  // Zähler für Messwertaktualisierung
   word    meas[3];  // Liste von 3 Messwerten
 } PlpMeas3, *PlpMeas3Ptr;
 
 typedef struct _PlpMeas6
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
   byte    measCnt;  // Zähler für Messwertaktualisierung
   word    meas[6];  // Liste von 6 Messwerten
 } PlpMeas6, *PlpMeas6Ptr;
 
 typedef struct _PlpMeas9
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte (aus MeasId)
+  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
   byte    measCnt;  // Zähler für Messwertaktualisierung
   word    meas[9];  // Liste von 9 Messwerten
 } PlpMeas9, *PlpMeas9Ptr;
@@ -170,26 +171,26 @@ private:
   // Lokale Daten
   // --------------------------------------------------------------------------
   //
-  IntrfRadio  *radio;
-  bcPdu       pduOut;
-  bcPdu       pduIn;
-  cbVector    nextState;
-  MicsecFuPtr micSec;
-  dword       toSet;
-  dword       toValue;
-  dword       cycleMics;
-  dword       cycleCnt;
+  IntrfRadio    *radio;
+  bcPdu         pduOut;
+  bcPdu         pduIn;
+  cbVector      nextState;
+  MicsecFuPtr   micSec;
+  dword         toSet;
+  dword         toValue;
+  dword         cycleMics;
+  dword         cycleCnt;
 
-  int         chn;
-  int         adr;
-  int         area;
-  bool        master;
-  bool        eadr;
-  bool        nak;
+  int           chn;
+  int           adr;
+  int           area;
+  bool          master;
+  bool          eadr;
+  bool          nak;
 
-  PlMode      plMode;
-  PlMode      oldPlMode;
-  PlpType     plpType;
+  PlMode        plMode;
+  PlMode        oldPlMode;
+  PlpType       plpType;
 
   Slave         slaveList[MAXSLAVE+1];
   SlavePtr      curSlave;
@@ -198,23 +199,31 @@ private:
   PollStatePtr  curPoll;
   int           pollIdx;
   int           pollNr;
-  int           pollOldNr;
+  int           pollMaxNr;
 
-  int         maxAdr;
-  dword       cntPolling;
-  bool        pollStop;
-  bool        pollStopped;
+  int           maxAdr;
+  dword         cntPolling;
+  bool          pollStop;
+  bool          pollStopped;
 
-  dword       cntAllNaks;
-  dword       cntAlien;
-  dword       cntWrong;
-  dword       cntWaitDisabled;
+  dword         cntAllNaks;
+  dword         cntAlien;
+  dword         cntWrong;
+  dword         cntWaitDisabled;
 
-  dword       bleState;
-  dword       runCounter;
+  dword         bleState;
+  dword         runCounter;
 
   TxStatistics  statistic;
+  PlpMeas9      valuePdu;
+  bool          newValue;
 
+  // Einstellungen für den Anwendungsbetrieb
+  //
+  bool          fullCycle;      // Vollständige Anwendung (EP & Data)
+  int           epCycleTotal;   // Anzahl der leeren Pollings gesamt
+  int           epCycleRun;     // Anzahl der leeren Pollings nach Kontakt
+  dword         epTimeOut;      // Time-Out in Mikrosekunden
 
 
   // --------------------------------------------------------------------------
@@ -225,6 +234,7 @@ private:
   void setPduAddress(bcPduPtr pduPtr);
   void setTimeOut(dword value);
   bool timeOut();
+  bool getValues(bcPduPtr pduPtr);
 
   // Zustandsmaschine
   // -----------------------------
@@ -287,6 +297,8 @@ public:
   // --------------------------------------------------------------------------
   //
   void setPollAddress(int chnIn, int adrIn, int areaIn, bool masterIn, bool eadrIn, bool nakIn);
+
+  void setEmptyPollParams(int cycleTotal, int cycleRun, dword timeOut);
 
   // --------------------------------------------------------------------------
   // Steuerung des Telegrammaustausches (Polling)

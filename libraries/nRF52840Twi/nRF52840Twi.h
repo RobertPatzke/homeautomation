@@ -168,6 +168,7 @@ private:
 
   TwiTrfMode    trfMode;
   dword         lastError;
+  byte          lastIn;
   int           comIdx;
 
   int           curIRQ;

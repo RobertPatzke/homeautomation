@@ -36,6 +36,7 @@ void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr)
   extraIn       = false;
   lcPtr         = inLcPtr;
   twiPtr        = inTwPtr;
+  nrOfChnChar   = '@';
 
   nextState =
       &Monitor::waitEnter;
@@ -107,6 +108,38 @@ void Monitor::clrBuf()
   rdIdx = 0;
 }
 
+void Monitor::sendConfig()
+{
+  int           nrChn   = nrOfChnChar & 0x3F;
+  int           bufIdx  = 0;
+  CfgMeasChnPtr cfgPtr;
+
+  // Visualisierungskanäle (Anzahl) anfordern
+  outChar[bufIdx++] = '&';
+  outChar[bufIdx++] = '@';    // Kanalnummer
+  outChar[bufIdx++] = '@';    // Typ
+  outChar[bufIdx++] = nrOfChnChar;
+  outChar[bufIdx++] = '$';
+
+  for(int i = 0; i < nrChn; i++)
+  {
+    cfgPtr = &cfgChnArr[i];
+    outChar[bufIdx++] = '&';
+    outChar[bufIdx++] = (i+1) | 0x40;
+    outChar[bufIdx++] = cfgPtr->type;
+    hexWord(&outChar[bufIdx], cfgPtr->maxVal);
+    bufIdx += 4;
+    hexWord(&outChar[bufIdx], cfgPtr->minVal);
+    bufIdx += 4;
+    if(cfgPtr->name != NULL)
+    {
+      bufIdx += cpyStr(&outChar[bufIdx], cfgPtr->name);
+    }
+    outChar[bufIdx++] = '$';
+  }
+  outChar[bufIdx] = '\0';
+  out(outChar);
+}
 
 //-----------------------------------------------------------------------------
 // Lokale Abläufe
@@ -136,23 +169,29 @@ void Monitor::waitEnter()
 
 void Monitor::getKey()
 {
-  char  cin,cc;
+  char  cin,c1,c0;
 
   if(!keyHit()) return;
   cin = keyIn();
   if(mode & modeEcho)
     out(cin);
 
-  cc = '\0';
+  c0 = c1 = '\0';
 
   if(inIdx == 0)
-    cc = cin;
+    c0 = cin;
   else if(inIdx == 1)
-    cc = inChar[0];
+  {
+    c0 = inChar[0];
+    c1 = cin;
+  }
   else if(inIdx == 2)
-    cc = inChar[1];
+  {
+    c0 = inChar[0];
+    c1 = inChar[1];
+  }
 
-  switch(cc)
+  switch(c0)
   {
     case '\r':
       out("\r\n");
@@ -170,10 +209,11 @@ void Monitor::getKey()
       }
       else if(inIdx == 1)
       {
-        inIdx = 0;
-        out('=');
+
         if(cin >= '0' && cin <= '9')
         {
+          inIdx = 0;
+          out('=');
           int cIdx = cin - 0x30;
           if(cFlag[cIdx])
           {
@@ -185,9 +225,27 @@ void Monitor::getKey()
             cFlag[cIdx] = true;
             out('1');
           }
+          GoPrm
         }
-        GoPrm
+
+        else if(cin == 'f' || cin == 'F')
+        {
+          inChar[inIdx] = cin;
+          inIdx++;
+        }
       }
+
+      else if(inIdx == 2)
+      {
+        inIdx = 0;
+        if(cin == 'g' || cin == 'G')
+        {
+          sendConfig();
+          GoPrm
+        }
+      }
+      else
+        GoPrm
       break;
 
     case 'i':
@@ -385,7 +443,7 @@ void Monitor::readRegVal()
     val = *regPtr;
 
     out(": ");
-    hexSeq(outChar, val);
+    hexDword(outChar, val);
     out(outChar);
     inIdx = 0;
     GoPrm
@@ -590,7 +648,7 @@ void Monitor::readTwiList()
     {
       for(int i = 0; i < anz; i++)
       {
-        hexAsc(tmpOut, byteArray[i]);
+        hexByte(tmpOut, byteArray[i]);
         out(tmpOut);
         if(i != (anz-1)) out(':');
       }
@@ -641,7 +699,7 @@ void Monitor::readTwiByte()
     val = twiPtr->readByteReg(twiAdr, reg);
 
     out(" = ");
-    binAsc(outChar, val);
+    binByte(outChar, val);
     out(outChar);
 
     inIdx = 0;
@@ -706,6 +764,15 @@ void Monitor::writeTwiByte()
 // Lokale Schnittstelle
 //-----------------------------------------------------------------------------
 //
+void Monitor::print(char c, int eol)
+{
+  putBuf(c);
+  if(eol & eolCR)
+    putBuf('\r');
+  if(eol & eolLF)
+    putBuf('\n');
+}
+
 void Monitor::print(char *txt, int eol)
 {
   if(txt != NULL)
@@ -722,7 +789,7 @@ void Monitor::print(byte *hex, int nr, char fill, int eol)
 
   for(int i = 0; i < nr; i++)
   {
-    hexAsc(tmpChar,hex[i]);
+    hexByte(tmpChar,hex[i]);
     tmpChar[2] = fill;
     tmpChar[3] = '\0';
     putBuf(tmpChar);
@@ -750,7 +817,7 @@ void Monitor::print(unsigned int iVal, int eol)
 // Datenaufbereitung
 //-----------------------------------------------------------------------------
 //
-void Monitor::hexAsc(char * dest, byte val)
+void Monitor::hexByte(char * dest, byte val)
 {
   char cv;
 
@@ -771,7 +838,7 @@ void Monitor::hexAsc(char * dest, byte val)
   dest[2] = '\0';
 }
 
-void Monitor::binAsc(char * dest, byte val)
+void Monitor::binByte(char * dest, byte val)
 {
   byte mask;
 
@@ -797,58 +864,90 @@ int   Monitor::cpyStr(char *dest, char *src)
   return(i);
 }
 
-int Monitor::binSeq(char *dest, dword dwVal)
+void Monitor::binDword(char *dest, dword dwVal)
 {
   int   idx = 0;
   byte  bVal;
 
   bVal = dwVal >> 24;
-  binAsc(&dest[idx], bVal);
+  binByte(&dest[idx], bVal);
   idx += 8;
   dest[idx++] = ' ';
 
   bVal = dwVal >> 16;
-  binAsc(&dest[idx], bVal);
+  binByte(&dest[idx], bVal);
   idx += 8;
   dest[idx++] = ' ';
 
   bVal = dwVal >> 8;
-  binAsc(&dest[idx], bVal);
+  binByte(&dest[idx], bVal);
   idx += 8;
   dest[idx++] = ' ';
 
   bVal = dwVal;
-  binAsc(&dest[idx], bVal);
+  binByte(&dest[idx], bVal);
   idx += 8;
 
   dest[idx] = '\0';
-  return(idx);
 }
 
-int Monitor::hexSeq(char *dest, dword dwVal)
+void Monitor::hexDword(char *dest, dword dwVal)
 {
   int   idx = 0;
   byte  bVal;
 
   bVal = dwVal >> 24;
-  hexAsc(&dest[idx], bVal);
+  hexByte(&dest[idx], bVal);
   idx += 2;
 
   bVal = dwVal >> 16;
-  hexAsc(&dest[idx], bVal);
+  hexByte(&dest[idx], bVal);
   idx += 2;
 
   bVal = dwVal >> 8;
-  hexAsc(&dest[idx], bVal);
+  hexByte(&dest[idx], bVal);
   idx += 2;
 
   bVal = dwVal;
-  hexAsc(&dest[idx], bVal);
+  hexByte(&dest[idx], bVal);
   idx += 2;
 
   dest[idx] = '\0';
-  return(idx);
 }
+
+void Monitor::binWord(char *dest, word wVal)
+{
+  int   idx = 0;
+  byte  bVal;
+
+  bVal = wVal >> 8;
+  binByte(&dest[idx], bVal);
+  idx += 8;
+  dest[idx++] = ' ';
+
+  bVal = wVal;
+  binByte(&dest[idx], bVal);
+  idx += 8;
+
+  dest[idx] = '\0';
+}
+
+void Monitor::hexWord(char *dest, word wVal)
+{
+  int   idx = 0;
+  byte  bVal;
+
+  bVal = wVal >> 8;
+  hexByte(&dest[idx], bVal);
+  idx += 2;
+
+  bVal = wVal;
+  hexByte(&dest[idx], bVal);
+  idx += 2;
+
+  dest[idx] = '\0';
+}
+
 
 
 //-----------------------------------------------------------------------------
@@ -867,6 +966,21 @@ void Monitor::run()
       smnSerial.print(c);
   }
   (this->*nextState)();
+}
+
+void Monitor::cprint(char c)
+{
+  print(c, 0);
+}
+
+void Monitor::cprintln(char c)
+{
+  print(c, eolCR | eolLF);
+}
+
+void Monitor::cprintcr(char c)
+{
+  print(c, eolCR);
 }
 
 void Monitor::print(char *txt)
@@ -927,6 +1041,30 @@ void Monitor::println(byte *iVal, int nr, char fill)
 void Monitor::setInfo(char *txt)
 {
   info = txt;
+}
+
+void Monitor::config(int inNrOfChn)
+{
+  if(inNrOfChn < 0) return;
+
+  if(inNrOfChn > MaxChn)
+    inNrOfChn = MaxChn;
+
+  nrOfChnChar = inNrOfChn | 0x40;
+}
+
+void Monitor::config(int inChn, char inType, word inMax, word inMin, char *inName)
+{
+  if(inChn < 1) return;
+
+  if(inChn > MaxChn)
+    inChn = MaxChn;
+
+  CfgMeasChnPtr chnPtr = &cfgChnArr[inChn-1];
+  chnPtr->maxVal = inMax;
+  chnPtr->minVal = inMin;
+  chnPtr->name = inName;
+  chnPtr->type = inType;
 }
 
 

@@ -167,6 +167,8 @@ typedef enum _RunState
   rsFetchM
 } RunState;
 
+#define NrOfRunStates 8
+
 typedef struct _RawValue
 {
   short int   x;
@@ -346,6 +348,8 @@ public:
   //                      D e b u g - H i l f e n
   // ----------------------------------------------------------------------------
   //
+  dword runStateCntArray[NrOfRunStates];
+  dword runStateCntTotal;
   dword debGetDword(int code);
 
 };

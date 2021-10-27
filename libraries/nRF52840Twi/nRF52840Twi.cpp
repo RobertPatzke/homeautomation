@@ -516,10 +516,21 @@ void nRF52840Twi::irqHandler()
       {
         twiPtr->EVENTS_RXDREADY       = 0;
         byteSeqPtr->twiStatus         = TwStRecvd;
-
+        /*
         if(comIdx == (byteSeqPtr->len - 2))
           twiPtr->SHORTS              = 2;
         byteSeqPtr->valueRef[comIdx]  = twiPtr->RXD;
+        if(comIdx < (byteSeqPtr->len - 1))
+          comIdx++;
+        */
+        if(comIdx == (byteSeqPtr->len - 2))
+          twiPtr->SHORTS              = 2;
+
+        lastIn = twiPtr->RXD;
+
+        if(comIdx < (byteSeqPtr->len))
+          byteSeqPtr->valueRef[comIdx]  = lastIn;
+
         comIdx++;
         return;
       }

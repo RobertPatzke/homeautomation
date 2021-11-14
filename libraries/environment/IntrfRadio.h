@@ -50,12 +50,13 @@ typedef enum _TxMode
   txmRepEnd,    // Wiederholte Sendung Ende, Endezustand DISABLED
   txmReadPrep,  // Einzelne Sendung mit Empfangsvorbereitung, Endezustand READY
   txmRead,      // Einzelne Sendung und Empfang, Endezustand END
+  txmPoll,      // Einzelne Sendung und Empfang, Endezustand DISABLED
   txmReadS,     // Einzelne sendung und Empfang mit Daten, Endezustand END
   txmRespE,     // Empfang für spezifische Antwort (leeres Polling)
   txmResp       // Empfang für spezifische Antwort (Datenübertragung)
 } TxMode;
 //
-#define NrOfTxModes   8
+#define NrOfTxModes   10
 
 // Protokollspezifische Adresseninhalte und Festlegungen
 //
@@ -75,12 +76,16 @@ typedef enum _TxMode
 typedef struct _TxStatistics
 {
   TxMode      mode;
-  dword       pollAcks;
-  dword       pollNaks;
+  dword       interrupts;
+  dword       recs;
+  dword       sendings;
   dword       aliens;
   dword       wrongs;
-  dword       sendings;
-  dword       interrupts;
+  dword       pollAcks;
+  dword       pollNaks;
+  dword       errors;
+  byte        memDumpRec[16];
+  byte        memDumpSnd[16];
 } TxStatistics, *TxStatisticsPtr;
 
 class IntrfRadio

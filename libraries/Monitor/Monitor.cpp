@@ -813,6 +813,18 @@ void Monitor::print(unsigned int iVal, int eol)
     putBuf('\n');
 }
 
+void Monitor::prints(int iVal, int eol)
+{
+  char  iBuf[16];
+
+  itoa(iVal, iBuf, 10);
+  putBuf(iBuf);
+  if(eol & eolCR)
+    putBuf('\r');
+  if(eol & eolLF)
+    putBuf('\n');
+}
+
 //-----------------------------------------------------------------------------
 // Datenaufbereitung
 //-----------------------------------------------------------------------------
@@ -1011,6 +1023,11 @@ void Monitor::printcr()
 void Monitor::print(unsigned int iVal)
 {
   print(iVal, 0);
+}
+
+void Monitor::prints(int iVal)
+{
+  prints(iVal, 0);
 }
 
 void Monitor::println(unsigned int iVal)

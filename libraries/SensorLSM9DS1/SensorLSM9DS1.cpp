@@ -554,16 +554,16 @@ void SensorLSM9DS1::run()
       }
 
       for(int i = 0; i < 12; i++)
-        rawDataAG.byteArray[i] = byteArray[i];
+        comDataAG.byteArray[i] = byteArray[i];
 
       if(avgSetAG > 0)
       {
-        sumA.x += rawDataAG.valueAG.A.x;
-        sumA.y += rawDataAG.valueAG.A.y;
-        sumA.z += rawDataAG.valueAG.A.z;
-        sumG.x += rawDataAG.valueAG.G.x;
-        sumG.y += rawDataAG.valueAG.G.y;
-        sumG.z += rawDataAG.valueAG.G.z;
+        sumA.x += comDataAG.valueAG.A.x;
+        sumA.y += comDataAG.valueAG.A.y;
+        sumA.z += comDataAG.valueAG.A.z;
+        sumG.x += comDataAG.valueAG.G.x;
+        sumG.y += comDataAG.valueAG.G.y;
+        sumG.z += comDataAG.valueAG.G.z;
         avgCntAG--;
 
         if(avgCntAG == 0)
@@ -580,7 +580,15 @@ void SensorLSM9DS1::run()
         }
       }
       else
+      {
+        rawDataAG.valueAG.A.x = comDataAG.valueAG.A.x;
+        rawDataAG.valueAG.A.y = comDataAG.valueAG.A.y;
+        rawDataAG.valueAG.A.z = comDataAG.valueAG.A.z;
+        rawDataAG.valueAG.G.x = comDataAG.valueAG.G.x;
+        rawDataAG.valueAG.G.y = comDataAG.valueAG.G.y;
+        rawDataAG.valueAG.G.z = comDataAG.valueAG.G.z;
         newValueAG = true;
+      }
 
       runState = rsScanAGReq;
       break;

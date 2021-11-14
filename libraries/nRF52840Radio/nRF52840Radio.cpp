@@ -38,6 +38,8 @@ nRF52840Radio::nRF52840Radio()
   nakM = false;
   comFin = false;
   newValues = false;
+
+  memset(statList,0,NrOfTxModes * sizeof(TxStatistics));
 }
 
 // ----------------------------------------------------------------------------
@@ -165,12 +167,18 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
   if(inPduPtrS != NULL)
     memcpy((void *)pduSentS, (void *)inPduPtrS, sizeof(bcPdu));// Daten in extra Puffer kopieren
 
+
   comFin = false;
   newValues = inNewValues;
 
   trfMode = txMode;
+
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
   statisticPtr = &statList[(int) txMode];
   statisticPtr->mode = txMode;
+  memset(statisticPtr->memDumpRec,0,16);
+  memset(statisticPtr->memDumpSnd,0,16);
+#endif
 
   switch(txMode)
   {
@@ -211,6 +219,13 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
       NrfRadioPtr->TASKS_TXEN = 1;
       break;
 
+    case txmPoll:
+      recMode = false;
+      NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
+      NrfRadioPtr->INTENSET = NrfIntRXREADY;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+
     case txmResp:
     case txmRespE:
       recMode = true;
@@ -244,6 +259,12 @@ void nRF52840Radio::disable(TxMode txMode)
        NrfRadioPtr->TASKS_DISABLE = 1;
        break;
 
+     case txmPoll:
+       NrfRadioPtr->INTENCLR = 0xFFFFFFFF;
+       NrfRadioPtr->EVENTS_DISABLED = 0;
+       NrfRadioPtr->TASKS_DISABLE = 1;
+       break;
+
      case txmResp:
      case txmRespE:
        NrfRadioPtr->TASKS_DISABLE = 1;
@@ -274,6 +295,7 @@ bool nRF52840Radio::disabled(TxMode txMode)
        break;
 
      case txmRead:
+     case txmPoll:
        if(NrfRadioPtr->EVENTS_DISABLED == 1)
        {
          NrfRadioPtr->EVENTS_DISABLED = 0;
@@ -329,6 +351,7 @@ bool nRF52840Radio::fin(TxMode txMode)
        break;
 
      case txmRead:
+       /*
        if(NrfRadioPtr->EVENTS_END == 1)
        {
          NrfRadioPtr->EVENTS_END = 0;
@@ -339,6 +362,12 @@ bool nRF52840Radio::fin(TxMode txMode)
          if(NrfRadioPtr->STATE == NrfStRXIDLE)
            retv = true;
        }
+       */
+       retv = comFin;
+       break;
+
+     case txmPoll:
+       retv = comFin;
        break;
 
      case txmResp:
@@ -373,6 +402,7 @@ void nRF52840Radio::cont(TxMode txMode)
        break;
 
      case txmRead:
+       comFin = false;
        NrfRadioPtr->TASKS_START = 1;
        break;
    }
@@ -506,6 +536,8 @@ void nRF52840Radio::irqHandler()
         if(NrfRadioPtr->EVENTS_END == 1)      // Senden fertig
         {
           NrfRadioPtr->EVENTS_END = 0;        // nur quittieren
+          statisticPtr->sendings++;
+          memcpy(statisticPtr->memDumpSnd,pduMem,8);
         }
       }
       else                                  // im Empfangsmodus
@@ -519,9 +551,46 @@ void nRF52840Radio::irqHandler()
         if(NrfRadioPtr->EVENTS_END == 1)      // Empfang fertig
         {
           NrfRadioPtr->EVENTS_END = 0;        // nur quittieren
+          comFin = true;
+          statisticPtr->recs++;
+          memcpy(statisticPtr->memDumpRec,pduMem,8);
         }
       }
 
+      break;
+
+    // ------------------------------------------------------------------------
+    case txmPoll:               // Empty Polling für Master -> DISABLED
+    // ------------------------------------------------------------------------
+      if(NrfRadioPtr->EVENTS_RXREADY == 1)    // Empfang aktiviert
+      {
+        NrfRadioPtr->EVENTS_RXREADY = 0;      // Int quittieren
+
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+        statisticPtr->sendings++;
+        memcpy(statisticPtr->memDumpSnd,pduMem,8);
+#endif
+        NrfRadioPtr->EVENTS_DISABLED = 0;     // Neu erwartet, zurücksetzen
+        NrfRadioPtr->SHORTS = NrfScEND_DISABLE | NrfScRXREADY_START;
+        NrfRadioPtr->INTENSET = NrfIntDISABLED;
+        recMode = true;
+      }
+
+      if(NrfRadioPtr->EVENTS_DISABLED == 1)   // Empfang beendet
+      {
+        NrfRadioPtr->EVENTS_DISABLED = 0;     // Int quittieren
+        comFin = true;
+
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+        statisticPtr->recs++;
+        memcpy(statisticPtr->memDumpRec,pduMem,16);
+        if(!recMode)
+        {
+          // Das darf nicht passieren, sonst neue Int-Verarbeitung erforderlich
+          statisticPtr->errors++;
+        }
+#endif
+      }
       break;
 
     // ------------------------------------------------------------------------
@@ -565,6 +634,9 @@ void nRF52840Radio::irqHandler()
           if(recMode)                           // im Empfangsmodus
           { // ----------------------------------------------------------------
             NrfRadioPtr->SHORTS = 0;            // keine direkte Kopplung mehr
+
+            statisticPtr->recs++;
+            memcpy(statisticPtr->memDumpRec,pduMem,8);
 
             // ----------------------------------------------------------------
             // Reaktion
@@ -644,6 +716,113 @@ void nRF52840Radio::irqHandler()
 
         break;
 
+      // ----------------------------------------------------------------------
+      case txmResp:               // Datenübertragung Slave
+      // ----------------------------------------------------------------------
+
+        // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_END == 1)        // Übertragung beendet
+        // --------------------------------------------------------------------
+        {
+          NrfRadioPtr->EVENTS_END = 0;          // Event quittieren
+
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+          statisticPtr->recs++;
+          memcpy(statisticPtr->memDumpRec,pduMem,8);
+#endif
+
+          if((pduSentE[5] != pduMem[5]) || (pduSentE[6] != pduMem[6]) || (pduSentE[7] != pduMem[7]))
+          {
+            // Das empfangene Telegramm gehört nicht zum eigenen Netzwerk
+            //
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+            statisticPtr->aliens++;
+#endif
+            NrfRadioPtr->SHORTS = 0;            // Keine Direktverbindungen
+            NrfRadioPtr->TASKS_START = 1;       // Datenempfang fortsetzen
+            break;
+          }
+
+          if((pduSentE[2] != pduMem[2]) || ((pduSentE[3] & 0x3F) != (pduMem[3] & 0x3F)))
+          {
+            // Das empfangene Telegramm ist für einen anderen Slave oder Bereich
+            //
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+            statisticPtr->wrongs++;
+#endif
+            NrfRadioPtr->SHORTS = 0;            // Keine Direktverbindungen
+            NrfRadioPtr->TASKS_START = 1;       // Datenempfang fortsetzen
+            break;
+            // TODO
+            // Hier wird das Protokoll noch erweitert zum Belauschen anderer Slaves
+          }
+
+          eadM = ((pduMem[3] & SOAAP_EADR) != 0); // Merker für Empfangspolling
+          nakM = ((pduMem[3] & SOAAP_NAK) != 0);  // Merker für NAK-Polling
+
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+          if(nakM)
+            statisticPtr->pollNaks++;
+          else
+            statisticPtr->pollAcks++;
+#endif
+          if(eadM)
+          {
+            // Empfangsaufforderung
+            // Eadr-Nak-Daten in Funkpuffer kopieren
+            //
+            memcpy((void *)pduMem, (void *)pduSentE, sizeof(bcPdu));
+          }
+          else
+          {
+            // Sendeaufforderung
+            // Sadr-Ack-Daten in Funkpuffer kopieren
+            //
+            memcpy((void *)pduMem, (void *)pduSentS, sizeof(bcPdu));
+          }
+
+          // Setzen der Direktverbinder auf vollständigen Durchlauf bis Ende der Sendung
+          // ACHTUNG! Freigegebene Interrupts treten auf, auch wenn sie zu einer
+          //          Direktverbindung gehören.
+          //
+          NrfRadioPtr->SHORTS = NrfScDISABLED_TXEN | NrfScREADY_START | NrfScEND_DISABLE;
+          NrfRadioPtr->EVENTS_READY = 0;        // Evt. hängendes Ereignis löschen
+          NrfRadioPtr->INTENSET = NrfIntREADY;  // Int zur Vorbereitung des Sendeabschlusses
+          NrfRadioPtr->TASKS_DISABLE = 1;       // Abschalten des Empfangsbetriebs
+          break;
+        }
+
+        // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_READY == 1)      // Bereit zum Senden
+        // --------------------------------------------------------------------
+        {
+          NrfRadioPtr->EVENTS_READY = 0;        // Event quittieren
+
+          // Vorbereiten auf das Ende der Sendung mit Abschalten
+          // NrfScREADY_START | NrfScEND_DISABLE sind weiter wirksam
+          //
+          NrfRadioPtr->SHORTS = NrfScREADY_START | NrfScEND_DISABLE;
+          NrfRadioPtr->EVENTS_DISABLED = 0;       // Evt. hängendes Ereignis löschen
+          recMode = false;
+          NrfRadioPtr->INTENSET = NrfIntDISABLED; // Int zum Sendeabschluss
+          break;
+        }
+
+        // --------------------------------------------------------------------
+        if(NrfRadioPtr->EVENTS_DISABLED == 1)   // Sendevorgang beendet
+        // --------------------------------------------------------------------
+        {
+          NrfRadioPtr->EVENTS_DISABLED = 0;     // Event quittieren
+          comFin = true;
+#if (defined smnDEBUG  && defined nRF52840RadioDEB)
+          statisticPtr->sendings++;
+          memcpy(statisticPtr->memDumpSnd,pduMem,16);
+#endif
+        }
+
+        break;
+
+      /*
       // ----------------------------------------------------------------------
       case txmResp:               // Datenübertragung Slave
       // ----------------------------------------------------------------------
@@ -744,7 +923,7 @@ void nRF52840Radio::irqHandler()
                 // ansonsten ist das Telegramm in pduSentS schon das Richtige
               }
               else
-              // keine Daten, nur NAK
+              // keine Daten, nur NAK (vom Master mit Nak-Bit gefordert)
               {
                 memcpy((void *)pduMem, (void *)pduSentS, PollPduSize);
                 BLE_LEN = PollAdrSize;
@@ -764,7 +943,7 @@ void nRF52840Radio::irqHandler()
         }
 
         break;
-
+        */
   }
 }
 
@@ -776,14 +955,17 @@ int   nRF52840Radio::getStatistics(TxStatisticsPtr dest)
 {
   int retv = 0;
 
+  *dest = *statisticPtr;
+  /*
   dest->aliens      = statisticPtr->aliens;
   dest->interrupts  = statisticPtr->interrupts;
   dest->mode        = statisticPtr->mode;
   dest->pollAcks    = statisticPtr->pollAcks;
   dest->pollNaks    = statisticPtr->pollNaks;
+  dest->recs        = statisticPtr->recs;
   dest->sendings    = statisticPtr->sendings;
   dest->wrongs      = statisticPtr->wrongs;
-
+  */
   return(retv);
 }
 

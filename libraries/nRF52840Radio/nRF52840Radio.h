@@ -14,6 +14,8 @@
 #include "bleSpec.h"
 #include "IntrfRadio.h"
 
+#define nRF52840RadioDEB
+
 // ----------------------------------------------------------------------------
 
 typedef struct _NRF_RADIO_Type
@@ -130,6 +132,7 @@ typedef struct _NRF_RADIO_Type
 //
 #define NrfScREADY_START    0x00000001
 #define NrfScEND_DISABLE    0x00000002
+#define NrfScDISABLED_TXEN  0x00000004
 #define NrfScDISABLED_RXEN  0x00000008
 #define NrfScTXREADY_START  0x00040000
 #define NrfScRXREADY_START  0x00080000
@@ -142,6 +145,8 @@ typedef struct _NRF_RADIO_Type
 #define NrfIntEND           0x00000008
 #define NrfIntDISABLED      0x00000010
 #define NrfIntRSSIEND       0x00000080
+#define NrfIntTXREADY       0x00200000
+#define NrfIntRXREADY       0x00400000
 
 // Zustände
 //
@@ -238,7 +243,6 @@ private:
 
   TxStatistics    statList[NrOfTxModes];
   TxStatisticsPtr statisticPtr;
-
 
 public:
   // --------------------------------------------------------------------------

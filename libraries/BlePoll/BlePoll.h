@@ -18,6 +18,7 @@
 // ----------------------------------------------------------------------------
 
 #include "stddef.h"
+#include "string.h"
 #include "arduinoDefs.h"
 #include "bleSpec.h"
 #include "IntrfRadio.h"
@@ -33,6 +34,7 @@ typedef enum _PlMode
   plmEmpty,       // Leeres Polling (Aufbau Adressliste)
   plmScan,        // Daten aller aktiven Teilnehmer holen (Master)
   plmSoaapM,      // Vollständiger Betrieb SOAAP (Master)
+  plmSoaapS,      // Vollständiger Betrieb SOAAP (Slave)
   plmXchg         // Daten übertragen (Slave, beide Richtungen)
 } PlMode;
 
@@ -70,30 +72,38 @@ typedef enum _PlpType
 //
 typedef struct _PlpFullMeas
 {
-  word    meas[12]; // Liste von 12 Messwerten
-  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
-  byte    align;    // Wird nicht gesendet, kennzeichnet Alignement
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  word    meas[12];   // Liste von 12 Messwerten
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    align;      // Wird nicht gesendet, kennzeichnet Alignement
 } PlpFullMeas, *PlpFullMeasPtr;
 
 typedef struct _PlpMeas3
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
-  byte    measCnt;  // Zähler für Messwertaktualisierung
-  word    meas[3];  // Liste von 3 Messwerten
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  word    meas[3];    // Liste von 3 Messwerten
 } PlpMeas3, *PlpMeas3Ptr;
 
 typedef struct _PlpMeas6
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
-  byte    measCnt;  // Zähler für Messwertaktualisierung
-  word    meas[6];  // Liste von 6 Messwerten
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  word    meas[6];    // Liste von 6 Messwerten
 } PlpMeas6, *PlpMeas6Ptr;
 
 typedef struct _PlpMeas9
 {
-  byte    appId;    // Kennzeichnung für Dateninhalte (PlpType)
-  byte    measCnt;  // Zähler für Messwertaktualisierung
-  word    meas[9];  // Liste von 9 Messwerten
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  word    meas[9];    // Liste von 9 Messwerten
 } PlpMeas9, *PlpMeas9Ptr;
 
 // Identifikator für die Art der Daten
@@ -105,12 +115,18 @@ typedef enum _MeasId
 
 typedef struct _Slave
 {
-  dword   cntTo;
-  dword   cntNakEP;
-  byte    adr;
-  byte    area;
-  byte    chn;
-  byte    pIdx;
+  dword     timeOut;
+  dword     cntTo;
+  dword     cntNakEP;
+  dword     cntAckDP;
+  byte      adr;
+  byte      area;
+  byte      chn;
+  byte      pIdx;
+  word      prioSet;
+  word      minPrio;
+  PlpMeas6  result;
+  bool      newPdu;
 } Slave, *SlavePtr;
 
 
@@ -123,10 +139,11 @@ typedef struct _PollInfo
 typedef struct _PollState
 {
   byte    slIdx;      // Index in der Slave-Liste
-  byte    prioCnt;    // Prioritätszähler
-  byte    prioSet;    // Priorität
   byte    status;     // Zustand
+  word    prioCnt;    // Prioritätszähler
 } PollState, *PollStatePtr;
+
+typedef bool (*cbDataPtr)(PlpType dataType, byte *dest);
 
 #define psSlaveWasPresent 0x01
 #define psSlaveIsPresent  0x02
@@ -176,10 +193,12 @@ private:
   bcPdu         pduIn;
   cbVector      nextState;
   MicsecFuPtr   micSec;
+  cbDataPtr     cbData;
   dword         toSet;
   dword         toValue;
   dword         cycleMics;
   dword         cycleCnt;
+  dword         wdTimeOut;
 
   int           chn;
   int           adr;
@@ -194,7 +213,7 @@ private:
 
   Slave         slaveList[MAXSLAVE+1];
   SlavePtr      curSlave;
-  int           slaveIdx;
+  int           slaveIdx; // ist z.Zt. identisch mit Slaveadresse adr
   PollState     pollList[MAXSLAVE+1];
   PollStatePtr  curPoll;
   int           pollIdx;
@@ -203,6 +222,8 @@ private:
 
   int           maxAdr;
   dword         cntPolling;
+  dword         cntAllRecs;
+  dword         cntAllTo;
   bool          pollStop;
   bool          pollStopped;
 
@@ -215,7 +236,7 @@ private:
   dword         runCounter;
 
   TxStatistics  statistic;
-  PlpMeas9      valuePdu;
+  PlpMeas6      valuePdu;
   bool          newValue;
 
   // Einstellungen für den Anwendungsbetrieb
@@ -290,15 +311,16 @@ public:
   BlePoll(IntrfRadio *refRadio, MicsecFuPtr inMicroFu);
   void init(IntrfRadio *refRadio, dword inCycleMics, MicsecFuPtr inMicroFu);
 
-  void begin(ComType typeIn, int adrIn, AppType appType);
+  void begin(ComType typeIn, int adrIn, AppType appType, dword watchDog);
+  void setCbDataPtr(cbDataPtr cbPtr);
 
   // --------------------------------------------------------------------------
   // Konfiguration
   // --------------------------------------------------------------------------
   //
   void setPollAddress(int chnIn, int adrIn, int areaIn, bool masterIn, bool eadrIn, bool nakIn);
-
   void setEmptyPollParams(int cycleTotal, int cycleRun, dword timeOut);
+  void setDataPollParams(int slAdr, int prio, int minPrio, dword timeOut);
 
   // --------------------------------------------------------------------------
   // Steuerung des Telegrammaustausches (Polling)
@@ -332,7 +354,10 @@ public:
   // --------------------------------------------------------------------------
   //
   dword debGetDword(int idx);
+  dword getStatistics(TxStatisticsPtr dest);
 
+  SlavePtr      getSlavePtr(int idx);
+  PollStatePtr  getPollPtr(int idx);
 };
 
 

@@ -119,6 +119,7 @@ private:
   void  print(char *txt, int eol);
   void  print(byte *hex, int nr, char fill, int eol);
   void  print(unsigned int iVal, int eol);
+  void  prints(int iVal, int eol);
 
   // --------------------------------------------------------------------------
   // Datenaufbereitung
@@ -164,6 +165,7 @@ public:
   void cprint(char c);
   void print(char *txt);
   void print(unsigned int iVal);
+  void prints(int iVal);
   void print(byte *iVal, int nr, char fill);
   void printcr();
   void cprintcr(char c);

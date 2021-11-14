@@ -234,7 +234,7 @@ private:
   bool        enableMeasAG;
   bool        newValueAG;
   RawDataAG   rawDataAG;
-  RawDataAG   tmpDataAG;
+  RawDataAG   comDataAG;
 
   bool        enableMeasM;
   bool        newValueM;

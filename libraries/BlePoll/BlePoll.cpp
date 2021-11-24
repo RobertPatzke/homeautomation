@@ -73,6 +73,7 @@ void BlePoll::init(IntrfRadio *refRadio, dword inCycleMics, MicsecFuPtr inMicroF
     slaveList[i].cntNakEP = 0;
     slaveList[i].cntTo = 0;
     slaveList[i].pIdx = 0;
+    slaveList[i].delayCnt = 10;
     pollList[i].prioCnt = 0;
     pollList[i].slIdx = 0;
     pollList[i].status = 0;
@@ -94,7 +95,8 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
   if(typeIn == ctMASTER)
     master  = true;
   else
-    master = false;
+    master = false;  void  resetPollCounters();
+
 
   chn     = 0;          // 1. Bewerbungskanal
   area    = 0;          // Default-Anwendungsbereich
@@ -213,6 +215,8 @@ void BlePoll::setCbDataPtr(cbDataPtr cbPtr)
 {
   cbData = cbPtr;
 }
+
+
 
 
 // --------------------------------------------------------------------------
@@ -337,6 +341,25 @@ int BlePoll::getSlaveList(byte *dest, int maxByte)
   }
   return(pollMaxNr);
 }
+
+void  BlePoll::resetPollCounters()
+{
+  int           slIdx;
+  SlavePtr      slPtr;
+
+  for(int i = 1; i <= pollMaxNr; i++)
+  {
+    slIdx = pollList[i].slIdx;
+    slPtr = &slaveList[slIdx];
+    slPtr->cntAckDP = 0;
+    slPtr->cntErrCrc = 0;
+    slPtr->cntLostMeas = 0;
+    slPtr->cntLostPdu = 0;
+    slPtr->cntNakEP = 0;
+    slPtr->cntTo = 0;
+  }
+}
+
 
 
 
@@ -564,7 +587,7 @@ void BlePoll::smWaitNak()
   }
 
 
-  if(radio->fin(txmPoll))
+  if(radio->fin(txmPoll, &crcError))
   {
     // Auf dem Kanal wurde ein Datensatz (BLE-Beacon) empfangen
     // und es werden die ersten 8 Byte (Header, Len und Adresse) geholt
@@ -760,7 +783,7 @@ void BlePoll::smEvalPoll()
   bleState = 1210;
 
   radio->getStatistics(&statistic);
-  if(!radio->fin(txmRespE)) return;
+  if(!radio->fin(txmRespE, &crcError)) return;
   next(smWaitEadr);
 }
 
@@ -863,8 +886,13 @@ void BlePoll::smReqComS()
   next(smWaitAckComS);
 }
 
+int     tmpInt1, tmpInt2, tmpInt3;
+
 void BlePoll::smWaitAckComS()
 {
+  byte    tmpByte;
+  short   tmpShort;
+
   bleState = 2110;
 
   if(timeOut())
@@ -872,7 +900,8 @@ void BlePoll::smWaitAckComS()
     // Wenn der Slave nicht antwortet (kann auch eine Störung sein),
     // dann wird seine Priorität heruntergesetzt (Zählwert erhöht)
     // und der nächste Slave aus der Poll-Liste angefragt
-    //
+    //  byte      oldPduCount;
+
     curSlave->prioSet++;
     if(curSlave->prioSet > curSlave->minPrio)
       curSlave->prioSet = curSlave->minPrio;
@@ -889,7 +918,7 @@ void BlePoll::smWaitAckComS()
     return;
   }
 
-  if(radio->fin(txmPoll))
+  if(radio->fin(txmPoll, &crcError))
   {
     cntAllRecs++;
 
@@ -926,6 +955,23 @@ void BlePoll::smWaitAckComS()
     }
 
     // Antwort vom richtigen Teilnehmer ist eingegangen
+    //
+
+    if(crcError)
+    {
+      // Die Daten werden bei einem CRC-Fehler verworfen.
+      // Der Fehler wird gezählt und ist ein Hinweis auf fremde
+      // Funkaktivitäten
+      //
+      curSlave->cntErrCrc++;
+      pollIdx++;
+      if(pollIdx > pollMaxNr)
+        pollIdx = 1;
+
+      next(smReqComS);
+      return;
+    }
+
     // Die Daten werden in der Slave-Struktur abgelegt
     //
     curSlave->result.counter  = pduIn.data[0];
@@ -938,6 +984,22 @@ void BlePoll::smWaitAckComS()
     curSlave->result.meas[3]  = *(word *) &pduIn.data[10];
     curSlave->result.meas[4]  = *(word *) &pduIn.data[12];
     curSlave->result.meas[5]  = *(word *) &pduIn.data[14];
+
+    if(curSlave->delayCnt == 0)
+    {
+
+      tmpByte = curSlave->result.counter - curSlave->oldPduCount;
+      if(tmpByte > 1)
+        curSlave->cntLostPdu += tmpByte - 1;
+
+      tmpByte = curSlave->result.measCnt - curSlave->oldMeasCount;
+      if(tmpByte > 1)
+        curSlave->cntLostMeas += tmpByte - 1;
+    }
+    else curSlave->delayCnt--;
+
+    curSlave->oldPduCount = curSlave->result.counter;
+    curSlave->oldMeasCount = curSlave->result.measCnt;
 
     curSlave->newPdu  = true;
     curSlave->cntAckDP++;
@@ -1013,7 +1075,7 @@ void BlePoll::smWaitAckComE()
   }
 
 
-  if(radio->fin(txmRead))
+  if(radio->fin(txmRead, &crcError))
   {
     radio->getRecData(&pduIn, 8);
 
@@ -1115,7 +1177,7 @@ void BlePoll::smWaitComES()
     next(smStartComES);
     return;
   }
-  if(!radio->fin(txmResp)) return;
+  if(!radio->fin(txmResp, &crcError)) return;
   next(smStartComES);
 }
 

@@ -83,7 +83,8 @@ typedef struct _TxStatistics
   dword       wrongs;
   dword       pollAcks;
   dword       pollNaks;
-  dword       errors;
+  dword       crcErrors;
+  dword       intErrors;
   byte        memDumpRec[16];
   byte        memDumpSnd[16];
 } TxStatistics, *TxStatisticsPtr;
@@ -129,7 +130,7 @@ public:
   virtual void  disable(TxMode txMode);       // Funk AUS für Betriebswechsel
   virtual bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet
   virtual void  cont(TxMode txMode);          // aktuellen Vorgang fortsetzen
-  virtual bool  fin(TxMode txMode);     // Abfrage ob aktueller Vorgang beendet
+  virtual bool  fin(TxMode txMode, bool *err);  // Abfrage ob aktueller Vorgang beendet
 
   virtual int   startRec();                   // Datenempfang starten
   virtual int   contRec();                    // Datenempfang fortsetzen

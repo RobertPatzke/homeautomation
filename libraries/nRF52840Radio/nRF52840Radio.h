@@ -236,6 +236,7 @@ private:
   bool        eadM;
   bool        nakM;
   bool        comFin;
+  bool        comError;
   bool        newValues;
 
   dword       irqCounter;
@@ -272,7 +273,7 @@ public:
   void  disable(TxMode txMode);
   bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet
   void  cont(TxMode txMode);
-  bool  fin(TxMode txMode);
+  bool  fin(TxMode txMode, bool *err);
                                       // Senden eines Telegramms (und warten)
   int   startRec();                   // Datenempfang starten
   int   contRec();                    // Datenempfang fortsetzen

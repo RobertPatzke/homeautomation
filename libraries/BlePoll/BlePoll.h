@@ -117,8 +117,12 @@ typedef struct _Slave
 {
   dword     timeOut;
   dword     cntTo;
+  dword     cntErrCrc;
   dword     cntNakEP;
   dword     cntAckDP;
+  dword     cntLostPdu;
+  dword     cntLostMeas;
+  dword     delayCnt;
   byte      adr;
   byte      area;
   byte      chn;
@@ -127,6 +131,8 @@ typedef struct _Slave
   word      minPrio;
   PlpMeas6  result;
   bool      newPdu;
+  byte      oldPduCount;
+  byte      oldMeasCount;
 } Slave, *SlavePtr;
 
 
@@ -206,6 +212,7 @@ private:
   bool          master;
   bool          eadr;
   bool          nak;
+  bool          crcError;
 
   PlMode        plMode;
   PlMode        oldPlMode;
@@ -346,8 +353,8 @@ public:
   // Zugriff auf Polling-Informationen
   // --------------------------------------------------------------------------
   //
-  int getSlaveList(byte *dest, int maxByte);
-
+  int   getSlaveList(byte *dest, int maxByte);
+  void  resetPollCounters();
 
   // --------------------------------------------------------------------------
   // Debugging

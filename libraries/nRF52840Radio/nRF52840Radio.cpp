@@ -37,6 +37,7 @@ nRF52840Radio::nRF52840Radio()
   eadM = false;
   nakM = false;
   comFin = false;
+  comError = false;
   newValues = false;
 
   memset(statList,0,NrOfTxModes * sizeof(TxStatistics));
@@ -168,7 +169,8 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
     memcpy((void *)pduSentS, (void *)inPduPtrS, sizeof(bcPdu));// Daten in extra Puffer kopieren
 
 
-  comFin = false;
+  comFin    = false;
+  comError  = false;
   newValues = inNewValues;
 
   trfMode = txMode;
@@ -325,9 +327,11 @@ bool nRF52840Radio::disabled(TxMode txMode)
   return(retv);
 }
 
-bool nRF52840Radio::fin(TxMode txMode)
+bool nRF52840Radio::fin(TxMode txMode, bool *crcErr)
 {
   bool retv = false;
+
+  *crcErr = comError;
 
   switch(txMode)
    {
@@ -560,7 +564,7 @@ void nRF52840Radio::irqHandler()
       break;
 
     // ------------------------------------------------------------------------
-    case txmPoll:               // Empty Polling für Master -> DISABLED
+    case txmPoll:     // Empty Polling und Datenempfang für Master -> DISABLED
     // ------------------------------------------------------------------------
       if(NrfRadioPtr->EVENTS_RXREADY == 1)    // Empfang aktiviert
       {
@@ -580,14 +584,17 @@ void nRF52840Radio::irqHandler()
       {
         NrfRadioPtr->EVENTS_DISABLED = 0;     // Int quittieren
         comFin = true;
+        if(NrfRadioPtr->CRCSTATUS == 0)
+          comError = true;
 
 #if (defined smnDEBUG  && defined nRF52840RadioDEB)
         statisticPtr->recs++;
+        if(comError) statisticPtr->crcErrors++;
         memcpy(statisticPtr->memDumpRec,pduMem,16);
         if(!recMode)
         {
           // Das darf nicht passieren, sonst neue Int-Verarbeitung erforderlich
-          statisticPtr->errors++;
+          statisticPtr->intErrors++;
         }
 #endif
       }

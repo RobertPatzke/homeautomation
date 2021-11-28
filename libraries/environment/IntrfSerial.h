@@ -89,8 +89,11 @@ public:
   // Datenzugriffe
   // --------------------------------------------------------------------------
   //
-  virtual bool condSend(byte c);  // Bedingtes senden eines Zeichens
+  virtual bool condSend(byte c);  // Bedingtes Senden eines Zeichens
 
+  virtual int   getLastError();   // Letzten Fehler lesen (Bits)
+  virtual int   getAnyError();    // Alle vorgekommenen Fehlerbits
+  virtual dword getErrCount();    // Anzahl der Fehler lesen
 
 };
 

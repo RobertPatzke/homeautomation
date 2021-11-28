@@ -22,6 +22,8 @@
 #include "IntrfBuf.h"
 #include "IntrfSerial.h"
 
+#define NewLineModeCR     0x01
+#define NewLineModeNL     0x02
 
 // ----------------------------------------------------------------------------
 //                            C o m R i n g B u f
@@ -44,6 +46,7 @@ private:
   int       maxRec;           // Maximale Anzahl zu empfangender Bytes
   byte      endChrRec;        // Abschlusszeichen beim Empfang
   byte      condMaskCom;      // Bedingungen fuer den Datenaustausch
+  byte      newLineMode;      // Art für eine neue Zeile (CR/LF)
 
   byte      *recBuffer;       // Receive ring buffer start address
   word      rbReadIdx;        // Read index
@@ -65,14 +68,26 @@ private:
   // Lokale Funktionen
   // --------------------------------------------------------------------------
   //
-  char getC();
+  char  getC();
+  int   putNL();
 
-  void putBufC(byte c)
+  // --------------------------------------------------------------------------
+  // Inline-Funktionen
+  // --------------------------------------------------------------------------
+  //
+  void putBufB(byte b)
   {
-    sndBuffer[sbWriteIdx] = c;
+    sndBuffer[sbWriteIdx] = b;
     sbWriteIdx++;
     if(sbWriteIdx >= sbSize)
       sbWriteIdx = 0;
+  }
+
+  int getSpace()
+  {
+    int space = sbReadIdx - sbWriteIdx - 1;
+    if(space < 0) space += sbSize;
+    return(space);
   }
 
 
@@ -80,18 +95,23 @@ public:
   // --------------------------------------------------------------------------
   // Initialisierungen
   // --------------------------------------------------------------------------
+  ComRingBuf();
+
   void begin(IntrfSerial *ser);
 
   // --------------------------------------------------------------------------
   // Konfiguration
   // --------------------------------------------------------------------------
   //
+  void setNewLineMode(byte nlMode);
 
   // --------------------------------------------------------------------------
   // Schnittstellen
   // --------------------------------------------------------------------------
   //
   bool  getByteSnd(byte *dest);
+  void  putByteRec(byte b);       // Byte vom Empfang an Puffer geben
+
 
   // Zuweisen eines Speichers (*bufPtr) der Größe size für den Lesepuffer
   //
@@ -102,12 +122,6 @@ public:
   // Steuerung
   // --------------------------------------------------------------------------
   //
-  // Lesen und Schreiben von Zeichen
-  //
-  void  write(byte *wrPtr, int nrOfBytes);
-  void  write(byte snglByte);
-  void  read(byte *rdPtr, int nrOfBytes);
-  void  read(byte *rdPtr, int maxNrOfBytes, byte endChr);
 
   // ----------------------------------------------
   // Ein einzelnes Zeichen aus dem Ringpuffer lesen
@@ -196,10 +210,10 @@ public:
   void  setWriteBuffer(int size, byte *bufPtr);
   int   putChr(int chr);
   int   putStr(char *msg);
-  int   putStr(char *msg, int n);
+  int   putSeq(byte *msg, int n);
   int   putLine(char *msg);
-  int   putLine(char *msg, char c);
-  int   putLine(char *msg, int n);
+  //int   putLine(char *msg, char c);
+  //int   putLine(char *msg, int n);
 
   // --------------------------------------------------------------------------
   // Debugging

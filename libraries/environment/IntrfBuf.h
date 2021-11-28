@@ -38,6 +38,8 @@ public:
   virtual bool  getByteSnd(byte *dest);   // Byte aus Puffer zum Senden holen
                                           // Rückgabe FALSE: Puffer leer
 
+  virtual void  putByteRec(byte b);       // Byte vom Empfang an Puffer geben
+
 };
 
 // ----------------------------------------------------------------------------

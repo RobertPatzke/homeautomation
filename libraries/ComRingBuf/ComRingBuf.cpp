@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // Thema:   Social Manufacturing Network / Development Environment
-// Datei:   RingBuf.cpp
+// Datei:   ComRingBuf.cpp
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de
 //-----------------------------------------------------------------------------
@@ -15,6 +15,16 @@
   // --------------------------------------------------------------------------
   // Initialisierungen
   // --------------------------------------------------------------------------
+
+  ComRingBuf::ComRingBuf()
+  {
+    rbReadIdx = 0;
+    rbWriteIdx = 0;
+    sbReadIdx = 0;
+    sbWriteIdx = 0;
+    newLineMode = NewLineModeNL;
+  }
+
   void ComRingBuf::begin(IntrfSerial *ser)
   {
     serIf = ser;
@@ -24,10 +34,17 @@
   // Konfiguration
   // --------------------------------------------------------------------------
   //
+  void ComRingBuf::setNewLineMode(byte nlMode)
+  {
+    newLineMode = nlMode;
+  }
+
 
   // --------------------------------------------------------------------------
   // Schnittstellen
   // --------------------------------------------------------------------------
+  //
+  // Byte aus dem Sendepuffer lesen
   //
   bool  ComRingBuf::getByteSnd(byte *dest)
   {
@@ -40,33 +57,23 @@
     return(true);
   }
 
-
-  // --------------------------------------------------------------------------
-  // Steuerung
-  // --------------------------------------------------------------------------
+  // Byte in den Empfangspuffer schreiben
   //
-// Lesen und Schreiben von Zeichen
-//
-void  ComRingBuf::write(byte *wrPtr, int nrOfBytes)
-{
-}
+  void  ComRingBuf::putByteRec(byte b)
+  {
+    int space = rbReadIdx - rbWriteIdx - 1;
+    if(space == 0) return;
+  }
 
-void  ComRingBuf::write(byte snglByte)
-{
-};
-
-void  ComRingBuf::read(byte *rdPtr, int nrOfBytes)
-{
-};
-
-void  ComRingBuf::read(byte *rdPtr, int maxNrOfBytes, byte endChr)
-{
-};
 
 // ----------------------------------------------------------------------------
 // Writing and reading data via circular buffer (default usage)
 // ----------------------------------------------------------------------------
 //
+
+// ----------------------------------------------------------------------------
+// Lesen (Empfangsvorgänge)
+// ----------------------------------------------------------------------------
 
 void  ComRingBuf::setReadBuffer(int size, byte *bufPtr)
 {
@@ -74,7 +81,7 @@ void  ComRingBuf::setReadBuffer(int size, byte *bufPtr)
   rbSize = size;
   rbReadIdx = 0;
   rbWriteIdx = 0;
-};
+}
 
 int   ComRingBuf::getChr()
 {
@@ -88,13 +95,13 @@ int   ComRingBuf::getChr()
   if(rbReadIdx >= rbSize)
     rbReadIdx = 0;
   return(retv);
-};
+}
 
 void  ComRingBuf::clrRecBuf()
 {
   rbReadIdx  = 0;
   rbWriteIdx = 0;
-};
+}
 
 int   ComRingBuf::getAll(byte *buffer)
 {
@@ -119,7 +126,7 @@ int   ComRingBuf::getAll(byte *buffer)
   }
 
   return(count);
-};
+}
 
 int   ComRingBuf::getCount(int len, byte *buffer)
 {
@@ -147,7 +154,7 @@ int   ComRingBuf::getCount(int len, byte *buffer)
   }
 
   return(len);
-};
+}
 
 int   ComRingBuf::getCountStr(int len, char *buffer)
 {
@@ -158,7 +165,7 @@ int   ComRingBuf::getCountStr(int len, char *buffer)
 
   buffer[nrChar] = 0;
   return(nrChar);
-};
+}
 
 int   ComRingBuf::getLine(char *buffer)
 {
@@ -199,7 +206,7 @@ int   ComRingBuf::getLine(char *buffer)
 
   buffer[i] = 0;
   return(i);
-};
+}
 
 int   ComRingBuf::getLineDec(int *intValue)
 {
@@ -262,7 +269,7 @@ int   ComRingBuf::getLineDec(int *intValue)
   buffer[j] = 0;
   *intValue = atoi(buffer);
   return(i);
-};
+}
 
 char ComRingBuf::getC()
 {
@@ -324,7 +331,7 @@ int   ComRingBuf::waitLine(int waitLoop, char *buffer)
   }
 
   return(0);
-};
+}
 
 //int   ComRingBuf::waitLineDec(int waitLoop, int *intValue)
 //{
@@ -364,7 +371,7 @@ int   ComRingBuf::chkLine(char *rsp)
   }
 
   return(chkVal);
-};
+}
 
 int   ComRingBuf::chkBuf(char *rsp)
 {
@@ -387,11 +394,11 @@ int   ComRingBuf::chkBuf(char *rsp)
   }
 
   return(chkVal);
-};
+}
 
 int   ComRingBuf::waitAll(int waitLoop, byte *buffer)
 {
-};
+}
 
 int   ComRingBuf::waitChkBuf(int waitLoop, char *rsp)
 {
@@ -441,7 +448,7 @@ int   ComRingBuf::waitChkBuf(int waitLoop, char *rsp)
 
   loopCount = 0;
   return(chkVal);
-};
+}
 
 int   ComRingBuf::inCount(void)
 {
@@ -449,7 +456,7 @@ int   ComRingBuf::inCount(void)
   if(count < 0)
     count += rbSize;
   return(count);
-};
+}
 
 int   ComRingBuf::getRestChar(byte tagChr, int len, byte *buffer)
 {
@@ -495,7 +502,7 @@ int   ComRingBuf::getRestChar(byte tagChr, int len, byte *buffer)
   if(!tagged) j = -1;
 
   return(j);
-};
+}
 
 int   ComRingBuf::getRestStr(char *tagStr, int len, byte *buffer)
 {
@@ -560,7 +567,7 @@ int   ComRingBuf::getRestStr(char *tagStr, int len, byte *buffer)
     rbReadIdx = tmpIdx;
     return(j);
   }
-};
+}
 
 int   ComRingBuf::reqChkLine(char *req, char *rsp)
 {
@@ -608,8 +615,11 @@ int   ComRingBuf::reqChkLine(char *req, char *rsp)
   }
 
   return(-1000);    // internal error with <reqChkState>
-};
+}
 
+// ----------------------------------------------------------------------------
+// Schreiben (Sendevorgänge)
+// ----------------------------------------------------------------------------
 
 void  ComRingBuf::setWriteBuffer(int size, byte *bufPtr)
 {
@@ -617,24 +627,22 @@ void  ComRingBuf::setWriteBuffer(int size, byte *bufPtr)
   sbSize = size;
   sbReadIdx = 0;
   sbWriteIdx = 0;
-};
+}
 
 int   ComRingBuf::putChr(int chr)
 {
   int       space;
   bool      txDone;
 
-  if(sndBuffer == NULL)
-    return(EOF);
+  if(sndBuffer == NULL) return(EOF);
+  if(serIf == NULL) return(EOF);
 
-  space = sbReadIdx - sbWriteIdx - 1;
-  if(space < 0)
-    space += sbSize;
+  space = getSpace();
 
   if(space == 0)
   {
     // Wenn der Sendepuffer voll ist, dann kann der Entlader feststecken
-    if(serIf != NULL) serIf->resuSend();
+    serIf->resuSend();
     return(EOF);
   }
 
@@ -646,29 +654,117 @@ int   ComRingBuf::putChr(int chr)
     if(txDone) return(chr);
   }
 
-  putBufC(chr);
+  putBufB(chr);
   return(chr);
-};
+}
 
 int   ComRingBuf::putStr(char *msg)
 {
-};
+  int sIdx = 0;
 
-int   ComRingBuf::putStr(char *msg, int n)
+  if(sndBuffer == NULL) return(EOF);
+  if(serIf == NULL) return(EOF);
+
+  int space = getSpace();
+  int len = strlen(msg);
+  if(space < len)
+  {
+    serIf->resuSend();
+    return(EOF);
+  }
+
+  if(sbReadIdx == sbWriteIdx)
+  {
+    // Wenn der Sendepuffer leer ist, dann kann das erste Zeichen evt.
+    // direkt gesendet werden.
+    if(serIf->condSend(msg[0]))
+      sIdx = 1;
+  }
+
+  for (int i = sIdx; i < len; i++)
+   {
+     sndBuffer[sbWriteIdx] = msg[i];
+     sbWriteIdx++;
+     if(sbWriteIdx >= sbSize)
+       sbWriteIdx = 0;
+   }
+
+  return(len);
+}
+
+int   ComRingBuf::putSeq(byte *msg, int n)
 {
-};
+  int sIdx = 0;
+
+  if(sndBuffer == NULL) return(EOF);
+  if(serIf == NULL) return(EOF);
+
+  int space = getSpace();
+
+  if(space < n)
+  {
+    serIf->resuSend();
+    return(EOF);
+  }
+
+  if(sbReadIdx == sbWriteIdx)
+  {
+    // Wenn der Sendepuffer leer ist, dann kann das erste Zeichen evt.
+    // direkt gesendet werden.
+    if(serIf->condSend(msg[0]))
+      sIdx = 1;
+  }
+
+  for (int i = sIdx; i < n; i++)
+   {
+     sndBuffer[sbWriteIdx] = msg[i];
+     sbWriteIdx++;
+     if(sbWriteIdx >= sbSize)
+       sbWriteIdx = 0;
+   }
+
+  return(n);
+
+}
+
+int   ComRingBuf::putNL()
+{
+  int retv = 0;
+
+  if(newLineMode & NewLineModeCR)
+  {
+    putBufB('\r');
+    retv++;
+  }
+
+  if(newLineMode & NewLineModeNL)
+  {
+    putBufB('\n');
+    retv++;
+  }
+
+  return(retv);
+}
 
 int   ComRingBuf::putLine(char *msg)
 {
-};
+  int retv, nl;
 
-int   ComRingBuf::putLine(char *msg, char c)
-{
-};
+  retv = putStr(msg);
+  if(retv < 0)
+    return(retv);
 
-int   ComRingBuf::putLine(char *msg, int n)
-{
-};
+  nl = putNL();
+  return(retv);
+}
+
+//int   ComRingBuf::putLine(char *msg, char c)
+//{
+//}
+
+//int   ComRingBuf::putLine(char *msg, int n)
+//{
+//}
 
 
   // --------------------------------------------------------------------------

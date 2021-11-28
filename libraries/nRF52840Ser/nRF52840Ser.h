@@ -149,8 +149,9 @@ private:
   nrfSerPtr     serPtr;
   dword         irqCounter;
 
-  //dword         lastError;
-  //byte          lastIn;
+  int           lastError;
+  int           anyError;
+  dword         cntError;
 
   int           curIRQ;
   dword         curIntEn;
@@ -191,6 +192,11 @@ public:
   // --------------------------------------------------------------------------
   //
   bool condSend(byte c);  // Bedingtes Senden eines Zeichens
+
+  int   getLastError();   // Letzten Fehler lesen (Bits)
+  int   getAnyError();    // Alle vorgekommenen Fehlerbits
+  dword getErrCount();    // Anzahl der Fehler lesen
+
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts

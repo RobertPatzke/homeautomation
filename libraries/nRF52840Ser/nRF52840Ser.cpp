@@ -21,6 +21,8 @@ nRF52840Ser::nRF52840Ser()
   irqCounter  = 0;
   curIntEn    = 0;
   curIRQ      = 0;
+  lastError   = 0;
+  cntError    = 0;
 }
 
 dword speedArr[18] =
@@ -227,25 +229,31 @@ void nRF52840Ser::irqHandler0()
   //
 void nRF52840Ser::irqHandler()
 {
-  byte  td;
+  byte  b;
 
   if(serPtr->EVENTS_TXDRDY != 0)
   {
     serPtr->EVENTS_TXDRDY = 0;
     if(bufIf == NULL) return;
 
-    if(!bufIf->getByteSnd(&td))
+    if(!bufIf->getByteSnd(&b))
       txdFin = true;
     else
-      serPtr->TXD = td;
+      serPtr->TXD = b;
   }
   else if(serPtr->EVENTS_RXDRDY != 0)
   {
     serPtr->EVENTS_RXDRDY = 0;
+    b = serPtr->RXD;
+    if(bufIf == NULL) return;
+    bufIf->putByteRec(b);
   }
   else if(serPtr->EVENTS_ERROR != 0)
   {
     serPtr->EVENTS_ERROR = 0;
+    cntError++;
+    lastError = serPtr->ERRORSRC;
+    anyError |= lastError;
   }
 }
 
@@ -253,6 +261,27 @@ void nRF52840Ser::irqHandler()
 // Datenzugriffe
 // --------------------------------------------------------------------------
 //
+// Letzten Fehler lesen (Bits)
+//
+int   nRF52840Ser::getLastError()
+{
+  return(lastError);
+}
+
+// Alle vorgekommenen Fehlerbits
+//
+int   nRF52840Ser::getAnyError()
+{
+  return(anyError);
+}
+
+// Anzahl der Fehler lesen
+//
+dword nRF52840Ser::getErrCount()
+{
+  return(cntError);
+}
+
 
 
 // ----------------------------------------------------------------------------

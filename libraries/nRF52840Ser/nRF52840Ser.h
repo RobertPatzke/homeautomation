@@ -60,7 +60,7 @@ typedef struct _nrfSer
 #define NrfSerBase0   0x40002000
 #define NrfSerPtr0    ((nrfSerPtr) NrfSerBase0)
 
-#ifndef nrfGpio
+#ifndef nrfGpioDef
 
 typedef struct _nrfGpio
 {
@@ -106,6 +106,7 @@ typedef struct _nrfGpio
 #define GpioSenseHigh         2
 #define GpioSenseLow          3
 
+#define nrfGpioDef
 #endif
 
 // Festlegungen für die Paketkonfigurationsregister

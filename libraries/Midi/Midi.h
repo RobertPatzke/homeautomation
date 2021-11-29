@@ -54,18 +54,18 @@ public:
   {
     nti0  = 0,
     nti1,
-    nti2,
     nti2p,
-    nti4,
+    nti2,
     nti4p,
-    nti8,
+    nti4,
     nti8p,
-    nti16,
+    nti8,
     nti16p,
-    nti32,
+    nti16,
     nti32p,
-    nti64,
+    nti32,
     nti64p,
+    nti64,
     ntiNr
   } NoteTypeIdx;
 
@@ -88,6 +88,7 @@ private:
     byte    deltaDecay;
     byte    percentSustain;
     byte    deltaRelease;
+    byte    percentPause;
   } NoteType, *NoteTypePtr;
 
   typedef struct  _Note
@@ -100,6 +101,7 @@ private:
     dword     cntDecay;
     dword     cntSustain;
     dword     cntRelease;
+    dword     cntPause;
   } Note, *NotePtr;
 
 #define NoteModeEmpty     0x00
@@ -173,7 +175,7 @@ public:
   void setNoteType(NoteTypeIdx nt);
 
   void setNoteType(NoteTypeIdx nt, dword att, dword dec, dword sus, dword rel,
-                   byte dAtt, byte dDec, byte dSus, byte dRel);
+                   byte dAtt, byte dDec, byte dSus, byte dRel, byte pPau);
 
   int addChordNote(NoteTypeIdx nti, byte val, byte vel);
 
@@ -182,6 +184,7 @@ public:
   // --------------------------------------------------------------------------
   //
   void setOpMode(MidiOpMode mom);
+  void setChordNote(int idx, int type, int val, int vel);
 
   // --------------------------------------------------------------------------
   // Steuerung, Zustandsmaschine

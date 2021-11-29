@@ -75,7 +75,7 @@ typedef enum _TwiTrfMode
   ttmReadByteRegSeq
 } TwiTrfMode;
 
-#ifndef nrfGpio
+#ifndef nrfGpioDef
 
 typedef struct _nrfGpio
 {
@@ -121,6 +121,7 @@ typedef struct _nrfGpio
 #define GpioSenseHigh         2
 #define GpioSenseLow          3
 
+#define nrfGpioDef
 #endif
 
 // Festlegungen für die Paketkonfigurationsregister

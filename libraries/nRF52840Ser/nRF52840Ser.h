@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // Thema:   Social Manufacturing Network / Development Environment
-// Datei:   nRF52840Twi.h
+// Datei:   nRF52840Ser.h
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de
 //-----------------------------------------------------------------------------

@@ -62,6 +62,11 @@ private:
   int       cpu;
   int       mode;
 
+#ifdef smnNANOBLE33
+  dword     *microTicValPtr;
+  dword     *microTicCapPtr;
+#endif
+
   char      buffer[BufSize];
   int       wrIdx;
   int       rdIdx;
@@ -120,6 +125,12 @@ private:
   void  print(byte *hex, int nr, char fill, int eol);
   void  print(unsigned int iVal, int eol);
   void  prints(int iVal, int eol);
+
+  dword micsecs()
+  {
+    *microTicCapPtr = 1;
+    return(*microTicValPtr);
+  }
 
   // --------------------------------------------------------------------------
   // Datenaufbereitung

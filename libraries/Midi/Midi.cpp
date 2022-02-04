@@ -114,10 +114,10 @@ int Midi::addChordNote(NoteTypeIdx nti, byte val, byte vel)
     notePtr = &chord[i];
     if(notePtr->mode == NoteModeEmpty)
     {
-      notePtr->mode   = NoteModeRun;
-      notePtr->nIdx   = nti;
-      notePtr->value  = val;
-      notePtr->veloc  = vel;
+      notePtr->mode     = NoteModeRun;
+      notePtr->typeIdx  = nti;
+      notePtr->value    = val;
+      notePtr->veloc    = vel;
       break;
     }
   }
@@ -140,16 +140,18 @@ void Midi::setChordNote(int idx, int type, int val, int vel)
   if(idx < 0) return;
   if(idx >= MaxNrNoteSim) return;
 
-  NotePtr notePtr = &chord[idx];
+  newNote.chordIdx = idx;
 
   if(type >= 0 && type < ntiNr)
-    notePtr->nIdx = type;
+    newNote.typeIdx = type;
 
   if(val >= 0 && val <= 127)
-    notePtr->value = val;
+    newNote.value = val;
 
   if(vel >= 0 && vel <= 127)
-    notePtr->veloc = vel;
+    newNote.veloc = vel;
+
+  newNote.newVal = true;
 }
 
 
@@ -189,7 +191,7 @@ void Midi::smIdle()
 
 void Midi::smNoteOn()
 {
-  int   i, j, nIdx;
+  int   i, j, tIdx;
   bool  doAttack;
   dword attack, sustain;
 
@@ -220,10 +222,18 @@ void Midi::smNoteOn()
         break;
     }
 
+    if(newNote.newVal && (newNote.chordIdx == i))
+    {
+      newNote.newVal = false;
+      notePtr->typeIdx = newNote.typeIdx;
+      notePtr->value = newNote.value;
+      notePtr->veloc = newNote.veloc;
+    }
+
     noteSeq[j++] = notePtr->value;
 
-    nIdx = notePtr->nIdx;
-    typePtr = &typeList[nIdx];
+    tIdx = notePtr->typeIdx;
+    typePtr = &typeList[tIdx];
     notePtr->cntAttack  = typePtr->attack;
     notePtr->cntDecay   = typePtr->decay;
     notePtr->cntSustain = typePtr->sustain;

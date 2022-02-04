@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // Thema:   Social Manufacturing Network / Development Environment
-// Datei:   nRF52840Radio.cpp
+// Datei:   nRF52840Ser.cpp
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de
 //-----------------------------------------------------------------------------

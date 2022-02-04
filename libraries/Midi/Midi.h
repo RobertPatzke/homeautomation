@@ -94,7 +94,7 @@ private:
   typedef struct  _Note
   {
     byte      mode;
-    byte      nIdx;
+    byte      typeIdx;
     byte      value;
     byte      veloc;
     dword     cntAttack;
@@ -103,6 +103,15 @@ private:
     dword     cntRelease;
     dword     cntPause;
   } Note, *NotePtr;
+
+  typedef struct _NewNote
+  {
+    bool      newVal;
+    int       chordIdx;
+    byte      typeIdx;
+    byte      value;
+    byte      veloc;
+  }NewNote;
 
 #define NoteModeEmpty     0x00
 #define NoteModeRun       0x01
@@ -135,6 +144,7 @@ private:
   NoteTypePtr typePtr;      // Temporärer Notentyp
 
   dword     absPause;       // Pause für den zyklischen Ablauf
+  NewNote   newNote;        // Übergabe neuer Notenwerte
 
 
   // --------------------------------------------------------------------------

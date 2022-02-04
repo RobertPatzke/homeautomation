@@ -38,6 +38,9 @@ void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr)
   twiPtr        = inTwPtr;
   nrOfChnChar   = '@';
 
+  microTicValPtr  = (dword *) 0x40009548;
+  microTicCapPtr  = (dword *) 0x40009048;
+
   nextState =
       &Monitor::waitEnter;
 }
@@ -146,6 +149,8 @@ void Monitor::sendConfig()
 //-----------------------------------------------------------------------------
 //
 
+volatile dword calcTest1, calcTest2, calcTest3;
+
 void Monitor::waitEnter()
 {
   char  c;
@@ -166,6 +171,35 @@ void Monitor::waitEnter()
   blkOut  = true;
   GoPrm
 }
+
+void doSomeCode()
+{
+  for(int i = 0; i < 500; i++)
+  {
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+    calcTest1++;
+  }
+}
+
+volatile dword micTime;
 
 void Monitor::getKey()
 {
@@ -288,8 +322,10 @@ void Monitor::getKey()
       }
       break;
 
-    case 't':
-    case 'T':
+    // ------------------------------------------------------------------------
+    case 't':     //                 Zeitmessungen
+    case 'T':     //
+    // ------------------------------------------------------------------------
       if(inIdx == 0)
       {
         inChar[inIdx] = cin;
@@ -311,6 +347,15 @@ void Monitor::getKey()
         {
           cmdMode1 = 'C';
         }
+        else if(cin == 'p' || cin == 'P')
+        {
+          micTime = micsecs();
+          doSomeCode();
+          micTime = (micsecs() - micTime - 11) / 10;
+          out(' ');
+          out(micTime);
+          GoPrm
+        }
         else if(cin == 'r' || cin == 'R')
         {
           if(lcPtr != NULL)
@@ -318,6 +363,33 @@ void Monitor::getKey()
             lcPtr->resetStatistics();
             out(' ');
           }
+          GoPrm
+        }
+        else if(cin == 't' || cin == 'T')
+        {
+          dword micTime = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          calcTest2 = micros();
+          micTime = (micros() - micTime) / 20;
+          out(' ');
+          out(micTime);
           GoPrm
         }
         else

@@ -985,9 +985,11 @@ void BlePoll::smWaitAckComS()
     curSlave->result.meas[4]  = *(word *) &pduIn.data[12];
     curSlave->result.meas[5]  = *(word *) &pduIn.data[14];
 
+    // Zählen der verlorenen Telegramme und Messwerte
+    // beginnt um <delayCnt> Pollzyklen verzögert
+    //
     if(curSlave->delayCnt == 0)
     {
-
       tmpByte = curSlave->result.counter - curSlave->oldPduCount;
       if(tmpByte > 1)
         curSlave->cntLostPdu += tmpByte - 1;

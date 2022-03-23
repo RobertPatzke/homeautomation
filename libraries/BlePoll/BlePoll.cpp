@@ -73,11 +73,15 @@ void BlePoll::init(IntrfRadio *refRadio, dword inCycleMics, MicsecFuPtr inMicroF
     slaveList[i].cntNakEP = 0;
     slaveList[i].cntTo = 0;
     slaveList[i].pIdx = 0;
-    slaveList[i].delayCnt = 10;
+    slaveList[i].delayCnt = 5;
+    slaveList[i].newPdu = false;
+    slaveList[i].newMeas = false;
     pollList[i].prioCnt = 0;
     pollList[i].slIdx = 0;
     pollList[i].status = 0;
   }
+
+  DataExchange = false;
 }
 
 // ----------------------------------------------------------------------------
@@ -123,7 +127,7 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
     next(smInit);
   }
 
-  if(appType == atSOAAP || appType == atTestSend)
+  if(appType == atSOAAP || appType == atTestSend || appType == atDevSOAAP)
   {
     pduOut.adr5 = 0x53;
     pduOut.adr4 = 0x4F;
@@ -151,16 +155,35 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
     if(master)
     {
       valuePdu.appId = plptMeas6;
+      ctrlPdu.appId = plptCtrl0;
       plMode = plmSoaapM;
       fullCycle = true;
     }
     else
     {
       valuePdu.appId = plptMeas6;
+      ctrlPdu.appId = plptCtrl0;
       plMode = plmSoaapS;
       //plMode = plmSoaapM;
     }
   }
+  else if (appType == atDevSOAAP)
+  {
+    if(master)
+    {
+      valuePdu.appId = plptMeas13;
+      ctrlPdu.appId = plptCtrl2;
+      plMode = plmSoaapM;
+      fullCycle = true;
+    }
+    else
+    {
+      valuePdu.appId = plptMeas13;
+      ctrlPdu.appId = plptCtrl2;
+      plMode = plmSoaapS;
+    }
+  }
+
   valuePdu.measCnt = 0;
   valuePdu.counter = 0;
   valuePdu.type = appType;
@@ -801,11 +824,13 @@ void BlePoll::smStartCom()
     return;
   }
 
-  pduOut.len  = 6;
   radio->setChannel(chn);
 
   if(master)
   {
+    ctrlPdu.appId = plptCtrl0;
+    pduOut.len  = 6;
+
     for(int i = 1; i <= pollMaxNr; i++)
     {
       int slIdx = pollList[i].slIdx;
@@ -820,6 +845,8 @@ void BlePoll::smStartCom()
     nak = true;
     next(smWaitEadr);
   }
+
+  DataExchange = true;
 }
 
 // ----------------------------------------------------------------------------
@@ -874,6 +901,7 @@ void BlePoll::smReqComS()
   setPduAddress();
   setTimeOut(curSlave->timeOut);
 
+
   // Statistic-Daten einholen für evt. Auswertung
   //
   radio->getStatistics(&statistic);
@@ -892,6 +920,8 @@ void BlePoll::smWaitAckComS()
 {
   byte    tmpByte;
   short   tmpShort;
+
+  PlpMeas6Ptr resPtr;
 
   bleState = 2110;
 
@@ -974,8 +1004,12 @@ void BlePoll::smWaitAckComS()
 
     // Die Daten werden in der Slave-Struktur abgelegt
     //
+    resPtr = (PlpMeas6Ptr) &curSlave->result;
+
     curSlave->result.counter  = pduIn.data[0];
     curSlave->result.type     = pduIn.data[1];
+
+    /*
     curSlave->result.appId    = pduIn.data[2];
     curSlave->result.measCnt  = pduIn.data[3];
     curSlave->result.meas[0]  = *(word *) &pduIn.data[4];
@@ -984,6 +1018,18 @@ void BlePoll::smWaitAckComS()
     curSlave->result.meas[3]  = *(word *) &pduIn.data[10];
     curSlave->result.meas[4]  = *(word *) &pduIn.data[12];
     curSlave->result.meas[5]  = *(word *) &pduIn.data[14];
+    curSlave->result.appId    = pduIn.data[2];
+    */
+
+    resPtr->appId    = pduIn.data[2];
+    resPtr->measCnt  = pduIn.data[3];
+    resPtr->meas[0]  = *(word *) &pduIn.data[4];
+    resPtr->meas[1]  = *(word *) &pduIn.data[6];
+    resPtr->meas[2]  = *(word *) &pduIn.data[8];
+    resPtr->meas[3]  = *(word *) &pduIn.data[10];
+    resPtr->meas[4]  = *(word *) &pduIn.data[12];
+    resPtr->meas[5]  = *(word *) &pduIn.data[14];
+
 
     // Zählen der verlorenen Telegramme und Messwerte
     // beginnt um <delayCnt> Pollzyklen verzögert
@@ -994,14 +1040,16 @@ void BlePoll::smWaitAckComS()
       if(tmpByte > 1)
         curSlave->cntLostPdu += tmpByte - 1;
 
-      tmpByte = curSlave->result.measCnt - curSlave->oldMeasCount;
+      tmpByte = resPtr->measCnt - curSlave->oldMeasCount;
+      if(tmpByte != 0)
+        curSlave->newMeas = true;
       if(tmpByte > 1)
         curSlave->cntLostMeas += tmpByte - 1;
     }
     else curSlave->delayCnt--;
 
     curSlave->oldPduCount = curSlave->result.counter;
-    curSlave->oldMeasCount = curSlave->result.measCnt;
+    curSlave->oldMeasCount = resPtr->measCnt;
 
     curSlave->newPdu  = true;
     curSlave->cntAckDP++;
@@ -1181,6 +1229,143 @@ void BlePoll::smWaitComES()
   }
   if(!radio->fin(txmResp, &crcError)) return;
   next(smStartComES);
+}
+
+// --------------------------------------------------------------------------
+// Anwenderfunktionen
+// --------------------------------------------------------------------------
+//
+
+// neue Steuerungsdaten für einen Slave
+//
+void BlePoll::updControl(int adr, byte *ctrlList, int nr)
+{
+  if(adr <= 0) return;
+  if(adr >= MAXSLAVE) return;
+  if(nr <= 1) return;
+  if(nr > 27) return;
+
+  SlavePtr  slavePtr = &slaveList[adr];
+  PlpCtrl27Ptr ctrlPtr = (PlpCtrl27Ptr) &slavePtr->control;
+  for(int i = 0; i < nr; i++)
+    ctrlPtr->ctrl[i] = ctrlList[i];
+  ctrlPtr->ctrlCnt++;
+  slavePtr->rspOk = false;
+}
+
+// Feststellenn, ob Übertragung der Steuerungsdaten erfolgt ist
+//
+bool BlePoll::ackTrans(int adr)
+{
+  if(adr <= 0) return(false);
+  if(adr >= MAXSLAVE) return(false);
+
+  SlavePtr  slavePtr = &slaveList[adr];
+  return(slavePtr->rspOk);
+}
+
+// Feststellen, ob Steuerungsdaten beim Slave verarbeitet sind
+//
+bool BlePoll::ackControl(int adr)
+{
+  if(adr <= 0) return(false);
+  if(adr >= MAXSLAVE) return(false);
+
+  SlavePtr  slavePtr = &slaveList[adr];
+  PlpCtrl27Ptr ctrlPtr = (PlpCtrl27Ptr) &slavePtr->control;
+  if(ctrlPtr->ctrlCnt == slavePtr->rspCtrlCount)
+    return(true);
+  else
+    return(false);
+}
+
+// ----------------------------------------------------------------------------
+// Zugriff auf Slavedaten
+// ----------------------------------------------------------------------------
+// Der Index wird von 0 an ausgewertet. Allerdings ist [0] in der Slave-Liste
+// auf den Index [1] abzubilden, weil Slave[0] für besondere Aufgaben
+// reserviert und für den Anwender nicht zugänglich ist.
+//
+
+// Feststellen, ob ein Slave neue Messwerte hat
+//
+bool  BlePoll::measAvail(int slIdx)
+{
+  if(slIdx < 0) return(false);
+  if(slIdx >= MAXSLAVE - 1) return(false);
+
+  slIdx++;    // Abfrageindex auf Listenindex anpassen
+  SlavePtr  slavePtr = &slaveList[slIdx];
+
+  if(!slavePtr->newMeas)
+    return(false);
+
+  slavePtr->newMeas = false;
+  return(true);
+}
+
+// Auslesen der Netzwerk-Area
+//
+int BlePoll::getArea(int slIdx)
+{
+  if(slIdx < 0) return(false);
+  if(slIdx >= MAXSLAVE - 1) return(false);
+
+  slIdx++;    // Abfrageindex auf Listenindex anpassen
+  SlavePtr  slavePtr = &slaveList[slIdx];
+
+  return(slavePtr->area);
+}
+
+// Auslesen der AppId aus Sicht der Klasse BlePoll
+//
+PlpType BlePoll::getAppId(int slIdx)
+{
+  if(slIdx < 0) return(plptError);
+  if(slIdx >= MAXSLAVE - 1) return(plptError);
+
+  slIdx++;    // Abfrageindex auf Listenindex anpassen
+  SlavePtr  slavePtr = &slaveList[slIdx];
+
+  return((PlpType) slavePtr->result.plData[0]);
+}
+
+// Auslesen der Messwerte
+//
+int BlePoll::getMeas(int slIdx, byte *dest)
+{
+  int     anzByte;
+  PlpType appId;
+
+  if(slIdx < 0) return(false);
+  if(slIdx >= MAXSLAVE - 1) return(false);
+
+  slIdx++;    // Abfrageindex auf Listenindex anpassen
+  SlavePtr  slavePtr = &slaveList[slIdx];
+
+  appId = (PlpType) slavePtr->result.plData[0];
+
+  switch(appId)
+  {
+    case plptMeas6:
+      anzByte = 12;
+      break;
+
+    case plptMeas9:
+      anzByte = 18;
+      break;
+
+    case plptMeas13:
+      anzByte = 26;
+      break;
+  }
+
+  for (int i = 0; i < anzByte; i++)
+  {
+    dest[i] = slavePtr->result.plData[i+2];
+  }
+
+  return(anzByte);
 }
 
 

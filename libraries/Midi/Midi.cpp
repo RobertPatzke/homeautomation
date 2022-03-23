@@ -9,6 +9,7 @@
 //
 // Der Inhalt dieser Datei sind Festlegungen für steuerbare Midi-Controller.
 //
+//
 
 #include "Midi.h"
 

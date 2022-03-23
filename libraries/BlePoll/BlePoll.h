@@ -38,48 +38,58 @@ typedef enum _PlMode
   plmXchg         // Daten übertragen (Slave, beide Richtungen)
 } PlMode;
 
-// Grundsätzliche Datenstruktur für die Nutzdaten
+// Grundsätzliche Datenstruktur für die Nutzdaten (ohne 6 Bytes Adresse)
 //
-typedef struct _PlPduBase
+typedef struct _PlPduBase   // maximale Länge Beacon = 31 Bytes
 {
   byte  counter;      // zyklischer Telegrammmzähler
   byte  type;         // Kennzeichnung der Datenstruktur (AppType)
   byte  plData[29];   // weitere spezifische Nutzdaten
 } PlPduBase, *PlPduBasePtr;
 
-// Erweiterte Datenstruktur für die Nutzdaten
+// Erweiterte Datenstruktur für die Nutzdaten (ohne 6 Bytes Adresse)
+// zur Zeit noch nicht genutzt
 //
-typedef struct _PlPduExtd
+typedef struct _PlPduExtd   // grundsätzliche maximale Länge = 249 Bytes
 {
   byte  counter;      // zyklischer Telegrammmzähler
   byte  type;         // Kennzeichnung der Datenstruktur (AppType)
   byte  plData[247];  // weitere spezifische Nutzdaten
 } PlPduExtd, *PlPduExtdPtr;
 
-// Datentypen (type in plPduBase)
+// Datentypen (appId in plPduBase)
 //
 typedef enum _PlpType
 {
+  plptError,        // Fehler erkannt
   plptEmpty,        // Leeres Telegramm (nur adresse)
   plptBasic,        // Grundlegende Bytestruktur
   plptFullMeas,     // Maximale Belegung mit 16-Bit Messwerten (word)
   plptMeas3,        // 3 Messwerte (1 Raumsensor)
   plptMeas6,        // 6 Messwerte (2 Raumsensoren)
-  plptMeas9         // 9 Messwerte (3 Raumsensoren)
+  plptMeas9,        // 9 Messwerte (3 Raumsensoren)
+  plptMeas12,       // 12 Messwerte (9 + 6 Byte Extradaten)
+  plptMeas13,       // 13 Messwerte (9 + 8 Byte Extradaten)
+  plptMeasX,        // Variable Anzahl Messwerte
+  plptCtrl0,        // Keine Steuerung
+  plptCtrl2,        // 2 Byte Steuerung
+  plptCtrl27,       // 27 Byte Steuerung
+  plptCtrlX,        // Variable Anzahl Steuerbytes
+  plptMsg           // (Quittierte) Meldung an Slave
 } PlpType, *PlpTypePtr;
 
 // Spezifische Datenstrukturen
 //
-typedef struct _PlpFullMeas
+typedef struct _PlpFullMeas   // Ausnahme für vordefinierte Spezialfälle
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
-  word    meas[12];   // Liste von 12 Messwerten
+  word    meas[14];   // Liste von 14 Messwerten
   byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
   byte    align;      // Wird nicht gesendet, kennzeichnet Alignement
 } PlpFullMeas, *PlpFullMeasPtr;
 
-typedef struct _PlpMeas3
+typedef struct _PlpMeas3      // Länge 10 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
@@ -88,7 +98,7 @@ typedef struct _PlpMeas3
   word    meas[3];    // Liste von 3 Messwerten
 } PlpMeas3, *PlpMeas3Ptr;
 
-typedef struct _PlpMeas6
+typedef struct _PlpMeas6      // Länge 16 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
@@ -97,7 +107,7 @@ typedef struct _PlpMeas6
   word    meas[6];    // Liste von 6 Messwerten
 } PlpMeas6, *PlpMeas6Ptr;
 
-typedef struct _PlpMeas9
+typedef struct _PlpMeas9      // Länge 22 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
@@ -105,6 +115,42 @@ typedef struct _PlpMeas9
   byte    measCnt;    // Zähler für Messwertaktualisierung
   word    meas[9];    // Liste von 9 Messwerten
 } PlpMeas9, *PlpMeas9Ptr;
+
+typedef struct _PlpMeas12      // Länge 28 (+ 6 Bytes Adresse)
+{
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  word    meas[12];   // Liste von 12 Messwerten
+} PlpMeas12, *PlpMeas12Ptr;
+
+typedef struct _PlpMeas13      // Länge 30 (+ 6 Bytes Adresse)
+{
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  word    meas[13];   // Liste von 13 Messwerten
+} PlpMeas13, *PlpMeas13Ptr;
+
+typedef struct _PlpCtrl2        // Länge 6 (+ 6 Bytes Adresse)
+{
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    ctrlCnt;    // Zähler für Kommandoaktualisierung
+  byte    ctrl[2];    // Liste von 2 Steuerbytes
+} PlpCtrl2, *PlpCtrl2Ptr;
+
+typedef struct _PlpCtrl27        // Länge 31 (+ 6 Bytes Adresse)
+{
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    ctrlCnt;    // Zähler für Kommandoaktualisierung
+  byte    ctrl[27];   // Liste von 27 Steuerbytes
+} PlpCtrl27, *PlpCtrl27Ptr;
 
 // Identifikator für die Art der Daten
 //
@@ -115,24 +161,28 @@ typedef enum _MeasId
 
 typedef struct _Slave
 {
-  dword     timeOut;
-  dword     cntTo;
-  dword     cntErrCrc;
-  dword     cntNakEP;
-  dword     cntAckDP;
-  dword     cntLostPdu;
-  dword     cntLostMeas;
-  dword     delayCnt;
-  byte      adr;
-  byte      area;
-  byte      chn;
-  byte      pIdx;
-  word      prioSet;
-  word      minPrio;
-  PlpMeas6  result;
-  bool      newPdu;
-  byte      oldPduCount;
-  byte      oldMeasCount;
+  dword     timeOut;        // Wartezeit beim Polling in Mikrosekunden
+  dword     cntTo;          // Zähler für ausbleibende Antworten
+  dword     cntErrCrc;      // Zähler für CRC-Fehler bei der Übertragung
+  dword     cntNakEP;       // Zähler für NAK-Antworten beim Empty-Polling
+  dword     cntAckDP;       // Zähler für ACK-Antworten beim Data-Polling
+  dword     cntLostPdu;     // Zähler für verlorene Telegramme
+  dword     cntLostMeas;    // Zähler für verlorene Messwerte
+  dword     delayCnt;       // Verzögerung (Polldurchläufe) vor Fehlerzählung
+  byte      adr;            // Adresse (Nummer) des Slave (1-255)
+  byte      area;           // Einsatzgebiet des Slave (Adresserweiterung)
+  byte      chn;            // Aktueller Übertragungskanal (0-39)
+  byte      pIdx;           // Index in der aktuellen Pollingliste
+  word      prioSet;        // Anfangspriorität (rel. Häufigkeit) beim Polling
+  word      minPrio;        // Minimale Priorität (maximale Prioritätszahl)
+  PlPduBase result;         // Daten vom Slave
+  PlPduBase control;        // Daten zum Slave
+  bool      newPdu;         // Kennzeichnung für neues Telegramm
+  bool      rspOk;          // Rücksetz-Kennnzeichnung für neues Telegramm
+  bool      newMeas;        // Kennzeichnung für neuen Messwert
+  byte      oldPduCount;    // Merker für die Telegrammüberwachung
+  byte      oldMeasCount;   // Merker für die Messwertüberwachung
+  byte      rspCtrlCount;   // Merker für Steuerungsüberwachung
 } Slave, *SlavePtr;
 
 
@@ -178,8 +228,15 @@ public:
     atDefault,        // Standard-Default-Anwendung
     atTestSend,       // einfacher Sendetest (Soaap)
     atSOAAP,          // Steuerung optischer und akustischer Ausgaben für Performance-Künstler
+    atDevSOAAP,       // Entwicklerbetrieb für SOAAP
     atDHA             // Dezentrale Hausautomatisierung
   } AppType;
+
+  // --------------------------------------------------------------------------
+  // Öffentliche Daten
+  // --------------------------------------------------------------------------
+  //
+  bool    DataExchange;
 
 private:
   // -------------------------------------------------------------------------
@@ -243,7 +300,8 @@ private:
   dword         runCounter;
 
   TxStatistics  statistic;
-  PlpMeas6      valuePdu;
+  PlpMeas13     valuePdu;
+  PlpCtrl27     ctrlPdu;
   bool          newValue;
 
   // Einstellungen für den Anwendungsbetrieb
@@ -333,8 +391,12 @@ public:
   // Steuerung des Telegrammaustausches (Polling)
   // --------------------------------------------------------------------------
   //
+  void run();       // Ablaufsteuerung (CPU-Übergabe) dieses Moduls
 
-  void run();
+  void updControl(int adr, byte *ctrlList, int nr);   // neue Steuerungsdaten
+  bool ackTrans(int adr);         // Bestätigung Steuerungsdaten übertragen
+  bool ackControl(int adr);       // Bestätigung Steuerung ausgeführt
+
 
   // Test
   //
@@ -355,6 +417,20 @@ public:
   //
   int   getSlaveList(byte *dest, int maxByte);
   void  resetPollCounters();
+
+  // --------------------------------------------------------------------------
+  // Zugriff auf Slavedaten
+  // --------------------------------------------------------------------------
+  // Der Index wird von 0 an ausgewertet. Allerdings ist [0] in der Slave-Liste
+  // auf den Index [1] abzubilden, weil Slave[0] für besondere Aufgaben
+  // reserviert und für den Anwender nicht zugänglich ist.
+  //
+  bool      measAvail(int slIdx);   // Feststellen, ob neue Messwerte da sind
+  int       getArea(int slIdx);     // Wert der Area auslesen
+  PlpType   getAppId(int slIdx);    // Wert der AppId (BlePoll) auslesen
+  int       getMeas(int slIdx, byte *dest);    // Messwerte übergeben
+
+
 
   // --------------------------------------------------------------------------
   // Debugging

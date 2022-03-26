@@ -149,6 +149,7 @@ class LoopCheck
     bool            finished;
     bool            firstRun;
     unsigned int    waitCounter;
+    unsigned long   startCount;
   } OnceTask;
 
 private:
@@ -270,9 +271,16 @@ public:
   bool timerMilli(int taskIdx, unsigned long repeatTime, unsigned int repetitions);
   bool timerMilli(int taskIdx, unsigned long repeatTime, unsigned int repetitions, unsigned long delay);
 
+  bool once(int taskIdx);
+  // Diese Funktion liefert nur einmal den Wert <true>
+
   bool once(int taskIdx, unsigned int nrOfLoops);
   // Diese Funktion liefert nur einmal den Wert <true>
   // nach Ablauf von nrOfLoops Aufrufen
+
+  bool onceDelayed(int taskIdx, unsigned long delay);
+  // Diese Funktion liefert nur einmal den Wert <true>
+  // nach Ablauf von <delay> Mikrosekunden
 
   bool toggle(int taskIdx);
   // Diese Funktion liefert abwechselnd die Werte <true> oder <false>

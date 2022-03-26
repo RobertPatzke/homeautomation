@@ -458,6 +458,16 @@
     return(timerMicro(taskIdx,repeatTime * 1000,repetitions,0));
   }
 
+  bool LoopCheck::once(int taskIdx)
+  {
+    if(taskIdx < 0) return(false);
+    if(taskIdx >= NrOfOnceTasks) return(false);
+
+    if(onceTaskList[taskIdx].finished == true) return(false);
+    onceTaskList[taskIdx].finished = true;
+    return(true);
+  }
+
   bool LoopCheck::once(int taskIdx, unsigned int nrOfLoops)
   {
     if(taskIdx < 0) return(false);
@@ -478,6 +488,26 @@
 
     onceTaskList[taskIdx].waitCounter--;
     if(onceTaskList[taskIdx].waitCounter > 0)
+      return(false);
+
+    onceTaskList[taskIdx].finished = true;
+    return(true);
+  }
+
+  bool LoopCheck::onceDelayed(int taskIdx, unsigned long delay)
+  {
+    if(taskIdx < 0) return(false);
+    if(taskIdx >= NrOfOnceTasks) return(false);
+
+    if(onceTaskList[taskIdx].finished == true) return(false);
+
+    if(onceTaskList[taskIdx].firstRun == true)
+    {
+      onceTaskList[taskIdx].firstRun = false;
+      onceTaskList[taskIdx].startCount = loopStartMicros;
+    }
+
+    if(loopStartMicros - onceTaskList[taskIdx].startCount < delay)
       return(false);
 
     onceTaskList[taskIdx].finished = true;

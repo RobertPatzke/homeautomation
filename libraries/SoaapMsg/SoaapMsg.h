@@ -40,12 +40,34 @@ private:
   // --------------------------------------------------------------------------
   //
 
+  // --------------------------------------------------------------------------
+  // Inline-Methoden
+  // --------------------------------------------------------------------------
+  //
+  int getVal(char hexAsc)
+  {
+    if(hexAsc < 0x39) return(hexAsc - 0x30);
+    else return(hexAsc - 0x37);
+  }
+
+
 public:
   // --------------------------------------------------------------------------
   // Anwenderschnittstelle (Funktionen)
   // --------------------------------------------------------------------------
   //
+
   int   getMsgA(int area, int slvNr, SoaapApId appId, char *dest, byte *meas);
+  // Erstellen eines ASCII-Telegramms zum Übertragen der Messwerte
+
+  short asc2meas(byte *ascList);
+  // Umwandeln eines Messwert aus ASCII-Telegramm in Integer
+
+  int   measRes(SoaapApId appId);
+  // Auflösung der Messwerte in Zeichen (Bytes)
+
+  int   measCnt(SoaapApId appId);
+  // Anzahl der Messwerte
 
 };
 

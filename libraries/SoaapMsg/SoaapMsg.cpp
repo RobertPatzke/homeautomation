@@ -28,6 +28,8 @@ SoaapMsg::SoaapMsg()
 // ----------------------------------------------------------------------------
 //
 
+// Erstellen eines ASCII-Telegramms zum Übertragen der Messwerte
+//
 int   SoaapMsg::getMsgA(int area, int slvNr, SoaapApId appId, char *dest, byte *meas)
 {
   int   msgIdx = 0;
@@ -68,4 +70,57 @@ int   SoaapMsg::getMsgA(int area, int slvNr, SoaapApId appId, char *dest, byte *
   return(msgIdx);
 }
 
+// Umwandeln eines Messwert aus ASCII-Telegramm in Integer
+//
+short  SoaapMsg::asc2meas(byte *ascList)
+{
+  unsigned short retv;
+
+  retv = getVal(ascList[0]);
+  retv += getVal(ascList[1]) << 4;
+  retv += getVal(ascList[2]) << 8;
+  retv += getVal(ascList[3]) << 12;
+
+  return((short) retv);
+}
+
+// Auflösung der Messwerte in Zeichen (Bytes)
+//
+int   SoaapMsg::measRes(SoaapApId appId)
+{
+  int retv = 0;
+
+  switch(appId)
+  {
+    case saiDefaultMeas:
+      retv = 4;
+      break;
+
+    case saiMaximalMeas:
+      retv = 4;
+      break;
+  }
+
+  return(retv);
+}
+
+// Anzahl der Messwerte im Telegramm
+//
+int   SoaapMsg::measCnt(SoaapApId appId)
+{
+  int retv = 0;
+
+  switch(appId)
+  {
+    case saiDefaultMeas:
+      retv = 9;
+      break;
+
+    case saiMaximalMeas:
+      retv = 13;
+      break;
+  }
+
+  return(retv);
+}
 

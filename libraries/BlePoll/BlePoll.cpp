@@ -1280,22 +1280,18 @@ bool BlePoll::ackControl(int adr)
 }
 
 // ----------------------------------------------------------------------------
-// Zugriff auf Slavedaten
+// Zugriff auf Slavedaten über die Adresse
 // ----------------------------------------------------------------------------
-// Der Index wird von 0 an ausgewertet. Allerdings ist [0] in der Slave-Liste
-// auf den Index [1] abzubilden, weil Slave[0] für besondere Aufgaben
-// reserviert und für den Anwender nicht zugänglich ist.
 //
 
 // Feststellen, ob ein Slave neue Messwerte hat
 //
-bool  BlePoll::measAvail(int slIdx)
+bool  BlePoll::measAvail(int slAdr)
 {
-  if(slIdx < 0) return(false);
-  if(slIdx >= MAXSLAVE - 1) return(false);
+  if(slAdr < 1) return(false);
+  if(slAdr >= MAXSLAVE) return(false);
 
-  slIdx++;    // Abfrageindex auf Listenindex anpassen
-  SlavePtr  slavePtr = &slaveList[slIdx];
+  SlavePtr  slavePtr = &slaveList[slAdr];
 
   if(!slavePtr->newMeas)
     return(false);
@@ -1306,42 +1302,39 @@ bool  BlePoll::measAvail(int slIdx)
 
 // Auslesen der Netzwerk-Area
 //
-int BlePoll::getArea(int slIdx)
+int BlePoll::getArea(int slAdr)
 {
-  if(slIdx < 0) return(false);
-  if(slIdx >= MAXSLAVE - 1) return(false);
+  if(slAdr < 1) return(false);
+  if(slAdr >= MAXSLAVE) return(false);
 
-  slIdx++;    // Abfrageindex auf Listenindex anpassen
-  SlavePtr  slavePtr = &slaveList[slIdx];
+  SlavePtr  slavePtr = &slaveList[slAdr];
 
   return(slavePtr->area);
 }
 
 // Auslesen der AppId aus Sicht der Klasse BlePoll
 //
-PlpType BlePoll::getAppId(int slIdx)
+PlpType BlePoll::getAppId(int slAdr)
 {
-  if(slIdx < 0) return(plptError);
-  if(slIdx >= MAXSLAVE - 1) return(plptError);
+  if(slAdr < 1) return(plptError);
+  if(slAdr >= MAXSLAVE) return(plptError);
 
-  slIdx++;    // Abfrageindex auf Listenindex anpassen
-  SlavePtr  slavePtr = &slaveList[slIdx];
+  SlavePtr  slavePtr = &slaveList[slAdr];
 
   return((PlpType) slavePtr->result.plData[0]);
 }
 
 // Auslesen der Messwerte
 //
-int BlePoll::getMeas(int slIdx, byte *dest)
+int BlePoll::getMeas(int slAdr, byte *dest)
 {
   int     anzByte;
   PlpType appId;
 
-  if(slIdx < 0) return(false);
-  if(slIdx >= MAXSLAVE - 1) return(false);
+  if(slAdr < 1) return(false);
+  if(slAdr >= MAXSLAVE) return(false);
 
-  slIdx++;    // Abfrageindex auf Listenindex anpassen
-  SlavePtr  slavePtr = &slaveList[slIdx];
+  SlavePtr  slavePtr = &slaveList[slAdr];
 
   appId = (PlpType) slavePtr->result.plData[0];
 
@@ -1357,6 +1350,10 @@ int BlePoll::getMeas(int slIdx, byte *dest)
 
     case plptMeas13:
       anzByte = 26;
+      break;
+
+    default:
+      anzByte = 18;
       break;
   }
 

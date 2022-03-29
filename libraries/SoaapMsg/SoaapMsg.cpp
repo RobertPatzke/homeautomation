@@ -55,11 +55,15 @@ int   SoaapMsg::getMsgA(int area, int slvNr, SoaapApId appId, char *dest, byte *
   {
     measByte = meas[measIdx];
 
-    measChar = (measByte >> 4) | 0x30;
+    // Erst das niederwertige Nibble als Hex-Ascii eintragen
+    //
+    measChar = (measByte & 0x0F) | 0x30;
     if (measChar > 0x39) measChar += 7;
     dest[msgIdx++] = measChar;
 
-    measChar = (measByte & 0x0F) | 0x30;
+    // dann das höherwertige Nibble
+    //
+    measChar = (measByte >> 4) | 0x30;
     if (measChar > 0x39) measChar += 7;
     dest[msgIdx++] = measChar;
   }

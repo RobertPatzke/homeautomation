@@ -86,8 +86,9 @@ typedef enum _MaxG
 #define M_Id      0x0F
 #define M_Ctrl1   0x20
 #define M_Ctrl2   0x21
-#define M_Ctrl3   0x23
-#define M_Ctrl4   0x24
+#define M_Ctrl3   0x22
+#define M_Ctrl4   0x23
+#define M_Ctrl5   0x24
 #define M_Status  0x27
 #define M_Out     0x28
 
@@ -312,6 +313,8 @@ public:
   void run();
   void run0();
   void run1();
+  void stop();
+  void resume();
 
   // --------------------------------------------------------------------------
   // Datenaustausch
@@ -336,6 +339,7 @@ public:
   bool  getValuesAG(RawDataAGPtr rdptr);
   bool  getValuesAG(CalValueAGPtr calPtr);
   bool  getAvgValuesAG(CalValueAGPtr calPtr);
+  void  syncValuesM();
   bool  getValuesM(RawDataMPtr rdptr);
   bool  getValuesM(CalValuePtr calPtr);
 
@@ -351,6 +355,7 @@ public:
   dword runStateCntArray[NrOfRunStates];
   dword runStateCntTotal;
   dword debGetDword(int code);
+  dword debGetRunState(int code);
 
 };
 

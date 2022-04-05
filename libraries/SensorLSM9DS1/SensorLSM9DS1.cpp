@@ -436,6 +436,18 @@ void SensorLSM9DS1::run1()
 
 */
 
+void SensorLSM9DS1::stop()
+{
+  enableMeasAG = false;
+  enableMeasM = false;
+}
+
+void SensorLSM9DS1::resume()
+{
+  enableMeasAG = true;
+  enableMeasM = true;
+}
+
 void SensorLSM9DS1::run()
 {
   runStateCntTotal++;
@@ -719,6 +731,10 @@ void SensorLSM9DS1::run()
   }
 }
 
+void  SensorLSM9DS1::syncValuesM()
+{
+  newValueM = false;
+}
 
 bool  SensorLSM9DS1::getValuesM(RawDataMPtr rdptr)
 {
@@ -845,6 +861,14 @@ dword SensorLSM9DS1::debGetDword(int code)
   return(retv);
 }
 
+
+dword SensorLSM9DS1::debGetRunState(int code)
+{
+  if(0 <= code < 9)
+    return(runStateCntArray[code]);
+  else
+    return(0);
+}
 
 
 

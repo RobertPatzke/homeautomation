@@ -126,11 +126,15 @@ private:
   void  print(unsigned int iVal, int eol);
   void  prints(int iVal, int eol);
 
+#ifdef smnNANOBLE33
+
   dword micsecs()
   {
     *microTicCapPtr = 1;
     return(*microTicValPtr);
   }
+
+#endif
 
   // --------------------------------------------------------------------------
   // Datenaufbereitung

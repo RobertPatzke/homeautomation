@@ -15,40 +15,125 @@
 #include "arduinoDefs.h"
 #include "IntrfGpio.h"
 
-typedef struct _NRF_GPIO_Type
+#ifndef nrfGpioDef
+// ----------------------------------------------------------------------------
+typedef struct _nrfGpio
 {
-  volatile  dword  TASKS_START;
-  volatile  dword  TASKS_STOP;
-  volatile  dword  TASKS_COUNT;
-  volatile  dword  TASKS_CLEAR;
-  volatile  dword  ShutDownDepr;
-  volatile  dword  Reserved0[11];
-  volatile  dword  TASKS_CAPTURE[6];
-  volatile  dword  Reserved1[58];
-  volatile  dword  EVENTS_COMPARE[6];
-  volatile  dword  Reserved2[42];
-  volatile  dword  SHORTS;
-  volatile  dword  Reserved3[64];
-  volatile  dword  INTENSET;
-  volatile  dword  INTENCLR;
-  volatile  dword  Reserved4[126];
-  volatile  dword  MODE;
-  volatile  dword  BITMODE;
-  volatile  dword  PRESCALER;
-  volatile  dword  Reserved5[12];
-  volatile  dword  CC[6];
-} *nrfGpioPtr;
+  volatile  dword Reserve01;                // 000
+  volatile  dword OUT;                      // 004
+  volatile  dword OUTSET;                   // 008
+  volatile  dword OUTCLR;                   // 00C
+  volatile  dword IN;                       // 010
+  volatile  dword DIR;                      // 014
+  volatile  dword DIRSET;                   // 018
+  volatile  dword DIRCLR;                   // 01C
+  volatile  dword LATCH;                    // 020
+  volatile  dword DETECTMODE;               // 024
+  volatile  dword Reserve02[118];           // 026
+  volatile  dword PIN_CNF[32];              // 200
+} nrfGpio, *nrfGpioPtr;
 
-#define NrfGpio0Base   0x40008000
-#define NrfGpio1Base   0x40009000
-#define NrfGpio2Base   0x4000A000
-#define NrfGpio3Base   0x4001A000
-#define NrfGpio4Base   0x4001B000
-#define NrfGpio0Ptr    ((nrfGpioPtr) NrfGpio0Base)
-#define NrfGpio1Ptr    ((nrfGpioPtr) NrfGpio1Base)
-#define NrfGpio2Ptr    ((nrfGpioPtr) NrfGpio2Base)
-#define NrfGpio3Ptr    ((nrfGpioPtr) NrfGpio3Base)
-#define NrfGpio4Ptr    ((nrfGpioPtr) NrfGpio4Base)
+#define NrfGpioBase   0x50000000
+#define NrfGpioBase0  0x50000500
+#define NrfGpioPtr0   ((nrfGpioPtr) NrfGpioBase0)
+#define NrfGpioBase1  0x50000800
+#define NrfGpioPtr1   ((nrfGpioPtr) NrfGpioBase1)
+
+#define GpioPinCnf_DIR        ((dword) 0x00000001)
+
+#define GpioPinCnf_INPUT      ((dword) 0x00000001 << 1)
+
+#define GpioPinCnf_PULL(x)    ((dword) x << 2)
+#define GpioPullDown          1
+#define GpioPullUp            3
+
+#define GpioPinCnf_DRIVE(x)   ((dword) x << 8)
+#define GpioDriveS0S1         0
+#define GpioDriveH0S1         1
+#define GpioDriveS0H1         2
+#define GpioDriveH0H1         3
+#define GpioDriveD0S1         4
+#define GpioDriveD0H1         5
+#define GpioDriveS0D1         6
+#define GpioDriveH0D1         7
+
+#define GpioPinCnf_SENSE(x)   ((dword) x << 16)
+#define GpioSenseHigh         2
+#define GpioSenseLow          3
+
+#define nrfGpioDef
+// ----------------------------------------------------------------------------
+#endif
+
+#define P0(x) (x)
+#define P1(x) (32+x)
+
+#ifdef smnNANOBLE33
+// ----------------------------------------------------------------------------
+#define ArdA0Bit    4
+#define ArdA1Bit    5
+#define ArdA2Bit    30
+#define ArdA3Bit    29
+#define ArdA4Bit    31
+#define ArdA5Bit    2
+#define ArdA6Bit    28
+#define ArdA7Bit    3
+
+#define ArdA0   P0(4)
+#define ArdA1   P0(5)
+#define ArdA2   P0(30)
+#define ArdA3   P0(29)
+#define ArdA4   P0(31)
+#define ArdA5   P0(2)
+#define ArdA6   P0(28)
+#define ArdA7   P0(3)
+
+#define ArdA0Mask   (1 << 4)
+#define ArdA1Mask   (1 << 5)
+#define ArdA2Mask   (1 << 30)
+#define ArdA3Mask   (1 << 29)
+#define ArdA4Mask   (1 << 31)
+#define ArdA5Mask   (1 << 2)
+#define ArdA6Mask   (1 << 28)
+#define ArdA7Mask   (1 << 3)
+
+
+#define ArdD2       P1(11)
+#define ArdD3       P1(12)
+#define ArdD4       P1(15)
+#define ArdD5       P1(13)
+#define ArdD6       P0(14)
+#define ArdD7       P0(23)
+#define ArdD8       P1(21)
+#define ArdD9       P0(27)
+#define ArdD10      P1(2)
+#define ArdD11      P1(1)
+#define ArdD12      P1(8)
+#define ArdD13      P0(13)
+
+#define ArdD2Mask   (1 << 11)
+#define ArdD3Mask   (1 << 12)
+#define ArdD4Mask   (1 << 15)
+#define ArdD5Mask   (1 << 13)
+#define ArdD6Mask   (1 << 14)
+#define ArdD7Mask   (1 << 23)
+#define ArdD8Mask   (1 << 21)
+#define ArdD9Mask   (1 << 27)
+#define ArdD10Mask  (1 << 2)
+#define ArdD11Mask  (1 << 1)
+#define ArdD12Mask  (1 << 8)
+#define ArdD13Mask  (1 << 13)
+
+typedef enum
+{
+  ArdA0A3,
+  ArdA4A7,
+  ArdA0A7,
+  ArdD2D5
+} ArdMask;
+
+// ----------------------------------------------------------------------------
+#endif
 
 class nRF52840Gpio : IntrfGpio
 {
@@ -57,51 +142,42 @@ private:
   // lokale Variablen
   // --------------------------------------------------------------------------
   //
-  bool        elapsed0;
-  nrfGpioPtr timerPtr;
-  int         nrCC;
-  int         repCount;
+  nrfGpioPtr  gpioPtr;
 
 public:
+  // --------------------------------------------------------------------------
+  // Konstruktoren
+  // --------------------------------------------------------------------------
+  //
+  nRF52840Gpio();
+
   // --------------------------------------------------------------------------
   // Konfigurationen
   // --------------------------------------------------------------------------
   //
-  void  setMilli(ifGpioNumber timNr, int milliSec, int repeat);
-  //void  setMilli(ifGpioNumber timNr, int milliSec, int repeat, dword ISR);
+  dword     getCnfValue(unsigned int cnfBits);
+  GpioError config(int nr, unsigned int cnfBits, GpioRefPtr refPtr);
+  GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr);
+  GpioError config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr);
+
+  GpioError configArd(ArdMask ardMask, unsigned int cnfBits, GpioRefPtr refPtr);
 
   // --------------------------------------------------------------------------
-  // Steuerfunktionen
+  // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
-  bool  milli();        // Abfrage des Gpio, <true> wenn abgelaufen
+  dword     read(GpioRef ioRef);
+  dword     readArd(ArdMask ardMask, GpioRef ioRef);
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts
   // ----------------------------------------------------------------------------
   //
-  static  nRF52840Gpio *instPtr0;
-  static  void irqHandler0();
-
-  static  nRF52840Gpio *instPtr1;
-  static  void irqHandler1();
-
-  static  nRF52840Gpio *instPtr2;
-  static  void irqHandler2();
-
-  static  nRF52840Gpio *instPtr3;
-  static  void irqHandler3();
-
-  static  nRF52840Gpio *instPtr4;
-  static  void irqHandler4();
-
-  void    irqHandler();
 
   // --------------------------------------------------------------------------
   // Debugging und globale Variablen
   // --------------------------------------------------------------------------
   //
-  int   irqCounter;
 
 };
 

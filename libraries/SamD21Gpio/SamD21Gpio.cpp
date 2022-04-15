@@ -1,20 +1,20 @@
 //-----------------------------------------------------------------------------
 // Thema:   Social Manufacturing Network / Development Environment
-// Datei:   nRF52840Gpio.cpp
+// Datei:   SamD21Gpio.cpp
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de
 //-----------------------------------------------------------------------------
 // Lizenz:  CC-BY-SA  (wikipedia: Creative Commons)
-// Datum:   29. Juni 2021
+// Datum:   15. April 2022
 //
 
-#include "nRF52840Gpio.h"
+#include "SamD21Gpio.h"
 
   // --------------------------------------------------------------------------
   // Konstruktoren
   // --------------------------------------------------------------------------
   //
-  nRF52840Gpio::nRF52840Gpio()
+  SamD21Gpio::SamD21Gpio()
   {
     gpioPtr = NULL;
   }
@@ -26,67 +26,38 @@
   // --------------------------------------------------------------------------
   //
 
-dword     nRF52840Gpio::getCnfValue(unsigned int cnfBits)
+byte     SamD21Gpio::getCnfValue(unsigned int cnfBits)
 {
-  dword tmpMask = 0;
+  byte tmpMask = GpioPinCnf_INEN;
 
-  if(cnfBits & IfDrvPullUp) tmpMask |= GpioPinCnf_PULL(GpioPullUp);
-  if(cnfBits & IfDrvPullDown) tmpMask |= GpioPinCnf_PULL(GpioPullDown);
+  if((cnfBits & IfDrvPullUp) || (cnfBits & IfDrvPullDown)) tmpMask |= GpioPinCnf_PULLEN;
 
   if((cnfBits & IfDrvOutput))     // Ausgang **********************************
   {
-    tmpMask |= GpioPinCnf_DIR;
-
-    if(cnfBits & IfDrvStrongHigh)       // StrongHigh = H1
+    if((cnfBits & IfDrvStrongHigh) || (cnfBits & IfDrvStrongLow))
     {
-      if(cnfBits & IfDrvOpenSource)     // OpenSource = D0
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveD0H1);
-      else if(cnfBits & IfDrvStrongLow) // StrongLow = H0
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveH0H1);
-      else
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveS0H1);
-    }
-    else if(cnfBits & IfDrvStrongLow)   // StrongLow = H0
-    {
-      if(cnfBits & IfDrvOpenDrain)      // OpenDrain = D1
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveH0D1);
-      else
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveH0S1);
-    }
-    else
-    {
-      if(cnfBits & IfDrvOpenSource)     // OpenSource = D0
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveD0S1);
-      else if(cnfBits & IfDrvOpenDrain) // OpenDrain = D1
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveS0D1);
-      else
-        tmpMask |= GpioPinCnf_DRIVE(GpioDriveS0S1);
+      tmpMask |= GpioPinCnf_DRVSTR;
     }
   }
-  else                            // Eingang **********************************
-  {
-    tmpMask &= 0xFFFFFFFC;
-  }
-
   return(tmpMask);
 }
 
-GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError SamD21Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr)
 {
   GpioError retv = GEnoError;
   int       portNum;
   int       pinNum;
-  dword     tmpMask;
-  dword     cnfValue;
+  dword     tmpMask0, tmpMask1;
+  byte      cnfValue;
 
-  tmpMask = IfDrvOpenDrain | IfDrvOpenSource;
-  if((cnfBits & tmpMask) == tmpMask) return (GEcdictPar);
+  tmpMask0 = IfDrvOpenDrain | IfDrvOpenSource;
+  if((cnfBits & tmpMask0) == tmpMask0) return (GEcdictPar);
 
-  tmpMask = IfDrvPullDown | IfDrvPullUp;
-  if((cnfBits & tmpMask) == tmpMask) return (GEcdictPar);
+  tmpMask1 = IfDrvPullDown | IfDrvPullUp;
+  if((cnfBits & tmpMask1) == tmpMask1) return (GEcdictPar);
 
   cnfValue  = getCnfValue(cnfBits);
-  tmpMask   = 0;
+  tmpMask0 = tmpMask1 = 0;
 
   // Bedienen des angegebenen Bereiches
   //
@@ -95,28 +66,48 @@ GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioR
     portNum = (i & 0x0E0) >> 5;
     pinNum  =  i & 0x01F;
 
-    tmpMask |= (1 << i);
 
     if(portNum == 0)
-      gpioPtr = NrfGpioPtr0;
+    {
+      gpioPtr = SD21GpioPtr0;
+      tmpMask0 |= (1 << pinNum);
+    }
     else
-      gpioPtr = NrfGpioPtr1;
+    {
+      gpioPtr = SD21GpioPtr1;
+      tmpMask1 |= (1 << pinNum);
+    }
 
-      gpioPtr->PIN_CNF[pinNum] = cnfValue;
+      gpioPtr->PINCFG[pinNum] = cnfValue;
   }
 
-  refPtr->ioPtr = (dword *) gpioPtr;
-  refPtr->pins  = tmpMask;
+  if((nrFrom & 0x0E0) == (nrTo & 0x0E0))
+  {
+    refPtr->ioPtr = (dword *) gpioPtr;
+    refPtr->pins  = tmpMask0 | tmpMask1;
+  }
+  else
+  {
+    refPtr->ioPtr = (dword *) SD21GpioPtr0;
+    refPtr->pins  = tmpMask0;
+    refPtr->next->ioPtr = (dword *) SD21GpioPtr1;
+    refPtr->next->pins  = tmpMask1;
+  }
+
+  if((cnfBits & IfDrvOutput))     // Ausgang **********************************
+  {
+    Hier weiter
+  }
 
   return(retv);
 }
 
-GpioError nRF52840Gpio::config(int nr, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError SamD21Gpio::config(int nr, unsigned int cnfBits, GpioRefPtr refPtr)
 {
   return(config(nr,nr,cnfBits, refPtr));
 }
 
-GpioError nRF52840Gpio::config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError SamD21Gpio::config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr)
 {
   GpioError retv = GEnoError;
   dword     cnfVal;
@@ -136,12 +127,12 @@ GpioError nRF52840Gpio::config(GpioMask mask, unsigned int cnfBits, GpioRefPtr r
   for(int i = 0; i < 32; i++)
   {
     if(mask.port == 0)
-      gpioPtr = NrfGpioPtr0;
+      gpioPtr = SD21GpioPtr0;
     else
-      gpioPtr = NrfGpioPtr1;
+      gpioPtr = SD21GpioPtr1;
 
     if(mask.pins & chkMask)
-      gpioPtr->PIN_CNF[i] = cnfVal;
+      gpioPtr->PINCFG[i] = cnfVal;
 
     chkMask <<= 1;
   }
@@ -152,30 +143,38 @@ GpioError nRF52840Gpio::config(GpioMask mask, unsigned int cnfBits, GpioRefPtr r
   return(retv);
 }
 
-GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError SamD21Gpio::configArd(ArdMask ardMask, unsigned int cnfBits, GpioRefPtr refPtr)
 {
   GpioMask  ioMask;
+  GpioMask  ioMaskExt;
+
+  ioMask.next = &ioMaskExt;
 
   switch(ardMask)
   {
     case ArdA0A3:
-      ioMask.port = 0;
-      ioMask.pins = ArdA0Mask | ArdA1Mask | ArdA2Mask | ArdA3Mask;
+      ioMask.port = ArdA0Port;
+      ioMask.pins = ArdA0Mask | ArdA3Mask;
+      ioMaskExt.port = ArdA1Port;
+      ioMaskExt.pins = ArdA1Mask | ArdA2Mask;
       break;
 
-    case ArdA4A7:
-      ioMask.port = 0;
-      ioMask.pins = ArdA4Mask | ArdA5Mask | ArdA6Mask | ArdA7Mask;
+    case ArdA4A5:
+      ioMask.port = ArdA4Port;
+      ioMask.pins = ArdA4Mask;
+      ioMaskExt.port = ArdA5Port;
+      ioMaskExt.pins = ArdA5Mask;
       break;
 
-    case ArdA0A7:
-      ioMask.port = 0;
-      ioMask.pins = ArdA0Mask | ArdA1Mask | ArdA2Mask | ArdA3Mask |
-                    ArdA4Mask | ArdA5Mask | ArdA6Mask | ArdA7Mask;
+    case ArdA0A5:
+      ioMask.port = ArdA0Port;
+      ioMask.pins = ArdA0Mask | ArdA3Mask | ArdA4Mask;
+      ioMaskExt.port = ArdA1Port;
+      ioMaskExt.pins = ArdA1Mask | ArdA2Mask | ArdA5Mask;
       break;
 
     case ArdD2D5:
-      ioMask.port = 1;
+      ioMask.port = 0;
       ioMask.pins = ArdD2Mask | ArdD3Mask | ArdD4Mask | ArdD5Mask;
       break;
   }
@@ -189,18 +188,18 @@ GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits, GpioRef
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
-dword     nRF52840Gpio::read(GpioRef ioRef)
+dword     SamD21Gpio::read(GpioRef ioRef)
 {
-  gpioPtr = (nrfGpioPtr) ioRef.ioPtr;
+  gpioPtr = (sd21GpioPtr) ioRef.ioPtr;
   return(gpioPtr->IN & ioRef.pins);
 }
 
-dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
+dword     SamD21Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
 {
   dword   inVal;
   dword   retVal;
 
-  gpioPtr = (nrfGpioPtr) ioRef.ioPtr;
+  gpioPtr = (sd21GpioPtr) ioRef.ioPtr;
   inVal = gpioPtr->IN;
   retVal = 0;
 
@@ -213,22 +212,18 @@ dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
       if(inVal & ArdA3Mask) retVal |= 0x08;
       break;
 
-    case ArdA4A7:
+    case ArdA4A5:
       if(inVal & ArdA4Mask) retVal |= 0x01;
       if(inVal & ArdA5Mask) retVal |= 0x02;
-      if(inVal & ArdA6Mask) retVal |= 0x04;
-      if(inVal & ArdA7Mask) retVal |= 0x08;
       break;
 
-    case ArdA0A7:
+    case ArdA0A5:
       if(inVal & ArdA0Mask) retVal |= 0x01;
       if(inVal & ArdA1Mask) retVal |= 0x02;
       if(inVal & ArdA2Mask) retVal |= 0x04;
       if(inVal & ArdA3Mask) retVal |= 0x08;
       if(inVal & ArdA4Mask) retVal |= 0x10;
       if(inVal & ArdA5Mask) retVal |= 0x20;
-      if(inVal & ArdA6Mask) retVal |= 0x40;
-      if(inVal & ArdA7Mask) retVal |= 0x80;
       break;
 
     case ArdD2D5:

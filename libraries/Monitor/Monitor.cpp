@@ -38,8 +38,12 @@ void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr)
   twiPtr        = inTwPtr;
   nrOfChnChar   = '@';
 
+#ifdef smnNANOBLE33
+
   microTicValPtr  = (dword *) 0x40009548;
   microTicCapPtr  = (dword *) 0x40009048;
+
+#endif
 
   nextState =
       &Monitor::waitEnter;
@@ -347,6 +351,7 @@ void Monitor::getKey()
         {
           cmdMode1 = 'C';
         }
+#ifdef smnNANOBLE33
         else if(cin == 'p' || cin == 'P')
         {
           micTime = micsecs();
@@ -356,6 +361,7 @@ void Monitor::getKey()
           out(micTime);
           GoPrm
         }
+#endif
         else if(cin == 'r' || cin == 'R')
         {
           if(lcPtr != NULL)

@@ -12,6 +12,7 @@
 #define SAMD21GPIO_H
 
 #include "Arduino.h"
+#include "environment.h"
 #include "arduinoDefs.h"
 #include "IntrfGpio.h"
 
@@ -96,9 +97,9 @@ typedef struct _nrfGpio
 #define ArdD12      P0(19)
 #define ArdD13      P0(17)
 
-#define ArdD2Mask   (1 << 14)
+#define ArdD2Mask   (1 << 8)
 #define ArdD3Mask   (1 << 9)
-#define ArdD4Mask   (1 << 8)
+#define ArdD4Mask   (1 << 14)
 #define ArdD5Mask   (1 << 15)
 #define ArdD6Mask   (1 << 20)
 #define ArdD7Mask   (1 << 21)
@@ -108,14 +109,6 @@ typedef struct _nrfGpio
 #define ArdD11Mask  (1 << 16)
 #define ArdD12Mask  (1 << 19)
 #define ArdD13Mask  (1 << 17)
-
-typedef enum
-{
-  ArdA0A3,
-  ArdA4A5,
-  ArdA0A5,
-  ArdD2D5
-} ArdMask;
 
 // ----------------------------------------------------------------------------
 #endif
@@ -141,18 +134,23 @@ public:
   // --------------------------------------------------------------------------
   //
   byte      getCnfValue(unsigned int cnfBits);
-  GpioError config(int nr, unsigned int cnfBits, GpioRefPtr refPtr);
-  GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr);
-  GpioError config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr);
+  void      setCnf(unsigned int cnfBits, GpioExtRefPtr refPtr);
+  GpioError config(int nr, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  GpioError config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr);
 
-  GpioError configArd(ArdMask ardMask, unsigned int cnfBits, GpioRefPtr refPtr);
+  GpioError configArd(ArdMask ardMask, unsigned int cnfBits);
 
   // --------------------------------------------------------------------------
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
-  dword     read(GpioRef ioRef);
-  dword     readArd(ArdMask ardMask, GpioRef ioRef);
+  void      read(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
+  dword     readArd(ArdMask ardMask);
+
+  void      write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
+  void      writeArd(ArdMask ardMask, dword value);
+
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts

@@ -40,15 +40,33 @@ typedef struct _GpioMask
 {
   dword       port;
   dword       pins;
-  _GpioMask   *next;
 } GpioMask, *GpioMaskPtr;
+
+typedef struct _GpioExtMask
+{
+  dword         port;
+  dword         pins;
+  _GpioExtMask  *next;
+} GpioExtMask, *GpioExtMaskPtr;
 
 typedef struct _GpioRef
 {
   dword     *ioPtr;
   dword     pins;
-  _GpioRef  *next;
 } GpioRef, *GpioRefPtr;
+
+typedef struct _GpioExtRef
+{
+  dword       *ioPtr;
+  dword       pins;
+  _GpioExtRef *next;
+} GpioExtRef, *GpioExtRefPtr;
+
+typedef struct _GpioExtVal
+{
+  dword       value;
+  _GpioExtVal *next;
+} GpioExtVal, *GpioExtValPtr;
 
 // Spezifikation der Schnittstellentreiber
 //
@@ -62,6 +80,14 @@ typedef struct _GpioRef
 #define IfDrvPullDown       0x0040
 #define IfDrvPullStrong     0x0080
 
+typedef enum
+{
+  ArdA0A3,
+  ArdA4A5,
+  ArdA0A5,
+  ArdD2D5
+} ArdMask;
+
 class IntrfGpio
 {
 public:
@@ -72,16 +98,20 @@ public:
   // Konfigurationen
   // --------------------------------------------------------------------------
   //
-  virtual GpioError config(int nr, unsigned int cnfBits, GpioRefPtr refPtr);
-  virtual GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr);
-  virtual GpioError config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr);
-
+  virtual GpioError config(int nr, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  virtual GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  virtual GpioError config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  virtual GpioError configArd(ArdMask ardMask, unsigned int cnfBits);
 
   // --------------------------------------------------------------------------
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
-  virtual dword     read(GpioRef ioRef);
+  virtual void      read(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
+  virtual dword     readArd(ArdMask ardMask);
+
+  virtual void      write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
+  virtual void      writeArd(ArdMask ardMask, dword value);
 };
 
 // ----------------------------------------------------------------------------

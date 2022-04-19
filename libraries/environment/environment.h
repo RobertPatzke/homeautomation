@@ -74,6 +74,7 @@
     #define smnSloeber
     #define smnArduinoZeroSamD21
     #define smnSAMD21G18
+    #define smnSD21MINI
     #define smnSerial SerialUSB
   #endif
 

@@ -163,11 +163,20 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
   NrfRadioPtr->EVENTS_TXREADY   = 0;
   NrfRadioPtr->EVENTS_ADDRESS   = 0;
 
-  memcpy((void *)pduMem, (void *)inPduPtrE, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
-  memcpy((void *)pduSentE, (void *)inPduPtrE, sizeof(bcPdu));  // Daten in extra Puffer kopieren
-  if(inPduPtrS != NULL)
-    memcpy((void *)pduSentS, (void *)inPduPtrS, sizeof(bcPdu));// Daten in extra Puffer kopieren
+  // TODO
+  // Das muss Alles noch einmal überarbeitet werden.
+  // Hier stecken zu viele Redundanzen drin, Altlast aus diversen Tests mit der Hardware
 
+  memcpy((void *)pduMem, (void *)inPduPtrE, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
+
+  memcpy((void *)pduSentE, (void *)inPduPtrE, sizeof(bcPdu));  // Daten in extra Puffer kopieren
+  // Die übergebenen Daten werden in einen Extrapuffer kopiert zur Entkopplung für eventuelle
+  // lokale Modifikationen
+
+  if(inPduPtrS != NULL)                             // Falls Daten für eine Antwort gegeben sind
+    memcpy((void *)pduSentS, (void *)inPduPtrS, sizeof(bcPdu));// Daten in extra Puffer kopieren
+  // Die übergebenen Daten werden in einen Extrapuffer kopiert zur Entkopplung für eventuelle
+  // lokale Modifikationen
 
   comFin    = false;
   comError  = false;
@@ -184,6 +193,21 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
 
   switch(txMode)
   {
+    case txmPoll:
+      recMode = false;
+      NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
+      NrfRadioPtr->INTENSET = NrfIntRXREADY;
+      NrfRadioPtr->TASKS_TXEN = 1;
+      break;
+
+    case txmResp:
+    case txmRespE:
+      recMode = true;
+      NrfRadioPtr->SHORTS = NrfScREADY_START;
+      NrfRadioPtr->INTENSET = NrfIntEND;
+      NrfRadioPtr->TASKS_RXEN = 1;
+      break;
+
     case txmBase:
       NrfRadioPtr->SHORTS = NrfScREADY_START | NrfScEND_DISABLE;
       NrfRadioPtr->TASKS_TXEN = 1;
@@ -219,21 +243,6 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
       NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
       NrfRadioPtr->INTENSET = NrfIntADDRESS | NrfIntEND;
       NrfRadioPtr->TASKS_TXEN = 1;
-      break;
-
-    case txmPoll:
-      recMode = false;
-      NrfRadioPtr->SHORTS = NrfScTXREADY_START | NrfScEND_DISABLE | NrfScDISABLED_RXEN | NrfScRXREADY_START;
-      NrfRadioPtr->INTENSET = NrfIntRXREADY;
-      NrfRadioPtr->TASKS_TXEN = 1;
-      break;
-
-    case txmResp:
-    case txmRespE:
-      recMode = true;
-      NrfRadioPtr->SHORTS = NrfScREADY_START;
-      NrfRadioPtr->INTENSET = NrfIntEND;
-      NrfRadioPtr->TASKS_RXEN = 1;
       break;
   }
 }
@@ -411,6 +420,50 @@ void nRF52840Radio::cont(TxMode txMode)
        break;
    }
 }
+
+int   nRF52840Radio::getRecData(bcPduPtr data, TxMode txMode, int max)
+{
+  byte *bPtr = (byte *) data;
+  int retv = 0;
+
+  switch(txMode)
+  {
+    case txmResp:
+      data->head = pduSentE[0];
+      retv = data->len  = pduSentE[1];
+
+      for(int i = 2; i < (retv + 2); i++)
+      {
+        if(i == max) break;
+        bPtr[i] = pduSentE[i];
+      }
+
+      break;
+
+    case txmBase:
+      break;
+
+    case txmRepStart:
+      break;
+
+    case txmRepCont:
+      break;
+
+    case txmRepEnd:
+      break;
+
+    case txmReadPrep:
+      break;
+
+    case txmRead:
+      break;
+  }
+
+
+  return(retv);
+}
+
+
 
 // ----------------------------------------------------------------------------
 //                      E m p f a n g e n
@@ -729,6 +782,7 @@ void nRF52840Radio::irqHandler()
 
         // --------------------------------------------------------------------
         if(NrfRadioPtr->EVENTS_END == 1)        // Übertragung beendet
+                                                // Polling-Daten empfangen
         // --------------------------------------------------------------------
         {
           NrfRadioPtr->EVENTS_END = 0;          // Event quittieren
@@ -783,8 +837,10 @@ void nRF52840Radio::irqHandler()
           else
           {
             // Sendeaufforderung
+            // Polling-Steuerdaten in Empfangspuffer und
             // Sadr-Ack-Daten in Funkpuffer kopieren
             //
+            memcpy((void *)pduSentE, (void *)pduMem, sizeof(bcPdu));
             memcpy((void *)pduMem, (void *)pduSentS, sizeof(bcPdu));
           }
 

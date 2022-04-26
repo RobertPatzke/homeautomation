@@ -11,14 +11,14 @@
 //
 //
 
-#include "Midi.h"
+#include "MidiNotes.h"
 
 // ----------------------------------------------------------------------------
 // Initialisierungen
 // ----------------------------------------------------------------------------
 //
 
-void Midi::begin(int inBpm, NoteDiv inRes, int inMidiCycle, ComRingBuf *inCRB)
+void MidiNotes::begin(int inBpm, NoteDiv inRes, int inMidiCycle, ComRingBuf *inCRB)
 {
   dword       stdNoteMicroTick;
 
@@ -69,7 +69,7 @@ void Midi::begin(int inBpm, NoteDiv inRes, int inMidiCycle, ComRingBuf *inCRB)
 // Konfiguration
 // ----------------------------------------------------------------------------
 //
-void Midi::setNoteType(NoteTypeIdx nt)
+void MidiNotes::setNoteType(NoteTypeIdx nt)
 {
   NoteTypePtr typePtr;
 
@@ -87,7 +87,7 @@ void Midi::setNoteType(NoteTypeIdx nt)
 }
 
 
-void Midi::setNoteType(NoteTypeIdx nt, dword att, dword dec, dword sus, dword rel,
+void MidiNotes::setNoteType(NoteTypeIdx nt, dword att, dword dec, dword sus, dword rel,
                        byte dAtt, byte dDec, byte pSus, byte dRel, byte pPau)
 {
   NoteTypePtr typePtr;
@@ -105,7 +105,7 @@ void Midi::setNoteType(NoteTypeIdx nt, dword att, dword dec, dword sus, dword re
   typePtr->percentPause   = pPau;
 }
 
-int Midi::addChordNote(NoteTypeIdx nti, byte val, byte vel)
+int MidiNotes::addChordNote(NoteTypeIdx nti, byte val, byte vel)
 {
   NotePtr notePtr;
   int     i;
@@ -130,13 +130,13 @@ int Midi::addChordNote(NoteTypeIdx nti, byte val, byte vel)
 // Betrieb
 // ----------------------------------------------------------------------------
 //
-void Midi::setOpMode(MidiOpMode mom)
+void MidiNotes::setOpMode(MidiOpMode mom)
 {
   opMode = mom;
 }
 
 
-void Midi::setChordNote(int idx, int type, int val, int vel)
+void MidiNotes::setChordNote(int idx, int type, int val, int vel)
 {
   if(idx < 0) return;
   if(idx >= MaxNrNoteSim) return;
@@ -160,7 +160,7 @@ void Midi::setChordNote(int idx, int type, int val, int vel)
 // Steuerung, Zustandsmaschine
 // ----------------------------------------------------------------------------
 //
-void Midi::run()
+void MidiNotes::run()
 {
   runCounter++;
   if(cycleCnt > 0) cycleCnt--;
@@ -169,12 +169,12 @@ void Midi::run()
     (this->*nextState)();
 }
 
-void Midi::smInit()
+void MidiNotes::smInit()
 {
   next(smIdle);
 }
 
-void Midi::smIdle()
+void MidiNotes::smIdle()
 {
   switch(opMode)
   {
@@ -190,7 +190,7 @@ void Midi::smIdle()
   }
 }
 
-void Midi::smNoteOn()
+void MidiNotes::smNoteOn()
 {
   int   i, j, tIdx;
   bool  doAttack;
@@ -264,17 +264,17 @@ void Midi::smNoteOn()
     next(smSustain);
 }
 
-void Midi::smAttack()
+void MidiNotes::smAttack()
 {
 
 }
 
-void Midi::smDecay()
+void MidiNotes::smDecay()
 {
 
 }
 
-void Midi::smSustain()
+void MidiNotes::smSustain()
 {
   int   i;
   bool  sustFin;
@@ -296,12 +296,12 @@ void Midi::smSustain()
     next(smNoteOff);
 }
 
-void Midi::smRelease()
+void MidiNotes::smRelease()
 {
 
 }
 
-void Midi::smNoteOff()
+void MidiNotes::smNoteOff()
 {
   int   i,j;
 
@@ -327,7 +327,7 @@ void Midi::smNoteOff()
   next(smPause);
 }
 
-void Midi::smPause()
+void MidiNotes::smPause()
 {
   if(absPause > 0)
   {

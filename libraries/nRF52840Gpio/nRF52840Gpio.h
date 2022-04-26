@@ -124,14 +124,6 @@ typedef struct _nrfGpio
 #define ArdD12Mask  (1 << 8)
 #define ArdD13Mask  (1 << 13)
 
-typedef enum
-{
-  ArdA0A3,
-  ArdA4A7,
-  ArdA0A7,
-  ArdD2D5
-} ArdMask;
-
 // ----------------------------------------------------------------------------
 #endif
 
@@ -156,18 +148,21 @@ public:
   // --------------------------------------------------------------------------
   //
   dword     getCnfValue(unsigned int cnfBits);
-  GpioError config(int nr, unsigned int cnfBits, GpioRefPtr refPtr);
-  GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr);
-  GpioError config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr);
+  GpioError config(int nr, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  GpioError config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr);
 
-  GpioError configArd(ArdMask ardMask, unsigned int cnfBits, GpioRefPtr refPtr);
+  GpioError configArd(ArdMask ardMask, unsigned int cnfBits);
 
   // --------------------------------------------------------------------------
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
-  dword     read(GpioRef ioRef);
-  dword     readArd(ArdMask ardMask, GpioRef ioRef);
+  void      read(GpioExtRefPtr ioRef, GpioExtValPtr valPtr);
+  dword     readArd(ArdMask ardMask);
+
+  void      write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
+  void      writeArd(ArdMask ardMask, dword value);
 
   // ----------------------------------------------------------------------------
   // Ereignisbearbeitung und Interrupts

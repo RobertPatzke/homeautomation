@@ -61,7 +61,7 @@ typedef octet  BD_ADR[6];
 // Datenstruktur für das zu sendende Telegramm
 // bei der Bewerbung (Advertising)
 //
-typedef struct _bcPdu
+typedef struct _bcPdu         // Beacon - PDU
 {
   byte  head;       // Header = PDU-Typ und Adresskennung (S0 bei nRF52840)
   byte  len;        // Länge des Telegramms inkl. Adresse (LENGTH bei nRF52840)

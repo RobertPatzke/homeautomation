@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------------
 // Thema:   Social Manufacturing Network / Development Environment
-// Datei:   Midi.h
+// Datei:   MidiNotes.h
 // Editor:  Robert Patzke
 // URI/URL: www.mfp-portal.de
 //-----------------------------------------------------------------------------
@@ -10,8 +10,8 @@
 // Der Inhalt dieser Datei sind Festlegungen für steuerbare Midi-Controller
 //
 
-#ifndef Midi_h
-#define Midi_h
+#ifndef MidiNotes_h
+#define MidiNotes_h
 // ----------------------------------------------------------------------------
 
 #include "arduinoDefs.h"
@@ -38,12 +38,12 @@ typedef enum  _MidiOpMode
 
 
 // ----------------------------------------------------------------------------
-//                            M i d i
+//                            M i d i N o t e s
 // ----------------------------------------------------------------------------
 //
-class Midi
+class MidiNotes
 {
-#define next(x) nextState = &Midi::x
+#define next(x) nextState = &MidiNotes::x
 
 public:
   // -------------------------------------------------------------------------
@@ -75,7 +75,7 @@ private:
   // Private Datentypen
   // -------------------------------------------------------------------------
   //
-  typedef void (Midi::*cbVector)(void);
+  typedef void (MidiNotes::*cbVector)(void);
 
   typedef struct _NoteType
   {
@@ -211,4 +211,4 @@ public:
 
 
 // ----------------------------------------------------------------------------
-#endif // Midi_h
+#endif // MidiNotes_h

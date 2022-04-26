@@ -15,14 +15,13 @@
 #ifndef SoaapMsg_h
 #define SoaapMsg_h
 
-#ifndef byte
-#define byte unsigned char
-#endif
+#include "arduinoDefs.h"
 
 typedef enum
 {
   saiDefaultMeas = 0x68,
-  saiMaximalMeas = 0x69
+  saiMaximalMeas = 0x69,
+  saiDefaultMeasCtrl = 0x6A
 } SoaapApId;
 
 class SoaapMsg

@@ -71,7 +71,7 @@ dword     nRF52840Gpio::getCnfValue(unsigned int cnfBits)
   return(tmpMask);
 }
 
-GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioExtRefPtr refPtr)
 {
   GpioError retv = GEnoError;
   int       portNum;
@@ -111,12 +111,12 @@ GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioR
   return(retv);
 }
 
-GpioError nRF52840Gpio::config(int nr, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError nRF52840Gpio::config(int nr, unsigned int cnfBits, GpioExtRefPtr refPtr)
 {
   return(config(nr,nr,cnfBits, refPtr));
 }
 
-GpioError nRF52840Gpio::config(GpioMask mask, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError nRF52840Gpio::config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr)
 {
   GpioError retv = GEnoError;
   dword     cnfVal;
@@ -146,15 +146,18 @@ GpioError nRF52840Gpio::config(GpioMask mask, unsigned int cnfBits, GpioRefPtr r
     chkMask <<= 1;
   }
 
-  refPtr->ioPtr = (dword *) gpioPtr;
-  refPtr->pins  = mask.pins;
+  if(refPtr != NULL)
+  {
+    refPtr->ioPtr = (dword *) gpioPtr;
+    refPtr->pins  = mask.pins;
+  }
 
   return(retv);
 }
 
-GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits, GpioRefPtr refPtr)
+GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits)
 {
-  GpioMask  ioMask;
+  GpioExtMask  ioMask;
 
   switch(ardMask)
   {
@@ -180,7 +183,7 @@ GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits, GpioRef
       break;
   }
 
-  return config(ioMask, cnfBits, refPtr);
+  return config(ioMask, cnfBits, NULL);
 }
 
 
@@ -189,24 +192,23 @@ GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits, GpioRef
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
-dword     nRF52840Gpio::read(GpioRef ioRef)
+void      nRF52840Gpio::read(GpioExtRefPtr ioRefPtr, GpioExtValPtr valPtr)
 {
-  gpioPtr = (nrfGpioPtr) ioRef.ioPtr;
-  return(gpioPtr->IN & ioRef.pins);
+  gpioPtr = (nrfGpioPtr) ioRefPtr->ioPtr;
+  valPtr->value = gpioPtr->IN;
 }
 
-dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
+dword     nRF52840Gpio::readArd(ArdMask ardMask)
 {
   dword   inVal;
   dword   retVal;
 
-  gpioPtr = (nrfGpioPtr) ioRef.ioPtr;
-  inVal = gpioPtr->IN;
   retVal = 0;
 
   switch(ardMask)
   {
     case ArdA0A3:
+      inVal = NrfGpioPtr0->IN;
       if(inVal & ArdA0Mask) retVal |= 0x01;
       if(inVal & ArdA1Mask) retVal |= 0x02;
       if(inVal & ArdA2Mask) retVal |= 0x04;
@@ -214,6 +216,7 @@ dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
       break;
 
     case ArdA4A7:
+      inVal = NrfGpioPtr0->IN;
       if(inVal & ArdA4Mask) retVal |= 0x01;
       if(inVal & ArdA5Mask) retVal |= 0x02;
       if(inVal & ArdA6Mask) retVal |= 0x04;
@@ -221,6 +224,7 @@ dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
       break;
 
     case ArdA0A7:
+      inVal = NrfGpioPtr0->IN;
       if(inVal & ArdA0Mask) retVal |= 0x01;
       if(inVal & ArdA1Mask) retVal |= 0x02;
       if(inVal & ArdA2Mask) retVal |= 0x04;
@@ -232,6 +236,7 @@ dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
       break;
 
     case ArdD2D5:
+      inVal = NrfGpioPtr1->IN;
       if(inVal & ArdD2Mask) retVal |= 0x01;
       if(inVal & ArdD3Mask) retVal |= 0x02;
       if(inVal & ArdD4Mask) retVal |= 0x04;
@@ -240,6 +245,89 @@ dword     nRF52840Gpio::readArd(ArdMask ardMask, GpioRef ioRef)
   }
 
   return(retVal);
+}
+
+
+void      nRF52840Gpio::write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr)
+{
+  ((nrfGpioPtr) refPtr->ioPtr)->OUTSET = valPtr->value & refPtr->pins;
+  ((nrfGpioPtr) refPtr->ioPtr)->OUTCLR = ~valPtr->value & refPtr->pins;
+  if(refPtr->next == NULL) return;
+  ((nrfGpioPtr) refPtr->next->ioPtr)->OUTSET = valPtr->next->value & refPtr->next->pins;
+  ((nrfGpioPtr) refPtr->next->ioPtr)->OUTCLR = ~valPtr->next->value & refPtr->next->pins;
+}
+
+void      nRF52840Gpio::writeArd(ArdMask ardMask, dword value)
+{
+  dword   set0 = 0, set1 = 0;
+  dword   clr0 = 0, clr1 = 0;
+
+  switch(ardMask)
+  {
+    case ArdA0A3:
+      if(value & 0x01) set0 |= ArdA0Mask;
+      else clr0 |= ArdA0Mask;
+      if(value & 0x02) set0 |= ArdA1Mask;
+      else clr0 |= ArdA1Mask;
+      if(value & 0x04) set0 |= ArdA2Mask;
+      else clr0 |= ArdA2Mask;
+      if(value & 0x08) set0 |= ArdA3Mask;
+      else clr0 |= ArdA3Mask;
+
+      NrfGpioPtr0->OUTSET = set0;
+      NrfGpioPtr0->OUTCLR = clr0;
+      break;
+
+    case ArdA4A7:
+      if(value & 0x01) set0 |= ArdA4Mask;
+      else clr0 |= ArdA4Mask;
+      if(value & 0x02) set0 |= ArdA5Mask;
+      else clr0 |= ArdA5Mask;
+      if(value & 0x04) set0 |= ArdA6Mask;
+      else clr0 |= ArdA6Mask;
+      if(value & 0x08) set0 |= ArdA7Mask;
+      else clr0 |= ArdA7Mask;
+
+      NrfGpioPtr0->OUTSET = set0;
+      NrfGpioPtr0->OUTCLR = clr0;
+      break;
+
+    case ArdA0A7:
+      if(value & 0x01) set0 |= ArdA0Mask;
+      else clr0 |= ArdA0Mask;
+      if(value & 0x02) set0 |= ArdA1Mask;
+      else clr0 |= ArdA1Mask;
+      if(value & 0x04) set0 |= ArdA2Mask;
+      else clr0 |= ArdA2Mask;
+      if(value & 0x08) set0 |= ArdA3Mask;
+      else clr0 |= ArdA3Mask;
+      if(value & 0x01) set0 |= ArdA4Mask;
+      else clr0 |= ArdA4Mask;
+      if(value & 0x02) set0 |= ArdA5Mask;
+      else clr0 |= ArdA5Mask;
+      if(value & 0x04) set0 |= ArdA6Mask;
+      else clr0 |= ArdA6Mask;
+      if(value & 0x08) set0 |= ArdA7Mask;
+      else clr0 |= ArdA7Mask;
+
+      NrfGpioPtr0->OUTSET = set0;
+      NrfGpioPtr0->OUTCLR = clr0;
+      break;
+
+    case ArdD2D5:
+      if(value & 0x01) set1 |= ArdD2Mask;
+      else clr1 |= ArdD2Mask;
+      if(value & 0x02) set1 |= ArdD3Mask;
+      else clr1 |= ArdD3Mask;
+      if(value & 0x04) set1 |= ArdD4Mask;
+      else clr1 |= ArdD4Mask;
+      if(value & 0x08) set1 |= ArdD5Mask;
+      else clr1 |= ArdD5Mask;
+
+      NrfGpioPtr1->OUTSET = set1;
+      NrfGpioPtr1->OUTCLR = clr1;
+      break;
+  }
 }
 
 

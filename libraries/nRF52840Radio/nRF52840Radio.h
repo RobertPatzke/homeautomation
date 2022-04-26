@@ -269,6 +269,7 @@ public:
 
   void  send(bcPduPtr inPduPtr, TxMode txMode);
   void  send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode, bool newValues);
+  int   getRecData(bcPduPtr data, TxMode txMode, int max);  // Empfangene Daten lesen
 
   void  disable(TxMode txMode);
   bool  disabled(TxMode txMode);      // Abfrage, ob ausgeschaltet

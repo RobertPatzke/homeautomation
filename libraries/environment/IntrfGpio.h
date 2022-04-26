@@ -82,10 +82,12 @@ typedef struct _GpioExtVal
 
 typedef enum
 {
+  ArdD2D5,
   ArdA0A3,
   ArdA4A5,
   ArdA0A5,
-  ArdD2D5
+  ArdA4A7,
+  ArdA0A7
 } ArdMask;
 
 class IntrfGpio

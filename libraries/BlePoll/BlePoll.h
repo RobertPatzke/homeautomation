@@ -47,6 +47,17 @@ typedef struct _PlPduBase   // maximale Länge Beacon = 31 Bytes
   byte  plData[29];   // weitere spezifische Nutzdaten
 } PlPduBase, *PlPduBasePtr;
 
+// Grundsätzliche Datenstruktur für Messwerte (ohne 6 Bytes Adresse)
+//
+typedef struct _PlPduMeas   // maximale Länge Beacon = 31 Bytes
+{
+  byte  counter;      // zyklischer Telegrammmzähler
+  byte  type;         // Kennzeichnung der Datenstruktur (AppType)
+  byte  appId;        // Kennzeichnung für Dateninhalte (PlpType)
+  byte  measCnt;      // Zähler für Messwertaktualisierung
+  byte  plData[27];   // weitere spezifische Nutzdaten
+} PlPduMeas, *PlPduMeasPtr;
+
 // Erweiterte Datenstruktur für die Nutzdaten (ohne 6 Bytes Adresse)
 // zur Zeit noch nicht genutzt
 //
@@ -68,6 +79,8 @@ typedef enum _PlpType
   plptMeas3,        // 3 Messwerte (1 Raumsensor)
   plptMeas6,        // 6 Messwerte (2 Raumsensoren)
   plptMeas9,        // 9 Messwerte (3 Raumsensoren)
+  plptMeas9Ctrl4,   // 9 Messwerte + 4 Byte Steuerung
+  plptMeas10Ctrl4,  // 10 Messwerte + 4 Byte Steuerung
   plptMeas12,       // 12 Messwerte (9 + 6 Byte Extradaten)
   plptMeas13,       // 13 Messwerte (9 + 8 Byte Extradaten)
   plptMeasX,        // Variable Anzahl Messwerte
@@ -116,6 +129,18 @@ typedef struct _PlpMeas9      // Länge 22 (+ 6 Bytes Adresse)
   word    meas[9];    // Liste von 9 Messwerten
 } PlpMeas9, *PlpMeas9Ptr;
 
+typedef struct _PlpM9C4      // Länge 26 (+ 6 Bytes Adresse)
+{
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  word    meas[9];    // Liste von 9 Messwerten
+  byte    ctrlPath;   // Steuerungspfad (für Verzweigungen/Funktionen)
+  byte    procCnt;    // Prozesszähler
+  byte    ctrl[2];    // Steuerungsdaten
+} PlpM9C4, *PlpM9C4Ptr;
+
 typedef struct _PlpMeas12      // Länge 28 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
@@ -134,12 +159,13 @@ typedef struct _PlpMeas13      // Länge 30 (+ 6 Bytes Adresse)
   word    meas[13];   // Liste von 13 Messwerten
 } PlpMeas13, *PlpMeas13Ptr;
 
-typedef struct _PlpCtrl2        // Länge 6 (+ 6 Bytes Adresse)
+typedef struct _PlpCtrl2        // Länge 7 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
   byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
   byte    ctrlCnt;    // Zähler für Kommandoaktualisierung
+  byte    procCnt;    // Zähler für Prozessaktualisierung
   byte    ctrl[2];    // Liste von 2 Steuerbytes
 } PlpCtrl2, *PlpCtrl2Ptr;
 
@@ -149,7 +175,8 @@ typedef struct _PlpCtrl27        // Länge 31 (+ 6 Bytes Adresse)
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
   byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
   byte    ctrlCnt;    // Zähler für Kommandoaktualisierung
-  byte    ctrl[27];   // Liste von 27 Steuerbytes
+  byte    procCnt;    // Zähler für Prozessaktualisierung
+  byte    ctrl[26];   // Liste von bis zu 26 Steuerbytes
 } PlpCtrl27, *PlpCtrl27Ptr;
 
 // Identifikator für die Art der Daten
@@ -200,6 +227,7 @@ typedef struct _PollState
 } PollState, *PollStatePtr;
 
 typedef bool (*cbDataPtr)(PlpType dataType, byte *dest);
+typedef bool (*cbCtrlPtr)(PlpType plpType, byte *dest, byte *src, int sSize);
 
 #define psSlaveWasPresent 0x01
 #define psSlaveIsPresent  0x02
@@ -257,6 +285,7 @@ private:
   cbVector      nextState;
   MicsecFuPtr   micSec;
   cbDataPtr     cbData;
+  cbCtrlPtr     cbCtrl;
   dword         toSet;
   dword         toValue;
   dword         cycleMics;
@@ -298,11 +327,14 @@ private:
 
   dword         bleState;
   dword         runCounter;
+  bool          recStop;
+  bool          recStopped;
 
   TxStatistics  statistic;
-  PlpMeas13     valuePdu;
+  PlPduMeas     valuePdu;
   PlpCtrl27     ctrlPdu;
   bool          newValue;
+  bool          newCtrl;
 
   // Einstellungen für den Anwendungsbetrieb
   //
@@ -320,7 +352,8 @@ private:
   void setPduAddress(bcPduPtr pduPtr);
   void setTimeOut(dword value);
   bool timeOut();
-  bool getValues(bcPduPtr pduPtr);
+  bool getValues(bcPduPtr pduPtr, PlpType appId);
+  bool getCtrls(bcPduPtr pduPtr, PlpType appId);
 
   // Zustandsmaschine
   // -----------------------------
@@ -378,6 +411,7 @@ public:
 
   void begin(ComType typeIn, int adrIn, AppType appType, dword watchDog);
   void setCbDataPtr(cbDataPtr cbPtr);
+  void setCbCtrlPtr(cbCtrlPtr cbPtr);
 
   // --------------------------------------------------------------------------
   // Konfiguration
@@ -407,9 +441,17 @@ public:
   void resumeEP();
   bool stoppedEP();
 
+  // Empfangsbetrieb beim Slave
+  //
+  void stopSR();
+  void resumeSR();
+  bool stoppedSR();
+
   // Laufender Betrieb
   //
   void start(PlMode inPlMode);
+
+
 
   // --------------------------------------------------------------------------
   // Zugriff auf Polling-Informationen

@@ -48,7 +48,11 @@ int   SoaapMsg::getMsgA(int area, int slvNr, SoaapApId appId, char *dest, byte *
       measLen = 18;
       break;
 
-    case saiMaximalMeas:
+    case saiDefaultMeasCtrl:
+      measLen = 18;
+      break;
+
+   case saiMaximalMeas:
       measLen = 26;
       break;
   }
@@ -56,6 +60,23 @@ int   SoaapMsg::getMsgA(int area, int slvNr, SoaapApId appId, char *dest, byte *
   for(measIdx = 0; measIdx < measLen; measIdx++)
   {
     measByte = meas[measIdx];
+
+    // Erst das niederwertige Nibble als Hex-Ascii eintragen
+    //
+    measChar = (measByte & 0x0F) | 0x30;
+    if (measChar > 0x39) measChar += 7;
+    dest[msgIdx++] = measChar;
+
+    // dann das höherwertige Nibble
+    //
+    measChar = (measByte >> 4) | 0x30;
+    if (measChar > 0x39) measChar += 7;
+    dest[msgIdx++] = measChar;
+  }
+
+  if(appId == saiDefaultMeasCtrl)
+  {
+    measByte = meas[20];
 
     // Erst das niederwertige Nibble als Hex-Ascii eintragen
     //
@@ -100,6 +121,10 @@ int   SoaapMsg::measRes(SoaapApId appId)
       retv = 4;
       break;
 
+    case saiDefaultMeasCtrl:
+      retv = 4;
+      break;
+
     case saiMaximalMeas:
       retv = 4;
       break;
@@ -117,6 +142,10 @@ int   SoaapMsg::measCnt(SoaapApId appId)
   switch(appId)
   {
     case saiDefaultMeas:
+      retv = 9;
+      break;
+
+    case saiDefaultMeasCtrl:
       retv = 9;
       break;
 

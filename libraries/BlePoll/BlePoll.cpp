@@ -64,6 +64,8 @@ void BlePoll::init(IntrfRadio *refRadio, dword inCycleMics, MicsecFuPtr inMicroF
   cntAllTo = 0;
   pollStopped = false;
   pollStop = false;
+  recStopped = false;
+  recStop = false;
   runCounter = 0;
   newValue = false;
   cbData = NULL;
@@ -154,17 +156,16 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
   {
     if(master)
     {
-      valuePdu.appId = plptMeas6;
-      ctrlPdu.appId = plptCtrl0;
+      valuePdu.appId = plptMeas9Ctrl4;
+      ctrlPdu.appId = plptCtrlX;
       plMode = plmSoaapM;
       fullCycle = true;
     }
     else
     {
-      valuePdu.appId = plptMeas6;
-      ctrlPdu.appId = plptCtrl0;
+      valuePdu.appId = plptMeas9Ctrl4;
+      ctrlPdu.appId = plptCtrlX;
       plMode = plmSoaapS;
-      //plMode = plmSoaapM;
     }
   }
   else if (appType == atDevSOAAP)
@@ -239,8 +240,15 @@ void BlePoll::setCbDataPtr(cbDataPtr cbPtr)
   cbData = cbPtr;
 }
 
+void BlePoll::setCbCtrlPtr(cbCtrlPtr cbPtr)
+{
+  cbCtrl = cbPtr;
+}
 
 
+dword smStartComESCnt;
+bcPdu recBeacon;
+int   lenBeacon = 0;
 
 // --------------------------------------------------------------------------
 // Hilfsfunktionen
@@ -280,16 +288,25 @@ bool BlePoll::timeOut()
   }
 }
 
-bool BlePoll::getValues(bcPduPtr pduPtr)
+bool BlePoll::getValues(bcPduPtr pduPtr, PlpType appId)
 {
-  bool retv = false;
+  bool  retv = false;
 
-  pduPtr->len = 28;
+  switch (appId)
+  {
+    case plptMeas6:
+      pduPtr->len = sizeof(PlpMeas6) + 6;
+      break;
+
+    case plptMeas9Ctrl4:
+      pduPtr->len = sizeof(PlpM9C4) + 6;
+      break;
+  }
   pduPtr->data[0]++;      // Pdu-Counter
   pduPtr->data[1] = valuePdu.type;
-  pduPtr->data[2] = valuePdu.appId;
+  pduPtr->data[2] = appId;
 
-  newValue = cbData(plptMeas6, &pduPtr->data[4]);
+  newValue = cbData(appId, &pduPtr->data[4]);
 
   if(newValue)
   {
@@ -297,6 +314,21 @@ bool BlePoll::getValues(bcPduPtr pduPtr)
     pduPtr->data[3]++;              // measCnt
   }
   return(retv);
+}
+
+
+bool BlePoll::getCtrls(bcPduPtr pduPtr, PlpType appId)
+{
+  int   ctrlLen;
+
+  if(recBeacon.len > 6)
+    ctrlLen = recBeacon.len - 6;
+  else
+    ctrlLen = 4;
+
+  newCtrl = cbCtrl((PlpType) appId, &pduPtr->data[22], &recBeacon.data[0], ctrlLen);
+
+  return(newCtrl);
 }
 
 
@@ -334,6 +366,28 @@ void BlePoll::resumeEP()
 bool BlePoll::stoppedEP()
 {
   return(pollStopped);
+}
+
+// Anhalten des Empfangs beim Slave
+//
+void BlePoll::stopSR()
+{
+  recStop = true;
+}
+
+// Weiterlaufen des Empfangs beim Slave
+//
+void BlePoll::resumeSR()
+{
+  recStop     = false;
+  recStopped  = false;
+}
+
+// Abfrage, ob Slaveempfang gestoppt
+//
+bool BlePoll::stoppedSR()
+{
+  return(recStopped);
 }
 
 
@@ -814,32 +868,52 @@ void BlePoll::smEvalPoll()
 // D a t e n ü b e r t r a g u n g
 // ----------------------------------------------------------------------------
 //
+
+// Vorbereitung der Datenübertragung
+//
 void BlePoll::smStartCom()
 {
   bleState = 2000;
 
-  if(pollStop)                // Der Start der Datenübertragung kann
+  if(pollStop || pollStopped) // Der Start der Datenübertragung kann
   {                           // verzögert werden
     pollStopped = true;
     return;
   }
 
+  // --------------------------------------------
+  // Auswahl des Funkkanals (Frequenz)
+  // --------------------------------------------
+  //
   radio->setChannel(chn);
 
+  // --------------------------------------------
+  // Voreinstellungen für den Master
+  // --------------------------------------------
+  //
   if(master)
   {
-    ctrlPdu.appId = plptCtrl0;
-    pduOut.len  = 6;
-
+    // Aufbau der Polling-Liste
+    //
     for(int i = 1; i <= pollMaxNr; i++)
     {
       int slIdx = pollList[i].slIdx;
       pollList[i].prioCnt = slaveList[slIdx].prioSet;
     }
-    nak = false;
     pollIdx = 1;
+
+    // Vorbereitung der mit dem Polling übermittelten Daten
+    //
+    pduOut.len  = 13;                 // Adresse (6) + 7 Byte Steuerung
+    ctrlPdu.counter = 0;              // Zähler im Steuertelegramm
+    ctrlPdu.appId = plptMeas9Ctrl4;   // Info für Slave zur Antwort
+
     next(smReqComS);
   }
+  // --------------------------------------------
+  // Voreinstellungen für den Slave
+  // --------------------------------------------
+  //
   else
   {
     nak = true;
@@ -853,22 +927,29 @@ void BlePoll::smStartCom()
 // Datenübertragung Master          S l a v e  - >  M a s t e r
 // ----------------------------------------------------------------------------
 //
+
+// M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M
+// Polling : Anfordern von Daten beim Slave
+// ----------------------------------------------------------------------------
+//
 void BlePoll::smReqComS()
 {
   bleState = 2100;
 
-  if(pollStop)                // Das Polling kann
+  if(pollStop || pollStopped) // Das Polling kann
   {                           // angehalten werden
     pollStopped = true;
     return;
   }
 
+  // Es ist von einem vorherigen Funkempfang auszugehen
+  // Die Hardware muss erst ausgeschaltet werden
+  //
   if(!radio->disabled(txmPoll))
   {
     radio->disable(txmPoll);
     return;
   }
-
 
   // Der aufzufordernde Teilnehmer wird der Poll-Liste entnommen
   //
@@ -894,8 +975,8 @@ void BlePoll::smReqComS()
 
   // Slave-spezifische Parameter setzen
   //
-  eadr = false;
-  nak = false;
+  eadr = false;         // Ist true, wenn Daten nur zum Slave übertragen werden
+  nak = false;          // Ist true, wenn keine Daten übertragen werden (empty poll)
   adr = curSlave->adr;
   area = curSlave->area;
   setPduAddress();
@@ -914,14 +995,17 @@ void BlePoll::smReqComS()
   next(smWaitAckComS);
 }
 
-int     tmpInt1, tmpInt2, tmpInt3;
-
+// M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M
+// Warten auf die Antwort vom Slave
+// ----------------------------------------------------------------------------
+//
 void BlePoll::smWaitAckComS()
 {
   byte    tmpByte;
   short   tmpShort;
 
-  PlpMeas6Ptr resPtr;
+  // Zeiger zur spezifischen Betrachtung von Empfangsdaten
+  PlPduMeasPtr resPtr;
 
   bleState = 2110;
 
@@ -1004,31 +1088,43 @@ void BlePoll::smWaitAckComS()
 
     // Die Daten werden in der Slave-Struktur abgelegt
     //
-    resPtr = (PlpMeas6Ptr) &curSlave->result;
+    resPtr = (PlPduMeasPtr) &curSlave->result;
 
-    curSlave->result.counter  = pduIn.data[0];
-    curSlave->result.type     = pduIn.data[1];
-
-    /*
-    curSlave->result.appId    = pduIn.data[2];
-    curSlave->result.measCnt  = pduIn.data[3];
-    curSlave->result.meas[0]  = *(word *) &pduIn.data[4];
-    curSlave->result.meas[1]  = *(word *) &pduIn.data[6];
-    curSlave->result.meas[2]  = *(word *) &pduIn.data[8];
-    curSlave->result.meas[3]  = *(word *) &pduIn.data[10];
-    curSlave->result.meas[4]  = *(word *) &pduIn.data[12];
-    curSlave->result.meas[5]  = *(word *) &pduIn.data[14];
-    curSlave->result.appId    = pduIn.data[2];
-    */
-
+    resPtr->counter  = pduIn.data[0];
+    resPtr->type     = pduIn.data[1];
     resPtr->appId    = pduIn.data[2];
     resPtr->measCnt  = pduIn.data[3];
-    resPtr->meas[0]  = *(word *) &pduIn.data[4];
-    resPtr->meas[1]  = *(word *) &pduIn.data[6];
-    resPtr->meas[2]  = *(word *) &pduIn.data[8];
-    resPtr->meas[3]  = *(word *) &pduIn.data[10];
-    resPtr->meas[4]  = *(word *) &pduIn.data[12];
-    resPtr->meas[5]  = *(word *) &pduIn.data[14];
+
+    // Die Inhalte sind abhängig von der <appId>
+    //
+    switch(resPtr->appId)
+    {
+      case plptMeas9Ctrl4:
+        ((PlpM9C4Ptr) resPtr)->meas[0]  = *(word *) &pduIn.data[4];
+        ((PlpM9C4Ptr) resPtr)->meas[1]  = *(word *) &pduIn.data[6];
+        ((PlpM9C4Ptr) resPtr)->meas[2]  = *(word *) &pduIn.data[8];
+        ((PlpM9C4Ptr) resPtr)->meas[3]  = *(word *) &pduIn.data[10];
+        ((PlpM9C4Ptr) resPtr)->meas[4]  = *(word *) &pduIn.data[12];
+        ((PlpM9C4Ptr) resPtr)->meas[5]  = *(word *) &pduIn.data[14];
+        ((PlpM9C4Ptr) resPtr)->meas[6]  = *(word *) &pduIn.data[16];
+        ((PlpM9C4Ptr) resPtr)->meas[7]  = *(word *) &pduIn.data[18];
+        ((PlpM9C4Ptr) resPtr)->meas[8]  = *(word *) &pduIn.data[20];
+        ((PlpM9C4Ptr) resPtr)->ctrlPath = pduIn.data[22];
+        ((PlpM9C4Ptr) resPtr)->procCnt  = pduIn.data[23];
+        ((PlpM9C4Ptr) resPtr)->ctrl[0]  = pduIn.data[24];
+        ((PlpM9C4Ptr) resPtr)->ctrl[1]  = pduIn.data[25];
+        break;
+
+      case plptMeas6:
+        ((PlpM9C4Ptr) resPtr)->meas[0]  = *(word *) &pduIn.data[4];
+        ((PlpM9C4Ptr) resPtr)->meas[1]  = *(word *) &pduIn.data[6];
+        ((PlpM9C4Ptr) resPtr)->meas[2]  = *(word *) &pduIn.data[8];
+        ((PlpM9C4Ptr) resPtr)->meas[3]  = *(word *) &pduIn.data[10];
+        ((PlpM9C4Ptr) resPtr)->meas[4]  = *(word *) &pduIn.data[12];
+        ((PlpM9C4Ptr) resPtr)->meas[5]  = *(word *) &pduIn.data[14];
+        ((PlpM9C4Ptr) resPtr)->meas[6]  = *(word *) &pduIn.data[16];
+        break;
+    }
 
 
     // Zählen der verlorenen Telegramme und Messwerte
@@ -1171,26 +1267,43 @@ void BlePoll::smEndComE()
 }
 
 
+// S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S
 // ----------------------------------------------------------------------------
 // Datenübertragung Slave         M a s t e r  < - >  S l a v e
 // ----------------------------------------------------------------------------
 //
-dword smStartComESCnt;
 
+// S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S
+// Vorbereitungen für den Empfang (Polling durch Master)
+// ----------------------------------------------------------------------------
+//
 void BlePoll::smStartComES()
 {
   bool  newValues;
+  bool  newCtrl;
   byte  lenValues;
+  byte  appId;
 
   bleState = 1310;
   smStartComESCnt++;
 
+  if(recStop || recStopped)
+  {
+    recStopped = true;
+    return;
+  }
+
+  // Wenn keine Daten von der Anwendung zur Verfügung gestellt werden,
+  // dann macht der Betrieb hier keinen Sinn und der Slave geht in IDLE
+  //
   if(cbData == NULL)
   {
     next(smIdle);
     return;
   }
 
+  // Falls der Sender noch nicht ausgeschaltet ist, muss gewartet werden
+  //
   if(!radio->disabled(txmResp))
   {
     radio->disable(txmResp);
@@ -1198,17 +1311,31 @@ void BlePoll::smStartComES()
     return;
   }
 
+  // Vorbereiten des erwarteten Inhalts beim Polling durch den Master
+  //
   nak = true;
   eadr = true;
   setPduAddress(&pduIn);
   pduIn.len = 6;
 
 
+  // Vorbereiten des zu sendenden Inhalts als Antwort auf das Polling
+  //
   nak = false;
   eadr = false;
   setPduAddress(&pduOut);
 
-  newValues = getValues(&pduOut);
+  // Eintragen der Messwerte in das Sendetelegramm
+  //
+  if(lenBeacon == 0)            // Wenn noch kein Empfangszyklus vorliegt
+    appId = valuePdu.appId;     // dann wird der voreingestellte Satz gewählt
+  else
+    appId = recBeacon.data[2];  // ansonsten der speziell angeforderte
+
+  newValues = getValues(&pduOut, (PlpType) appId);
+
+  if((appId == plptMeas9Ctrl4) && (cbCtrl != NULL))
+    getCtrls(&pduOut, (PlpType) appId);
 
   radio->setChannel(chn);
   radio->send(&pduIn, &pduOut, txmResp, newValues);
@@ -1217,6 +1344,7 @@ void BlePoll::smStartComES()
   next(smWaitComES);
 }
 
+// S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S
 void BlePoll::smWaitComES()
 {
   bleState = 1320;
@@ -1227,7 +1355,12 @@ void BlePoll::smWaitComES()
     next(smStartComES);
     return;
   }
+
   if(!radio->fin(txmResp, &crcError)) return;
+  //
+  // Übertragung beendet, Daten empfangen (polling) und versendet (response)
+  //
+  //lenBeacon = radio->getRecData(&recBeacon, txmResp, sizeof(recBeacon));
   next(smStartComES);
 }
 
@@ -1346,6 +1479,10 @@ int BlePoll::getMeas(int slAdr, byte *dest)
 
     case plptMeas9:
       anzByte = 18;
+      break;
+
+    case plptMeas9Ctrl4:
+      anzByte = 22;
       break;
 
     case plptMeas13:

@@ -308,6 +308,20 @@ void      SamD21Gpio::write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr)
   ((sd21GpioPtr) refPtr->next->ioPtr)->OUTCLR = ~valPtr->next->value & refPtr->next->pins;
 }
 
+void      SamD21Gpio::set(GpioExtRefPtr refPtr)
+{
+  ((sd21GpioPtr) refPtr->ioPtr)->OUTSET = refPtr->pins;
+  if(refPtr->next == NULL) return;
+  ((sd21GpioPtr) refPtr->next->ioPtr)->OUTSET = refPtr->next->pins;
+}
+
+void      SamD21Gpio::clr(GpioExtRefPtr refPtr)
+{
+  ((sd21GpioPtr) refPtr->ioPtr)->OUTCLR = refPtr->pins;
+  if(refPtr->next == NULL) return;
+  ((sd21GpioPtr) refPtr->next->ioPtr)->OUTCLR = refPtr->next->pins;
+}
+
 void      SamD21Gpio::writeArd(ArdMask ardMask, dword value)
 {
   dword   set0 = 0, set1 = 0;

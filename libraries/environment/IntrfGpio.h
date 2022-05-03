@@ -114,6 +114,8 @@ public:
 
   virtual void      write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
   virtual void      writeArd(ArdMask ardMask, dword value);
+  virtual void      set(GpioExtRefPtr refPtr);
+  virtual void      clr(GpioExtRefPtr refPtr);
 };
 
 // ----------------------------------------------------------------------------

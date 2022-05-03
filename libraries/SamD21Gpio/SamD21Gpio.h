@@ -150,6 +150,8 @@ public:
 
   void      write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
   void      writeArd(ArdMask ardMask, dword value);
+  void      set(GpioExtRefPtr refPtr);
+  void      clr(GpioExtRefPtr refPtr);
 
 
   // ----------------------------------------------------------------------------

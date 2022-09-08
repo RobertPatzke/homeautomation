@@ -257,6 +257,22 @@ void      nRF52840Gpio::write(GpioExtRefPtr refPtr, GpioExtValPtr valPtr)
   ((nrfGpioPtr) refPtr->next->ioPtr)->OUTCLR = ~valPtr->next->value & refPtr->next->pins;
 }
 
+void      nRF52840Gpio::set(GpioExtRefPtr refPtr)
+{
+  ((nrfGpioPtr) refPtr->ioPtr)->OUTSET = refPtr->pins;
+  if(refPtr->next == NULL) return;
+  ((nrfGpioPtr) refPtr->next->ioPtr)->OUTSET = refPtr->next->pins;
+}
+
+void      nRF52840Gpio::clr(GpioExtRefPtr refPtr)
+{
+  ((nrfGpioPtr) refPtr->ioPtr)->OUTCLR = refPtr->pins;
+  if(refPtr->next == NULL) return;
+  ((nrfGpioPtr) refPtr->next->ioPtr)->OUTCLR = refPtr->next->pins;
+}
+
+
+
 void      nRF52840Gpio::writeArd(ArdMask ardMask, dword value)
 {
   dword   set0 = 0, set1 = 0;

@@ -40,6 +40,8 @@ public:
 
   virtual void  putByteRec(byte b);       // Byte vom Empfang an Puffer geben
 
+  virtual int   putSeq(byte *msg, int n); // Bytefolge an Puffer übergeben
+
 };
 
 // ----------------------------------------------------------------------------

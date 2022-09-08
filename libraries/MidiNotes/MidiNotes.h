@@ -20,6 +20,11 @@
 #define MaxNrNoteSim    4
 #define MaxMidiSeq      (2 * MaxNrNoteSim + 1)
 
+// Definierte Noten
+//
+#define SchlossC    60
+#define Kammerton   69
+
 typedef enum  _NoteDiv
 {
   nd4   = 1,
@@ -84,11 +89,11 @@ private:
     dword   decay;
     dword   sustain;
     dword   release;
+    dword   pause;
     byte    deltaAttack;
     byte    deltaDecay;
     byte    percentSustain;
     byte    deltaRelease;
-    byte    percentPause;
   } NoteType, *NoteTypePtr;
 
   typedef struct  _Note
@@ -97,6 +102,7 @@ private:
     byte      typeIdx;
     byte      value;
     byte      veloc;
+    int       state;
     dword     cntAttack;
     dword     cntDecay;
     dword     cntSustain;
@@ -107,7 +113,6 @@ private:
   typedef struct _NewNote
   {
     bool      newVal;
-    int       chordIdx;
     byte      typeIdx;
     byte      value;
     byte      veloc;
@@ -121,7 +126,7 @@ private:
   // Lokale Daten
   // --------------------------------------------------------------------------
   //
-  ComRingBuf  *crb;
+  IntrfBuf    *crb;
   cbVector    nextState;
 
   MidiOpMode  opMode;
@@ -144,7 +149,10 @@ private:
   NoteTypePtr typePtr;      // Temporärer Notentyp
 
   dword     absPause;       // Pause für den zyklischen Ablauf
-  NewNote   newNote;        // Übergabe neuer Notenwerte
+  NewNote   newNote[MaxNrNoteSim];  // Übergabe neuer Noten
+
+  bool      stopRun;           // Anhalten der Midi-Schleife
+  bool      stoppedRun;        // Midi-Schleife angehalten
 
 
   // --------------------------------------------------------------------------
@@ -175,32 +183,36 @@ public:
   // --------------------------------------------------------------------------
   // Initialisierungen
   // --------------------------------------------------------------------------
-  void begin(int inBpm, NoteDiv inRes, int inMidiCycle, ComRingBuf *inCRB);
+  void begin(int inBpm, NoteDiv inRes, int inMidiCycle, IntrfBuf *inCRB);
 
 
   // --------------------------------------------------------------------------
   // Konfiguration
   // --------------------------------------------------------------------------
   //
-  void setNoteType(NoteTypeIdx nt);
+  void  setNoteType(NoteTypeIdx nt);
 
-  void setNoteType(NoteTypeIdx nt, dword att, dword dec, dword sus, dword rel,
-                   byte dAtt, byte dDec, byte dSus, byte dRel, byte pPau);
+  void  setNoteType(NoteTypeIdx nt, byte pAttL, byte pDecL, byte pSusL, byte pRelL,
+                    byte dAtt, byte dDec, byte pSusV, byte dRel, byte pPauL);
 
-  int addChordNote(NoteTypeIdx nti, byte val, byte vel);
+  int   addChordNote(NoteTypeIdx nti, byte val, byte vel);
+
+  void  setChannel(int chnVal);
 
   // --------------------------------------------------------------------------
   // Betrieb
   // --------------------------------------------------------------------------
   //
   void setOpMode(MidiOpMode mom);
-  void setChordNote(int idx, int type, int val, int vel);
+  void setChordNote(int idx, NoteTypeIdx nti, int val, int vel);
 
   // --------------------------------------------------------------------------
   // Steuerung, Zustandsmaschine
   // --------------------------------------------------------------------------
   //
   void run();
+  void stop();
+  void resume();
 
   // --------------------------------------------------------------------------
   // Debugging

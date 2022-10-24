@@ -69,6 +69,7 @@ void BlePoll::init(IntrfRadio *refRadio, dword inCycleMics, MicsecFuPtr inMicroF
   runCounter = 0;
   newValue = false;
   cbData = NULL;
+  lenPollCtrl = 0;
 
   for(int i = 1; i <= MAXSLAVE; i++)
   {
@@ -96,6 +97,8 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
   // weil für jede Testanwendung spezifische Vorbereitungen gemacht wurden.
   // --------------------------------------------------------------------------
   //
+  PlpCtrl25Ptr ctrlPtr;
+
   wdTimeOut = watchDog;   // WatchDog-Time-Out in Mikrosekunden
 
   if(typeIn == ctMASTER)
@@ -122,14 +125,20 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
     slaveIdx = adr;     // Reserve für getrennte Verwaltung von adr und slaveIdx
     next(smInit);
   }
-  else
+  else // Slave
   {
     nak = true;
     adr = adrIn;
     next(smInit);
   }
 
-  if(appType == atSOAAP || appType == atTestSend || appType == atDevSOAAP)
+  if
+    (
+        appType == atSOAAP1
+     || appType == atTestSend
+     || appType == atDevSOAAP
+     || appType == atSOAAP2
+    )
   {
     pduOut.adr5 = 0x53;
     pduOut.adr4 = 0x4F;
@@ -152,19 +161,54 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
   pduOut.data[1] = appType;   // Pdu-Typ (TYPE)
   pduIn.data[1] = appType;
 
-  if(appType == atSOAAP)
+  if(appType == atSOAAP1)
   {
     if(master)
     {
       valuePdu.appId = plptMeas9Ctrl4;
-      ctrlPdu.appId = plptCtrlX;
+      ctrlPdu.appId = plptCtrl2;
       plMode = plmSoaapM;
       fullCycle = true;
     }
     else
     {
       valuePdu.appId = plptMeas9Ctrl4;
-      ctrlPdu.appId = plptCtrlX;
+      ctrlPdu.appId = plptCtrl2;
+      plMode = plmSoaapS;
+    }
+  }
+  else if(appType == atSOAAP2)
+  {
+    if(master)
+    {
+      // Bei atSOAAP2 wird die Übermittlung von Daten beim Sendeaufruf implementiert.
+      // Das erfordert eine spezifische Behandlung für jeden Slave.
+      // Die globalen Anweisungen sind obsolet und sollen demnächst eliminiert werden.
+      // (Vorher Auswertung kontrollieren).
+      //
+      valuePdu.appId = plptIMU3F4Ctrl4;
+      ctrlPdu.appId = plptCtrl2;
+      plMode = plmSoaapM;
+      fullCycle = true;
+
+      for(int i = 1; i <= MAXSLAVE; i++)
+      {
+        ctrlPtr = (PlpCtrl25Ptr) &slaveList[i].control;
+        ctrlPtr->counter = 0;
+        ctrlPtr->type = appType;
+        ctrlPtr->appId = plptCtrl2;
+        ctrlPtr->ctrlPath = 0;
+        ctrlPtr->ctrlCnt = 0;
+        ctrlPtr->reqAppId = plptIMU3F4Ctrl4;
+        ctrlPtr->ctrl[0] = 0;
+        ctrlPtr->ctrl[1] = 0;
+      }
+
+    }
+    else
+    {
+      valuePdu.appId = plptIMU3F4Ctrl4;
+      ctrlPdu.appId = plptCtrl2;
       plMode = plmSoaapS;
     }
   }
@@ -184,6 +228,8 @@ void BlePoll::begin(ComType typeIn, int adrIn, AppType appType, dword watchDog)
       plMode = plmSoaapS;
     }
   }
+
+  gAppId = (PlpType) valuePdu.appId;
 
   valuePdu.measCnt = 0;
   valuePdu.counter = 0;
@@ -247,8 +293,6 @@ void BlePoll::setCbCtrlPtr(cbCtrlPtr cbPtr)
 
 
 dword smStartComESCnt;
-bcPdu recBeacon;
-int   lenBeacon = 0;
 
 // --------------------------------------------------------------------------
 // Hilfsfunktionen
@@ -301,6 +345,10 @@ bool BlePoll::getValues(bcPduPtr pduPtr, PlpType appId)
     case plptMeas9Ctrl4:
       pduPtr->len = sizeof(PlpM9C4) + 6;
       break;
+
+    case plptIMU3F4Ctrl4:
+      pduPtr->len = sizeof(PlpI3S4C4) + 6;
+      break;
   }
   pduPtr->data[0]++;      // Pdu-Counter
   pduPtr->data[1] = valuePdu.type;
@@ -320,13 +368,14 @@ bool BlePoll::getValues(bcPduPtr pduPtr, PlpType appId)
 bool BlePoll::getCtrls(bcPduPtr pduPtr, PlpType appId)
 {
   int   ctrlLen;
+  PlpI3S4C4Ptr  locPtr = (PlpI3S4C4Ptr) &pduPtr->data[0];
 
-  if(recBeacon.len > 6)
-    ctrlLen = recBeacon.len - 6;
+  if(pollCtrl.len > 6)
+    ctrlLen = pollCtrl.len - 6;
   else
     ctrlLen = 4;
 
-  newCtrl = cbCtrl((PlpType) appId, &pduPtr->data[22], &recBeacon.data[0], ctrlLen);
+  newCtrl = cbCtrl((PlpType) appId, &locPtr->ctrlPath, &pollCtrl.data[0], ctrlLen);
 
   return(newCtrl);
 }
@@ -902,12 +951,6 @@ void BlePoll::smStartCom()
     }
     pollIdx = 1;
 
-    // Vorbereitung der mit dem Polling übermittelten Daten
-    //
-    pduOut.len  = 13;                 // Adresse (6) + 7 Byte Steuerung
-    ctrlPdu.counter = 0;              // Zähler im Steuertelegramm
-    ctrlPdu.appId = plptMeas9Ctrl4;   // Info für Slave zur Antwort
-
     next(smReqComS);
   }
   // --------------------------------------------
@@ -979,9 +1022,27 @@ void BlePoll::smReqComS()
   nak = false;          // Ist true, wenn keine Daten übertragen werden (empty poll)
   adr = curSlave->adr;
   area = curSlave->area;
-  setPduAddress();
+  setPduAddress(&pduOut);
   setTimeOut(curSlave->timeOut);
 
+  // Vorbereitung der mit dem Polling übermittelten Daten
+  //
+  //ctrlPdu.counter = 0;        // Zähler im Steuertelegramm
+  //ctrlPdu.appId = gAppId;     // Info für Slave zur Antwort
+
+
+  pduOut.len  = 14;           // Adresse (6) + 7 Byte Steuerung
+  ctrlPduPtr = (PlpCtrl25Ptr) &curSlave->control;
+
+  int dIdx = 0;
+  pduOut.data[dIdx++] = ctrlPduPtr->counter++;
+  pduOut.data[dIdx++] = ctrlPduPtr->type;
+  pduOut.data[dIdx++] = ctrlPduPtr->appId;
+  pduOut.data[dIdx++] = ctrlPduPtr->ctrlPath;
+  pduOut.data[dIdx++] = ctrlPduPtr->ctrlCnt;
+  pduOut.data[dIdx++] = ctrlPduPtr->reqAppId;
+  pduOut.data[dIdx++] = ctrlPduPtr->ctrl[0];
+  pduOut.data[dIdx++] = ctrlPduPtr->ctrl[1];
 
   // Statistic-Daten einholen für evt. Auswertung
   //
@@ -1113,6 +1174,20 @@ void BlePoll::smWaitAckComS()
         ((PlpM9C4Ptr) resPtr)->procCnt  = pduIn.data[23];
         ((PlpM9C4Ptr) resPtr)->ctrl[0]  = pduIn.data[24];
         ((PlpM9C4Ptr) resPtr)->ctrl[1]  = pduIn.data[25];
+        break;
+
+      case plptIMU3F4Ctrl4:
+        ((PlpI3S4C4Ptr) resPtr)->meas[0]  = *(float *) &pduIn.data[4];
+        ((PlpI3S4C4Ptr) resPtr)->meas[1]  = *(float *) &pduIn.data[8];
+        ((PlpI3S4C4Ptr) resPtr)->meas[2]  = *(float *) &pduIn.data[12];
+        ((PlpI3S4C4Ptr) resPtr)->state[0] = pduIn.data[16];
+        ((PlpI3S4C4Ptr) resPtr)->state[1] = pduIn.data[17];
+        ((PlpI3S4C4Ptr) resPtr)->state[2] = pduIn.data[18];
+        ((PlpI3S4C4Ptr) resPtr)->state[3] = pduIn.data[19];
+        ((PlpI3S4C4Ptr) resPtr)->ctrlPath = pduIn.data[20];
+        ((PlpI3S4C4Ptr) resPtr)->procCnt  = pduIn.data[21];
+        ((PlpI3S4C4Ptr) resPtr)->ctrl[0]  = pduIn.data[22];
+        ((PlpI3S4C4Ptr) resPtr)->ctrl[1]  = pduIn.data[23];
         break;
 
       case plptMeas6:
@@ -1327,14 +1402,14 @@ void BlePoll::smStartComES()
 
   // Eintragen der Messwerte in das Sendetelegramm
   //
-  if(lenBeacon == 0)            // Wenn noch kein Empfangszyklus vorliegt
+  if(lenPollCtrl == 0)          // Wenn noch kein Empfangszyklus vorliegt
     appId = valuePdu.appId;     // dann wird der voreingestellte Satz gewählt
   else
-    appId = recBeacon.data[2];  // ansonsten der speziell angeforderte
+    appId = pollCtrl.data[5];   // ansonsten der speziell angeforderte
 
   newValues = getValues(&pduOut, (PlpType) appId);
 
-  if((appId == plptMeas9Ctrl4) && (cbCtrl != NULL))
+  if((appId == plptMeas9Ctrl4 || appId == plptIMU3F4Ctrl4) && (cbCtrl != NULL))
     getCtrls(&pduOut, (PlpType) appId);
 
   radio->setChannel(chn);
@@ -1352,6 +1427,8 @@ void BlePoll::smWaitComES()
   radio->getStatistics(&statistic);
   if(timeOut())
   {
+    //TEST
+    lenPollCtrl = 2;
     next(smStartComES);
     return;
   }
@@ -1360,12 +1437,14 @@ void BlePoll::smWaitComES()
   //
   // Übertragung beendet, Daten empfangen (polling) und versendet (response)
   //
-  //lenBeacon = radio->getRecData(&recBeacon, txmResp, sizeof(recBeacon));
+  lenPollCtrl = radio->getRecData(&pollCtrl, txmResp, sizeof(pollCtrl));
+
   next(smStartComES);
 }
 
+// M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M M
 // --------------------------------------------------------------------------
-// Anwenderfunktionen
+// Anwenderfunktionen als Master
 // --------------------------------------------------------------------------
 //
 
@@ -1376,10 +1455,10 @@ void BlePoll::updControl(int adr, byte *ctrlList, int nr)
   if(adr <= 0) return;
   if(adr >= MAXSLAVE) return;
   if(nr <= 1) return;
-  if(nr > 27) return;
+  if(nr > 26) return;
 
   SlavePtr  slavePtr = &slaveList[adr];
-  PlpCtrl27Ptr ctrlPtr = (PlpCtrl27Ptr) &slavePtr->control;
+  PlpCtrl25Ptr ctrlPtr = (PlpCtrl25Ptr) &slavePtr->control;
   for(int i = 0; i < nr; i++)
     ctrlPtr->ctrl[i] = ctrlList[i];
   ctrlPtr->ctrlCnt++;
@@ -1405,7 +1484,7 @@ bool BlePoll::ackControl(int adr)
   if(adr >= MAXSLAVE) return(false);
 
   SlavePtr  slavePtr = &slaveList[adr];
-  PlpCtrl27Ptr ctrlPtr = (PlpCtrl27Ptr) &slavePtr->control;
+  PlpCtrl25Ptr ctrlPtr = (PlpCtrl25Ptr) &slavePtr->control;
   if(ctrlPtr->ctrlCnt == slavePtr->rspCtrlCount)
     return(true);
   else
@@ -1485,6 +1564,10 @@ int BlePoll::getMeas(int slAdr, byte *dest)
       anzByte = 22;
       break;
 
+    case plptIMU3F4Ctrl4:
+      anzByte = 20;
+      break;
+
     case plptMeas13:
       anzByte = 26;
       break;
@@ -1502,7 +1585,68 @@ int BlePoll::getMeas(int slAdr, byte *dest)
   return(anzByte);
 }
 
+/*
+// Auslesen der Steuerwerte/Antwort
+//
+CtrlData2Ptr BlePoll::getCtrl(int slAdr)
+{
 
+  if(slAdr < 1) return(NULL);
+  if(slAdr >= MAXSLAVE) return(NULL);
+
+  SlavePtr  slavePtr = &slaveList[slAdr];
+  PlpI3S4C4Ptr dptr = (PlpI3S4C4Ptr) &slavePtr->result;
+  return((CtrlData2Ptr) &dptr->ctrlPath);
+}
+*/
+
+
+// S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S S
+// --------------------------------------------------------------------------
+// Anwenderfunktionen als Slave
+// --------------------------------------------------------------------------
+//
+bool BlePoll::getCtrlResp(int adr, CtrlResp2Ptr ctlRspPtr)
+{
+  PlpType   appId;
+  bool      retv = false;
+  SlavePtr  slPtr = &slaveList[adr];
+
+  appId = (PlpType) slPtr->result.plData[0];
+
+  switch(appId)
+  {
+    case plptMeas6:
+      break;
+
+    case plptMeas9:
+      break;
+
+    case plptMeas9Ctrl4:
+      ctlRspPtr->ctrlPath = ((PlpM9C4Ptr) &slPtr->result)->ctrlPath;
+      ctlRspPtr->procCnt  = ((PlpM9C4Ptr) &slPtr->result)->procCnt;
+      ctlRspPtr->ctrl[0]  = ((PlpM9C4Ptr) &slPtr->result)->ctrl[0];
+      ctlRspPtr->ctrl[1]  = ((PlpM9C4Ptr) &slPtr->result)->ctrl[1];
+      retv = true;
+      break;
+
+    case plptIMU3F4Ctrl4:
+      ctlRspPtr->ctrlPath = ((PlpI3S4C4Ptr) &slPtr->result)->ctrlPath;
+      ctlRspPtr->procCnt  = ((PlpI3S4C4Ptr) &slPtr->result)->procCnt;
+      ctlRspPtr->ctrl[0]  = ((PlpI3S4C4Ptr) &slPtr->result)->ctrl[0];
+      ctlRspPtr->ctrl[1]  = ((PlpI3S4C4Ptr) &slPtr->result)->ctrl[1];
+      retv = true;
+      break;
+
+    case plptMeas13:
+      break;
+
+    default:
+      break;
+  }
+
+  return(retv);
+}
 // --------------------------------------------------------------------------
 // Debugging
 // --------------------------------------------------------------------------
@@ -1574,6 +1718,13 @@ PollStatePtr  BlePoll::getPollPtr(int idx)
   return(&pollList[idx]);
 }
 
+int BlePoll::getCtrlData(byte *dest)
+{
+  byte *src = (byte *) &pollCtrl;
+  for(int i = 0; i < lenPollCtrl+2; i++)
+    dest[i] = src[i];
+  return(lenPollCtrl+2);
+}
 
 
 

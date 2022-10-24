@@ -13,6 +13,7 @@
 #include "Arduino.h"
 #include "arduinoDefs.h"
 #include "IntrfTw.h"
+#include "IntrfMeas.h"
 
 // ----------------------------------------------------------------------------
 
@@ -220,7 +221,7 @@ typedef struct _SensorErrors
 
 } SensorErrors, *SensorErrorsPtr;
 
-class SensorLSM9DS1
+class SensorLSM9DS1 : IntrfMeas
 {
 private:
   // --------------------------------------------------------------------------
@@ -236,10 +237,13 @@ private:
   bool        newValueAG;
   RawDataAG   rawDataAG;
   RawDataAG   comDataAG;
+  byte        signA;
+  byte        signG;
 
   bool        enableMeasM;
   bool        newValueM;
   RawDataM    rawDataM;
+  byte        signM;
 
   int         fullScaleA;
   int         fullScaleG;
@@ -273,6 +277,31 @@ private:
   int         runCycle;
 
   void setTimeOutValues(FreqAG fAG, FreqM fM);
+
+  // Inline-Funktionen
+  void markSigns(byte signs, short x, short y, short z)
+  {
+    byte newSigns, chkSigns;
+
+    if(x < 0) newSigns = signX;
+    else newSigns = 0;
+    chkSigns = signs ^ newSigns;
+    if(chkSigns & signX) newSigns |= deltaSignX;
+
+    if(y < 0) newSigns |= signY;
+    chkSigns = signs ^ newSigns;
+    if(chkSigns & signY) newSigns |= deltaSignY;
+
+    if(z < 0) newSigns |= signZ;
+    chkSigns = signs ^ newSigns;
+    if(chkSigns & signZ) newSigns |= deltaSignZ;
+
+    if(newSigns & chkSignAll) newSigns |= signAll;
+    chkSigns = signs ^ newSigns;
+    if(chkSigns & signAll) newSigns |= deltaSignAll;
+
+    signs = newSigns;
+  }
 
 public:
   // --------------------------------------------------------------------------
@@ -336,6 +365,7 @@ public:
   dword       toCntStatusM;
 
   void  syncValuesAG();
+  bool  availValuesAG();
   bool  getValuesAG(RawDataAGPtr rdptr);
   bool  getValuesAG(CalValueAGPtr calPtr);
   bool  getAvgValuesAG(CalValueAGPtr calPtr);
@@ -347,6 +377,18 @@ public:
   // Ereignisbearbeitung und Interrupts
   // ----------------------------------------------------------------------------
   //
+
+  // ----------------------------------------------------------------------------
+  // Schnittstelle für allgemeine Anwendungen
+  // ----------------------------------------------------------------------------
+  //
+  #define typeFloat   1
+  #define codeAcc     1
+
+  void sync(int type, int code);
+  bool available(int type, int code);
+  int  getValues(int type, int code, void *dataPtr);
+  byte getSigns(int type, int code);
 
   // ----------------------------------------------------------------------------
   //                      D e b u g - H i l f e n

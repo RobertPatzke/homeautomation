@@ -68,15 +68,19 @@ typedef struct _PlPduExtd   // grundsätzliche maximale Länge = 249 Bytes
   byte  plData[247];  // weitere spezifische Nutzdaten
 } PlPduExtd, *PlPduExtdPtr;
 
-// Datentypen (appId in plPduBase)
+// Datentypen (appId in plPduMeas)
 //
 typedef enum _PlpType
 {
   plptError,        // Fehler erkannt
-  plptEmpty,        // Leeres Telegramm (nur adresse)
+  plptEmpty,        // Leeres Telegramm (nur Adresse)
   plptBasic,        // Grundlegende Bytestruktur
+  plptIMU3F,        // 3 Messwerte Float (Roll-, Nick- und Gierwinkel)
+  plptIMU3F4Ctrl4,  // 3 Messwerte Float (Roll-, Nick- und Gierwinkel)
+                    // 4 Byte Status und 4 Byte Steuerung
   plptFullMeas,     // Maximale Belegung mit 16-Bit Messwerten (word)
   plptMeas3,        // 3 Messwerte (1 Raumsensor)
+  plptMeas3F,       // 3 Messwerte Float
   plptMeas6,        // 6 Messwerte (2 Raumsensoren)
   plptMeas9,        // 9 Messwerte (3 Raumsensoren)
   plptMeas9Ctrl4,   // 9 Messwerte + 4 Byte Steuerung
@@ -91,7 +95,25 @@ typedef enum _PlpType
   plptMsg           // (Quittierte) Meldung an Slave
 } PlpType, *PlpTypePtr;
 
+
+// Teilstrukturen für bestimmte Bearbeitungen
+//
+typedef struct _CtrlResp2
+{
+  byte    ctrlPath;   // Steuerungspfad (für Verzweigungen/Funktionen)
+  byte    procCnt;    // Prozesszähler
+  byte    ctrl[2];    // Inhalt Steuerungsantwort
+} CtrlResp2, *CtrlResp2Ptr;
+
+typedef struct _CtrlResp25
+{
+  byte    ctrlPath;   // Steuerungspfad (für Verzweigungen/Funktionen)
+  byte    procCnt;    // Prozesszähler
+  byte    ctrl[26];   // Inhalt Steuerungsantwort
+} CtrlResp25, *CtrlResp25Ptr;
+
 // Spezifische Datenstrukturen
+// Bezug zum Telegramm: bcPdu.data (bleSpec.h)
 //
 typedef struct _PlpFullMeas   // Ausnahme für vordefinierte Spezialfälle
 {
@@ -138,8 +160,21 @@ typedef struct _PlpM9C4      // Länge 26 (+ 6 Bytes Adresse)
   word    meas[9];    // Liste von 9 Messwerten
   byte    ctrlPath;   // Steuerungspfad (für Verzweigungen/Funktionen)
   byte    procCnt;    // Prozesszähler
-  byte    ctrl[2];    // Steuerungsdaten
+  byte    ctrl[2];    // Inhalt Steuerungsantwort
 } PlpM9C4, *PlpM9C4Ptr;
+
+typedef struct _PlpI3S4C4      // Länge 24 (+ 6 Bytes Adresse)
+{
+  byte    counter;    // zyklischer Telegrammmzähler
+  byte    type;       // Kennzeichnung der Datenstruktur (AppType)
+  byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    measCnt;    // Zähler für Messwertaktualisierung
+  float   meas[3];    // Liste von 3 Float-Messwerten
+  byte    state[4];   // Gerätezustand
+  byte    ctrlPath;   // Steuerungspfad (Verzw./Fkt.)
+  byte    procCnt;    // Prozesszähler
+  byte    ctrl[2];    // Inhalt Steuerungsantwort
+} PlpI3S4C4, *PlpI3S4C4Ptr;
 
 typedef struct _PlpMeas12      // Länge 28 (+ 6 Bytes Adresse)
 {
@@ -159,25 +194,36 @@ typedef struct _PlpMeas13      // Länge 30 (+ 6 Bytes Adresse)
   word    meas[13];   // Liste von 13 Messwerten
 } PlpMeas13, *PlpMeas13Ptr;
 
-typedef struct _PlpCtrl2        // Länge 7 (+ 6 Bytes Adresse)
+// TODO
+// ----------------------------------------------------------------------------
+// Die folgenden Strukturen sind für (vollständige) Telegramme vom Master
+// zum Slave vorgesehen (Empfangsaufruf und Datenübertragung)
+// Das ist noch nicht richtig überlegt.
+// Zur Zeit werden sie zur Ergänzung des Sendeaufrufs verwendet
+// ----------------------------------------------------------------------------
+//
+
+typedef struct _PlpCtrl2        // Länge 8 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
   byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    ctrlPath;   // Steuerungspfad
   byte    ctrlCnt;    // Zähler für Kommandoaktualisierung
-  byte    procCnt;    // Zähler für Prozessaktualisierung
+  byte    reqAppId;   // Angeforderter Datentyp/Anwendung
   byte    ctrl[2];    // Liste von 2 Steuerbytes
 } PlpCtrl2, *PlpCtrl2Ptr;
 
-typedef struct _PlpCtrl27        // Länge 31 (+ 6 Bytes Adresse)
+typedef struct _PlpCtrl25        // Länge 31 (+ 6 Bytes Adresse)
 {
   byte    counter;    // zyklischer Telegrammmzähler
   byte    type;       // Kennzeichnung der Datenstruktur (AppType)
   byte    appId;      // Kennzeichnung für Dateninhalte (PlpType)
+  byte    ctrlPath;   // Steuerungspfad
   byte    ctrlCnt;    // Zähler für Kommandoaktualisierung
-  byte    procCnt;    // Zähler für Prozessaktualisierung
-  byte    ctrl[26];   // Liste von bis zu 26 Steuerbytes
-} PlpCtrl27, *PlpCtrl27Ptr;
+  byte    reqAppId;   // Angeforderter Datentyp
+  byte    ctrl[25];   // Liste von bis zu 26 Steuerbytes
+} PlpCtrl25, *PlpCtrl25Ptr;
 
 // Identifikator für die Art der Daten
 //
@@ -186,6 +232,8 @@ typedef enum _MeasId
   app               // Gestaltung/Bedeutung der Daten aus Anwendung
 } MeasId, *MeasIdPtr;
 
+// Umgebungsspeicher für einen Slave
+//
 typedef struct _Slave
 {
   dword     timeOut;        // Wartezeit beim Polling in Mikrosekunden
@@ -255,7 +303,8 @@ public:
   {
     atDefault,        // Standard-Default-Anwendung
     atTestSend,       // einfacher Sendetest (Soaap)
-    atSOAAP,          // Steuerung optischer und akustischer Ausgaben für Performance-Künstler
+    atSOAAP1,         // Steuerung optischer und akustischer Ausgaben für Performance-Künstler
+    atSOAAP2,         // Version 2
     atDevSOAAP,       // Entwicklerbetrieb für SOAAP
     atDHA             // Dezentrale Hausautomatisierung
   } AppType;
@@ -282,6 +331,8 @@ private:
   IntrfRadio    *radio;
   bcPdu         pduOut;
   bcPdu         pduIn;
+  bcPdu         pollCtrl;
+  int           lenPollCtrl;
   cbVector      nextState;
   MicsecFuPtr   micSec;
   cbDataPtr     cbData;
@@ -332,7 +383,8 @@ private:
 
   TxStatistics  statistic;
   PlPduMeas     valuePdu;
-  PlpCtrl27     ctrlPdu;
+  PlpCtrl25     ctrlPdu;
+  PlpCtrl25Ptr  ctrlPduPtr;
   bool          newValue;
   bool          newCtrl;
 
@@ -342,6 +394,7 @@ private:
   int           epCycleTotal;   // Anzahl der leeren Pollings gesamt
   int           epCycleRun;     // Anzahl der leeren Pollings nach Kontakt
   dword         epTimeOut;      // Time-Out in Mikrosekunden
+  PlpType       gAppId;         // Anwendungs-Id zur Protokollsteuerung
 
 
   // --------------------------------------------------------------------------
@@ -430,7 +483,7 @@ public:
   void updControl(int adr, byte *ctrlList, int nr);   // neue Steuerungsdaten
   bool ackTrans(int adr);         // Bestätigung Steuerungsdaten übertragen
   bool ackControl(int adr);       // Bestätigung Steuerung ausgeführt
-
+  bool getCtrlResp(int adr, CtrlResp2Ptr ctlRspPtr);  // Antwort auf Steuerdaten holen
 
   // Test
   //
@@ -467,10 +520,10 @@ public:
   // auf den Index [1] abzubilden, weil Slave[0] für besondere Aufgaben
   // reserviert und für den Anwender nicht zugänglich ist.
   //
-  bool      measAvail(int slIdx);   // Feststellen, ob neue Messwerte da sind
-  int       getArea(int slIdx);     // Wert der Area auslesen
-  PlpType   getAppId(int slIdx);    // Wert der AppId (BlePoll) auslesen
-  int       getMeas(int slIdx, byte *dest);    // Messwerte übergeben
+  bool          measAvail(int slIdx);   // Feststellen, ob neue Messwerte da sind
+  int           getArea(int slIdx);     // Wert der Area auslesen
+  PlpType       getAppId(int slIdx);    // Wert der AppId (BlePoll) auslesen
+  int           getMeas(int slIdx, byte *dest);    // Messwerte übergeben
 
 
 
@@ -483,6 +536,7 @@ public:
 
   SlavePtr      getSlavePtr(int idx);
   PollStatePtr  getPollPtr(int idx);
+  int           getCtrlData(byte *dest);
 };
 
 

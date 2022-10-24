@@ -70,6 +70,7 @@ typedef enum _TxMode
 
 #define SOAAP_NAK     0x40
 #define SOAAP_EADR    0x80
+#define SOAAP_MA      0x80
 
 // Modeabhängige Statistikdaten
 //

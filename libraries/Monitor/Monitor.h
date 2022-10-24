@@ -23,8 +23,10 @@
 
 #define keyHit()  smnSerial.available()
 #define keyIn()   smnSerial.read()
+#define outFree() smnSerial.availableForWrite()
 #define out(x)    smnSerial.print(x)
 #define outl(x)   smnSerial.println(x)
+#define outn(x,y) smnSerial.write(x,y)
 #define GoInp     nextState = &Monitor::getKey;
 #define GoPrm     nextState = &Monitor::prompt;
 #define GoWt      nextState = &Monitor::waitEnter;
@@ -82,7 +84,15 @@ private:
   char      cmdMode1;
   char      cmdMode2;
 
-  char      *info;
+  char      *helpMsg;
+  int       helpLen;
+  int       helpPart;
+  int       helpIdx;
+
+  char      *infoMsg;
+  int       infoLen;
+  int       infoPart;
+  int       infoIdx;
 
   StatePtr  nextState;
   LoopCheck *lcPtr;
@@ -107,6 +117,10 @@ private:
   void  init(int mode, int cpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr);
 
   void  waitEnter();
+  void  help();
+  void  helpOut();
+  void  infoIni();
+  void  infoOut();
   void  prompt();
   void  getKey();
   void  version();

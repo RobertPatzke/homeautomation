@@ -30,13 +30,31 @@ void Monitor::init(int inMode, int inCpu, LoopCheck *inLcPtr, IntrfTw *inTwPtr)
   blkOut        = false;
   blkIn         = false;
   inIdx         = 0;
-  info          = NULL;
+  infoMsg       = NULL;
   readOffsAddr  = 0;
   doReadReg     = false;
   extraIn       = false;
   lcPtr         = inLcPtr;
   twiPtr        = inTwPtr;
   nrOfChnChar   = '@';
+
+  helpMsg =
+  {
+  "Monitor 32-Bit ARM, Version 22.09.20\r\n"
+  "\r\n"
+  "C_  Lokale Steuerungen/Abfragen\r\n"
+  "cs  Anzeigen der Flags cFlag[]\r\n"
+  "cx  Invertieren der Flags cFlag[x], x=0...9\r\n"
+  "cfg Anzeigen der Konfiguration\r\n"
+  "\r\n"
+  "I_ Zugriff auf I2C-Bus\r\n"
+  "IA xx Setzen der Adresse\r\n"
+  "IL xxyy Lesen yy Bytes von Register xx\r\n"
+  "IR xx Lesen 1 Byte von Register xx\r\n"
+  "IW xxyy Schreiben yy an Register xx\r\n"
+  "\r\n"
+  };
+
 
 #ifdef smnNANOBLE33
 
@@ -271,6 +289,20 @@ void Monitor::getKey()
           inChar[inIdx] = cin;
           inIdx++;
         }
+
+        else if(cin == 's' || cin == 'S')
+        {
+          inIdx = 0;
+          for(int i = 0; i < 10; i++)
+          {
+            out(' ');
+            out('c');
+            out(i);
+            out('=');
+            out(cFlag[i]);
+          }
+          GoPrm
+        }
       }
 
       else if(inIdx == 2)
@@ -284,6 +316,13 @@ void Monitor::getKey()
       }
       else
         GoPrm
+      break;
+
+    case '?':
+    case 'H':
+    case 'h':
+      outl(" Info:");
+      nextState = &Monitor::help;
       break;
 
     case 'i':
@@ -423,9 +462,57 @@ void Monitor::prompt()
   GoInp
 }
 
+void Monitor::help()
+{
+  helpLen = helpPart = strlen(helpMsg);
+  helpIdx = 0;
+  nextState = &Monitor::helpOut;
+}
+
+void Monitor::helpOut()
+{
+  outn(&helpMsg[helpIdx],helpLen);
+  nextState = &Monitor::infoIni;
+}
+
+void Monitor::infoIni()
+{
+  if(infoMsg == NULL)
+  {
+    GoPrm
+    return;
+  }
+  infoLen = infoPart = strlen(infoMsg);
+  infoIdx = 0;
+  nextState = &Monitor::infoOut;
+}
+
+/*
+void Monitor::infoOut()
+{
+  int space;
+  space = outFree();
+  if(space == 0) return;
+
+  if((infoLen - infoIdx) < space)
+    space = infoLen - infoIdx;
+  outn(&info[infoIdx],space);
+  infoIdx += space;
+  if(infoIdx < infoLen) return;
+
+  GoPrm
+}
+*/
+void Monitor::infoOut()
+{
+  outn(&infoMsg[infoIdx],infoLen);
+  GoPrm
+}
+
+
 void Monitor::version()
 {
-  out("Monitor: Version 0.1, May 16, 2021");
+  out("Monitor: Version 0.2, September 20, 2022");
   GoPrm
 }
 
@@ -1135,7 +1222,7 @@ void Monitor::println(byte *iVal, int nr, char fill)
 
 void Monitor::setInfo(char *txt)
 {
-  info = txt;
+  infoMsg = txt;
 }
 
 void Monitor::config(int inNrOfChn)

@@ -14,7 +14,13 @@
 #include "bleSpec.h"
 #include "IntrfRadio.h"
 
+//#define smnDEBUG
+// Mit dieser Definition wird das Debuggen der Module grundsätzlich ermöglicht
+// Sie wird in der Regel in der Projektumgebung des Entwicklungssystems gesetzt
+// (z.B. Arduino Compile Options bei Eclipse/Sloeber)
+
 #define nRF52840RadioDEB
+// Damit wird die Erzeugung von Debug-Daten in diesem Modul geschaltet
 
 // ----------------------------------------------------------------------------
 
@@ -123,6 +129,8 @@ typedef struct _NRF_RADIO_Type
 #define nrfPowerDCDCEN  ((dword *) 0x40000578)
 #endif
 
+// Falls noch kein Zugriff auf die Taktfestlegung erfolgte
+//
 #ifndef NrfClockBase
 #define NrfClockBase    0x40000000
 #define nrfClockTASKS_HFCLKSTART  ((dword *) 0x40000000)
@@ -223,8 +231,10 @@ private:
   // --------------------------------------------------------------------------
   //
   byte        pduMem[256];
+  int         sizeM;
   byte        pduSentE[256];
   byte        pduSentS[256];
+  byte        pduRec[256];
 
   bcPduPtr    pmPtr;
   bcPduPtr    pePtr;
@@ -233,8 +243,9 @@ private:
   nrf52840Cfg cfgData;
 
   bool        recMode;
-  bool        eadM;
-  bool        nakM;
+  bool        eadM;           // Merker für Empfangsanfrage
+  bool        nakM;           // Merker für NAK-Antwort (oder Request)
+  bool        maM;            // Merker für Master-Telegramm
   bool        comFin;
   bool        comError;
   bool        newValues;
@@ -303,8 +314,9 @@ public:
   // ----------------------------------------------------------------------------
   //
   int   getPduMem(byte *dest, int start, int end);
-  int   getPduSent(byte *dest, int start, int end);
-
+  int   getPduSentE(byte *dest, int start, int end);
+  int   getPduSentS(byte *dest, int start, int end);
+  int   getPduRec(byte *dest, int start, int end);
 
 };
 

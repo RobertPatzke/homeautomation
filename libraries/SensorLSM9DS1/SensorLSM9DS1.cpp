@@ -36,6 +36,10 @@ SensorLSM9DS1::SensorLSM9DS1(IntrfTw *refI2C, int inRunCycle)
   avgSetM     = 0;
   avgCntM     = 0;
 
+  signA   = 0;
+  signG   = 0;
+  signM   = 0;
+
   errorCntAdrNakAG    = 0;
   errorCntDataNakAG   = 0;
   errorCntOverAG      = 0;
@@ -448,6 +452,7 @@ void SensorLSM9DS1::resume()
   enableMeasM = true;
 }
 
+
 void SensorLSM9DS1::run()
 {
   runStateCntTotal++;
@@ -588,6 +593,8 @@ void SensorLSM9DS1::run()
           rawDataAG.valueAG.G.z = sumG.z / avgSetAG;
           sumA.x = sumA.y = sumA.z = sumG.x = sumG.y = sumG.z = 0;
           avgCntAG = avgSetAG;
+          markSigns(signA, rawDataAG.valueAG.A.x, rawDataAG.valueAG.A.y, rawDataAG.valueAG.A.z);
+          markSigns(signG, rawDataAG.valueAG.G.x, rawDataAG.valueAG.G.y, rawDataAG.valueAG.G.z);
           newValueAG = true;
         }
       }
@@ -599,6 +606,8 @@ void SensorLSM9DS1::run()
         rawDataAG.valueAG.G.x = comDataAG.valueAG.G.x;
         rawDataAG.valueAG.G.y = comDataAG.valueAG.G.y;
         rawDataAG.valueAG.G.z = comDataAG.valueAG.G.z;
+        markSigns(signA, rawDataAG.valueAG.A.x, rawDataAG.valueAG.A.y, rawDataAG.valueAG.A.z);
+        markSigns(signG, rawDataAG.valueAG.G.x, rawDataAG.valueAG.G.y, rawDataAG.valueAG.G.z);
         newValueAG = true;
       }
 
@@ -718,11 +727,13 @@ void SensorLSM9DS1::run()
           rawDataM.valueM.z = sumM.z / avgSetM;
           sumM.x = sumM.y = sumM.z = 0;
           avgCntM = avgSetM;
+          markSigns(signM, rawDataM.valueM.x, rawDataM.valueM.y, rawDataM.valueM.z);
           newValueM = true;
         }
       }
       else
       {
+        markSigns(signM, rawDataM.valueM.x, rawDataM.valueM.y, rawDataM.valueM.z);
         newValueM = true;
       }
 
@@ -762,6 +773,24 @@ void  SensorLSM9DS1::syncValuesAG()
   newValueAG = false;
 }
 
+bool  SensorLSM9DS1::availValuesAG()
+{
+  return(newValueAG);
+}
+
+void  SensorLSM9DS1::sync(int type, int code)
+{
+  if(type == 1 && code == 1)
+    newValueAG = false;
+}
+
+bool  SensorLSM9DS1::available(int type, int code)
+{
+  if(type == 1 && code == 1)
+    return(newValueAG);
+  return(false);
+}
+
 bool  SensorLSM9DS1::getValuesAG(RawDataAGPtr rdptr)
 {
   if(!newValueAG) return(false);
@@ -785,6 +814,29 @@ bool  SensorLSM9DS1::getValuesAG(CalValueAGPtr calPtr)
 
   newValueAG = false;
   return(true);
+}
+
+int  SensorLSM9DS1::getValues(int type, int code, void *dataPtr)
+{
+  if(type == 1 && code == 1)
+  {
+    ((TriFloatPtr) dataPtr)->x = (float) fullScaleA * (float) rawDataAG.valueAG.A.x / (float) 32767;
+    ((TriFloatPtr) dataPtr)->y = (float) fullScaleA * (float) rawDataAG.valueAG.A.y / (float) 32767;
+    ((TriFloatPtr) dataPtr)->z = (float) fullScaleA * (float) rawDataAG.valueAG.A.z / (float) 32767;
+    return(code);
+  }
+  else
+    return(-1);
+}
+
+byte SensorLSM9DS1::getSigns(int type, int code)
+{
+  if(type == 1 && code == 1)
+  {
+    return(signA);
+  }
+  else
+    return(0);
 }
 
 bool  SensorLSM9DS1::getAvgValuesAG(CalValueAGPtr calPtr)

@@ -39,6 +39,7 @@ nRF52840Radio::nRF52840Radio()
   comFin = false;
   comError = false;
   newValues = false;
+  sizeM = 0;
 
   memset(statList,0,NrOfTxModes * sizeof(TxStatistics));
 }
@@ -167,7 +168,15 @@ void  nRF52840Radio::send(bcPduPtr inPduPtrE, bcPduPtr inPduPtrS, TxMode txMode,
   // Das muss Alles noch einmal überarbeitet werden.
   // Hier stecken zu viele Redundanzen drin, Altlast aus diversen Tests mit der Hardware
 
-  memcpy((void *)pduMem, (void *)inPduPtrE, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
+  // Problem 20221023A
+  // Es werden im Empfangspuffer pduRec auch die gesendeten Daten angezeigt
+  // Deshalb wird hier der Kommunikationsspeicher extra vorweg gelöscht
+  // Das war aber leider keine Lösung für das Problem
+  //
+  if(txMode == txmResp)
+    memset((void *)pduMem,0,31);
+  else
+    memcpy((void *)pduMem, (void *)inPduPtrE, sizeof(bcPdu));    // Daten in Funkpuffer kopieren
 
   memcpy((void *)pduSentE, (void *)inPduPtrE, sizeof(bcPdu));  // Daten in extra Puffer kopieren
   // Die übergebenen Daten werden in einen Extrapuffer kopiert zur Entkopplung für eventuelle
@@ -429,13 +438,13 @@ int   nRF52840Radio::getRecData(bcPduPtr data, TxMode txMode, int max)
   switch(txMode)
   {
     case txmResp:
-      data->head = pduSentE[0];
-      retv = data->len  = pduSentE[1];
+      data->head = pduRec[0];
+      retv = data->len  = pduRec[1];
 
       for(int i = 2; i < (retv + 2); i++)
       {
         if(i == max) break;
-        bPtr[i] = pduSentE[i];
+        bPtr[i] = pduRec[i];
       }
 
       break;
@@ -556,7 +565,7 @@ int   nRF52840Radio::getRecData(bcPduPtr data, int max)
     bPtr[i] = pduMem[i];
   }
 
-  return(retv);
+  return(retv+2);
 }
 
 // ----------------------------------------------------------------------------
@@ -780,6 +789,29 @@ void nRF52840Radio::irqHandler()
       case txmResp:               // Datenübertragung Slave
       // ----------------------------------------------------------------------
 
+        // Problem 20221023A
+        // Es werden im Empfangspuffer pduRec auch die gesendeten Daten angezeigt
+        // und auch die der vorbereiteten Empfangsdaten (für EADR-Kommunikation)
+        //
+
+        // Problem 20221023A
+        // Keine Lösung, es sind sehr selten die richtigen Werte im Empfangspuffer
+        // und in der Regel die gesendeten Daten
+        //
+        if(comFin)
+        {
+          NrfRadioPtr->SHORTS = 0;
+          NrfRadioPtr->INTENCLR         = 0xFFFFFFFF;
+          NrfRadioPtr->EVENTS_READY     = 0;
+          NrfRadioPtr->EVENTS_END       = 0;
+          NrfRadioPtr->EVENTS_DISABLED  = 0;
+          NrfRadioPtr->EVENTS_RXREADY   = 0;
+          NrfRadioPtr->EVENTS_TXREADY   = 0;
+          NrfRadioPtr->EVENTS_ADDRESS   = 0;
+
+          break;
+        }
+
         // --------------------------------------------------------------------
         if(NrfRadioPtr->EVENTS_END == 1)        // Übertragung beendet
                                                 // Polling-Daten empfangen
@@ -789,8 +821,13 @@ void nRF52840Radio::irqHandler()
 
 #if (defined smnDEBUG  && defined nRF52840RadioDEB)
           statisticPtr->recs++;
-          memcpy(statisticPtr->memDumpRec,pduMem,8);
+          memcpy(statisticPtr->memDumpRec,pduMem,14);
 #endif
+          // Problem 20221023A
+          // Es sind an dieser Stelle alle möglichen Telegramme im Kommunikationspuffer pduMem.
+          // Auch das erwartete Polling vom Master, aber auch die Antworten der anderen Slaves
+          // und die eigene Antwort (nicht erwartet) oder auch der leere Speicher (nicht erwartet)
+          //
 
           if((pduSentE[5] != pduMem[5]) || (pduSentE[6] != pduMem[6]) || (pduSentE[7] != pduMem[7]))
           {
@@ -803,6 +840,10 @@ void nRF52840Radio::irqHandler()
             NrfRadioPtr->TASKS_START = 1;       // Datenempfang fortsetzen
             break;
           }
+
+          // Problem 20221023A
+          // Hier sind nur die Telegramme in pduMem, die zum eigenen Netzwerk gehören,
+          //
 
           if((pduSentE[2] != pduMem[2]) || ((pduSentE[3] & 0x3F) != (pduMem[3] & 0x3F)))
           {
@@ -818,8 +859,13 @@ void nRF52840Radio::irqHandler()
             // Hier wird das Protokoll noch erweitert zum Belauschen anderer Slaves
           }
 
+          // Problem 20221023A
+          // Hier sind nur die Telegramme in pduMem, die zu diesem Slave gehören
+          // Leider auch das von ihm gesendete Telegramm (unverständlicherweise)
+          //
           eadM = ((pduMem[3] & SOAAP_EADR) != 0); // Merker für Empfangspolling
           nakM = ((pduMem[3] & SOAAP_NAK) != 0);  // Merker für NAK-Polling
+          maM  = ((pduMem[4] & SOAAP_MA) != 0);   // Merker für Master-Telegramm
 
 #if (defined smnDEBUG  && defined nRF52840RadioDEB)
           if(nakM)
@@ -827,6 +873,27 @@ void nRF52840Radio::irqHandler()
           else
             statisticPtr->pollAcks++;
 #endif
+
+          /*
+          // Problem 20221023A
+          // Es ist noch nicht geklärt, wieso hier die eigenen Sendungen eintreffen
+          // Für den Fall wird jetzt der Empfang abgebrochen und muss neu
+          // gestartet werden
+          //
+          if(!maM)
+          {
+            NrfRadioPtr->SHORTS = 0;
+            NrfRadioPtr->INTENCLR         = 0xFFFFFFFF;
+            NrfRadioPtr->EVENTS_READY     = 0;
+            NrfRadioPtr->EVENTS_END       = 0;
+            NrfRadioPtr->EVENTS_DISABLED  = 0;
+            NrfRadioPtr->EVENTS_RXREADY   = 0;
+            NrfRadioPtr->EVENTS_TXREADY   = 0;
+            NrfRadioPtr->EVENTS_ADDRESS   = 0;
+            break;
+          }
+          */
+
           if(eadM)
           {
             // Empfangsaufforderung
@@ -840,8 +907,14 @@ void nRF52840Radio::irqHandler()
             // Polling-Steuerdaten in Empfangspuffer und
             // Sadr-Ack-Daten in Funkpuffer kopieren
             //
-            memcpy((void *)pduSentE, (void *)pduMem, sizeof(bcPdu));
-            memcpy((void *)pduMem, (void *)pduSentS, sizeof(bcPdu));
+
+            if(maM)
+            {
+              sizeM = pduMem[1];
+              memcpy((void *)pduRec, (void *)pduMem, sizeM+2);
+            }
+            //memcpy((void *)pduMem, (void *)pduSentS, sizeof(bcPdu));
+            memcpy((void *)pduMem, (void *)pduSentS, 39);
           }
 
           // Setzen der Direktverbinder auf vollständigen Durchlauf bis Ende der Sendung
@@ -877,6 +950,12 @@ void nRF52840Radio::irqHandler()
         {
           NrfRadioPtr->EVENTS_DISABLED = 0;     // Event quittieren
           comFin = true;
+
+          // Problem 20221023A
+          // Keine Lösung des Problems
+          NrfRadioPtr->SHORTS = 0;
+
+
 #if (defined smnDEBUG  && defined nRF52840RadioDEB)
           statisticPtr->sendings++;
           memcpy(statisticPtr->memDumpSnd,pduMem,16);
@@ -922,7 +1001,7 @@ int   nRF52840Radio::getPduMem(byte *dest, int start, int end)
   return(j);
 }
 
-int   nRF52840Radio::getPduSent(byte *dest, int start, int end)
+int   nRF52840Radio::getPduSentE(byte *dest, int start, int end)
 {
   int i,j;
 
@@ -931,6 +1010,32 @@ int   nRF52840Radio::getPduSent(byte *dest, int start, int end)
   for(i = start; i < end; i++)
   {
     dest[j++] = pduSentE[i];
+  }
+  return(j);
+}
+
+int   nRF52840Radio::getPduSentS(byte *dest, int start, int end)
+{
+  int i,j;
+
+  j = 0;
+
+  for(i = start; i < end; i++)
+  {
+    dest[j++] = pduSentS[i];
+  }
+  return(j);
+}
+
+int   nRF52840Radio::getPduRec(byte *dest, int start, int end)
+{
+  int i,j;
+
+  j = 0;
+
+  for(i = start; i < end; i++)
+  {
+    dest[j++] = pduRec[i];
   }
   return(j);
 }

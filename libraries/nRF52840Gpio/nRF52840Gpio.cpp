@@ -85,7 +85,7 @@ GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioE
   tmpMask = IfDrvPullDown | IfDrvPullUp;
   if((cnfBits & tmpMask) == tmpMask) return (GEcdictPar);
 
-  cnfValue  = getCnfValue(cnfBits);
+  cnfValue  = getCnfValue(cnfBits);    // spezifische Bits setzen
   tmpMask   = 0;
 
   // Bedienen des angegebenen Bereiches

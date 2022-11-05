@@ -30,10 +30,12 @@ typedef enum _ifPortNumber
   ifPort9
 } ifPortNumber;
 
+// Fehler bei der Parameterübergabe (Konfiguration)
+//
 typedef enum
 {
-  GEnoError,
-  GEcdictPar
+  GEnoError,      // Kein Fehler
+  GEcdictPar      // Widersprüchliche Parameter
 } GpioError;
 
 typedef struct _GpioMask
@@ -68,17 +70,17 @@ typedef struct _GpioExtVal
   _GpioExtVal *next;
 } GpioExtVal, *GpioExtValPtr;
 
-// Spezifikation der Schnittstellentreiber
+// Spezifikation der Schnittstellentreiber (Konfiguration)
 //
-#define IfDrvInput          0x0000
-#define IfDrvOutput         0x0001
-#define IfDrvStrongHigh     0x0002
-#define IfDrvStrongLow      0x0004
-#define IfDrvOpenDrain      0x0008
-#define IfDrvOpenSource     0x0010
-#define IfDrvPullUp         0x0020
-#define IfDrvPullDown       0x0040
-#define IfDrvPullStrong     0x0080
+#define IfDrvInput          0x0000        // Pin ist ein Eingang (Default)
+#define IfDrvOutput         0x0001        // Pin ist ein Ausgnag
+#define IfDrvStrongHigh     0x0002        // Großer Strom bei High (VCC)
+#define IfDrvStrongLow      0x0004        // Großer Strom bei Low (0)
+#define IfDrvOpenDrain      0x0008        // Open-Drain-Anschluss
+#define IfDrvOpenSource     0x0010        // Open-Source-Anschluss
+#define IfDrvPullUp         0x0020        // Pull-Up-Widerstand aktiv
+#define IfDrvPullDown       0x0040        // Pull-Down-Widerstand aktiv
+#define IfDrvPullStrong     0x0080        // Niederohmige Pull-Widerstände
 
 typedef enum
 {

@@ -116,7 +116,7 @@ GpioError nRF52840Gpio::config(int nr, unsigned int cnfBits, GpioExtRefPtr refPt
   return(config(nr,nr,cnfBits, refPtr));
 }
 
-GpioError nRF52840Gpio::config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr)
+GpioError nRF52840Gpio::config(GpioExtMask *maskPtr, unsigned int cnfBits, GpioExtRefPtr refPtr)
 {
   GpioError retv = GEnoError;
   dword     cnfVal;
@@ -135,12 +135,12 @@ GpioError nRF52840Gpio::config(GpioExtMask mask, unsigned int cnfBits, GpioExtRe
 
   for(int i = 0; i < 32; i++)
   {
-    if(mask.port == 0)
+    if(maskPtr->port == 0)
       gpioPtr = NrfGpioPtr0;
     else
       gpioPtr = NrfGpioPtr1;
 
-    if(mask.pins & chkMask)
+    if(maskPtr->pins & chkMask)
       gpioPtr->PIN_CNF[i] = cnfVal;
 
     chkMask <<= 1;
@@ -149,7 +149,7 @@ GpioError nRF52840Gpio::config(GpioExtMask mask, unsigned int cnfBits, GpioExtRe
   if(refPtr != NULL)
   {
     refPtr->ioPtr = (dword *) gpioPtr;
-    refPtr->pins  = mask.pins;
+    refPtr->pins  = maskPtr->pins;
   }
 
   return(retv);
@@ -183,7 +183,7 @@ GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits)
       break;
   }
 
-  return config(ioMask, cnfBits, NULL);
+  return config(&ioMask, cnfBits, NULL);
 }
 
 
@@ -192,6 +192,25 @@ GpioError nRF52840Gpio::configArd(ArdMask ardMask, unsigned int cnfBits)
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
+bool      nRF52840Gpio::isSet(GpioExtRefPtr ioRefPtr)
+{
+  gpioPtr = (nrfGpioPtr) ioRefPtr->ioPtr;
+  return(gpioPtr->IN & ioRefPtr->pins);
+}
+
+bool      nRF52840Gpio::anySet(GpioExtRefPtr ioRefPtr)
+{
+  gpioPtr = (nrfGpioPtr) ioRefPtr->ioPtr;
+  return(gpioPtr->IN & ioRefPtr->pins);
+}
+
+bool      nRF52840Gpio::allSet(GpioExtRefPtr ioRefPtr)
+{
+  gpioPtr = (nrfGpioPtr) ioRefPtr->ioPtr;
+  return((gpioPtr->IN & ioRefPtr->pins) == ioRefPtr->pins);
+}
+
+
 void      nRF52840Gpio::read(GpioExtRefPtr ioRefPtr, GpioExtValPtr valPtr)
 {
   gpioPtr = (nrfGpioPtr) ioRefPtr->ioPtr;

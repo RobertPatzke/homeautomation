@@ -150,7 +150,7 @@ public:
   dword     getCnfValue(unsigned int cnfBits);
   GpioError config(int nr, unsigned int cnfBits, GpioExtRefPtr refPtr);
   GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioExtRefPtr refPtr);
-  GpioError config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  GpioError config(GpioExtMaskPtr maskPtr, unsigned int cnfBits, GpioExtRefPtr refPtr);
 
   GpioError configArd(ArdMask ardMask, unsigned int cnfBits);
 
@@ -158,6 +158,9 @@ public:
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
+  bool      isSet(GpioExtRefPtr ioRef);
+  bool      allSet(GpioExtRefPtr ioRef);
+  bool      anySet(GpioExtRefPtr ioRef);
   void      read(GpioExtRefPtr ioRef, GpioExtValPtr valPtr);
   dword     readArd(ArdMask ardMask);
 

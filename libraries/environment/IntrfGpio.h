@@ -104,13 +104,16 @@ public:
   //
   virtual GpioError config(int nr, unsigned int cnfBits, GpioExtRefPtr refPtr);
   virtual GpioError config(int nrFrom, int nrTo, unsigned int cnfBits, GpioExtRefPtr refPtr);
-  virtual GpioError config(GpioExtMask mask, unsigned int cnfBits, GpioExtRefPtr refPtr);
+  virtual GpioError config(GpioExtMaskPtr maskPtr, unsigned int cnfBits, GpioExtRefPtr refPtr);
   virtual GpioError configArd(ArdMask ardMask, unsigned int cnfBits);
 
   // --------------------------------------------------------------------------
   // Anwendungsfunktionen
   // --------------------------------------------------------------------------
   //
+  virtual bool      isSet(GpioExtRefPtr refPtr);
+  virtual bool      allSet(GpioExtRefPtr refPtr);
+  virtual bool      anySet(GpioExtRefPtr refPtr);
   virtual void      read(GpioExtRefPtr refPtr, GpioExtValPtr valPtr);
   virtual dword     readArd(ArdMask ardMask);
 

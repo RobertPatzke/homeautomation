@@ -99,6 +99,7 @@ void  GpioCtrl::blink(GpioExtRefPtr portRef, int chn, int len, int pause)
   if(period == 0) return;
 
   blinkPtr = &blinkEl[chn];
+  blinkPtr->portRef = portRef;
 
   calc = (1000 * len) / period;
   if(calc == 0)

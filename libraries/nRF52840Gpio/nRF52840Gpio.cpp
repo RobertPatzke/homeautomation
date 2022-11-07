@@ -93,9 +93,9 @@ GpioError nRF52840Gpio::config(int nrFrom, int nrTo, unsigned int cnfBits, GpioE
   for(int i = nrFrom; i <= nrTo; i++)
   {
     portNum = (i & 0x0E0) >> 5;
-    pinNum  =  i & 0x01F;
+    pinNum  =  i & 0x01F;         // 0 ... 31
 
-    tmpMask |= (1 << i);
+    tmpMask |= (1 << pinNum);
 
     if(portNum == 0)
       gpioPtr = NrfGpioPtr0;

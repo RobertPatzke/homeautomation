@@ -51,7 +51,10 @@ void GpioCtrl::run()
       {
         if(!blinkPtr->portSet)  // Port noch nicht gesetzt
         {
-          gpioPtr->set(blinkPtr->portRef);
+          if(blinkPtr->invPort)
+            gpioPtr->clr(blinkPtr->portRef);
+          else
+            gpioPtr->set(blinkPtr->portRef);
           blinkPtr->portSet = true;
         }
 
@@ -67,16 +70,34 @@ void GpioCtrl::run()
       {
         if(blinkPtr->portSet)   // Port ist gesetzt
         {
-          gpioPtr->clr(blinkPtr->portRef);
+          if(blinkPtr->invPort)
+            gpioPtr->set(blinkPtr->portRef);
+          else
+            gpioPtr->clr(blinkPtr->portRef);
           blinkPtr->portSet = false;
         }
 
-        if(blinkPtr->blinkPause > 0)
-          blinkPtr->blinkPause--;
+        if(blinkPtr->repeatPause > 0)
+        {
+          blinkPtr->repeatPause--;
+        }
+        else if(blinkPtr->repeat > 0)
+        {
+          blinkPtr->repeat--;
+          blinkPtr->repeatPause = blinkPtr->repeatPauseSet;
+          blinkPtr->blinked = false;
+        }
         else
         {
-          blinkPtr->blinked = false;
-          blinkPtr->blinkPause = blinkPtr->blinkPauseSet;
+          if(blinkPtr->blinkPause > 0)
+            blinkPtr->blinkPause--;
+          else
+          {
+            blinkPtr->blinked = false;
+            blinkPtr->blinkPause = blinkPtr->blinkPauseSet;
+            blinkPtr->repeat = blinkPtr->repeatSet;
+            blinkPtr->repeatPause = blinkPtr->repeatPauseSet;
+          }
         }
       }
     // --------------------------------------------------------
@@ -91,6 +112,16 @@ void GpioCtrl::run()
 
 void  GpioCtrl::blink(GpioExtRefPtr portRef, int chn, int len, int pause)
 {
+  blink(portRef,chn,len,0,pause,0,false);
+}
+
+void  GpioCtrl::blink(GpioExtRefPtr portRef, int chn, int len, int pause, bool invert)
+{
+  blink(portRef,chn,len,0,pause,0,invert);
+}
+
+void  GpioCtrl::blink(GpioExtRefPtr portRef, int chn, int len, int wait, int pause, int repeat, bool invert)
+{
   BlinkPtr  blinkPtr;
   int       calc;
 
@@ -100,6 +131,7 @@ void  GpioCtrl::blink(GpioExtRefPtr portRef, int chn, int len, int pause)
 
   blinkPtr = &blinkEl[chn];
   blinkPtr->portRef = portRef;
+  blinkPtr->invPort = invert;
 
   calc = (1000 * len) / period;
   if(calc == 0)
@@ -110,6 +142,16 @@ void  GpioCtrl::blink(GpioExtRefPtr portRef, int chn, int len, int pause)
   if(calc == 0)
     calc = 1;
   blinkPtr->blinkPause = blinkPtr->blinkPauseSet = calc;
+
+  if(repeat != 0)
+  {
+    blinkPtr->repeat = blinkPtr->repeatSet = repeat;
+
+    calc = (1000 * wait) / period;
+    if(calc == 0)
+      calc = 1;
+    blinkPtr->repeatPause = blinkPtr->repeatPauseSet = calc;
+  }
 
   blinkPtr->blinked   = false;
   blinkPtr->doBlink   = true;

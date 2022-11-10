@@ -110,6 +110,7 @@ typedef struct _nrfGpio
 #define ArdD11      P1(1)
 #define ArdD12      P1(8)
 #define ArdD13      P0(13)
+#define ArdLedGn    P1(9)
 
 #define ArdD2Mask   (1 << 11)
 #define ArdD3Mask   (1 << 12)

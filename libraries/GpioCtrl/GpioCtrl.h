@@ -27,9 +27,14 @@ class GpioCtrl
     int           blinkLenSet;
     int           blinkPause;
     int           blinkPauseSet;
+    int           repeat;
+    int           repeatSet;
+    int           repeatPause;
+    int           repeatPauseSet;
     bool          doBlink;
     bool          blinked;
     bool          portSet;
+    bool          invPort;
     GpioExtRefPtr portRef;
   } Blink, *BlinkPtr;
 
@@ -65,6 +70,9 @@ public:
   //
   void run();
   void  blink(GpioExtRefPtr portRef, int chn, int len, int pause);
+  void  blink(GpioExtRefPtr portRef, int chn, int len, int pause, bool invert);
+  void  blink(GpioExtRefPtr portRef, int chn, int len, int wait, int pause, int repeat);
+  void  blink(GpioExtRefPtr portRef, int chn, int len, int wait, int pause, int repeat, bool invert);
 
 
   // ----------------------------------------------------------------------------

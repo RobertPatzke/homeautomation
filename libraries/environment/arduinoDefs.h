@@ -26,7 +26,7 @@
 #ifndef TWO_PI
 #define TWO_PI      6.283185307179586476925286766559
 #endif
-#ifndef DEG_TO_RAG
+#ifndef DEG_TO_RAD
 #define DEG_TO_RAD  0.017453292519943295769236907684886
 #endif
 #ifndef RAD_TO_DEG
@@ -35,6 +35,23 @@
 #ifndef EULER
 #define EULER       2.718281828459045235360287471352
 #endif
+//
+// Es tritt hier das Problem auf, dass obige Werte beim Nano BLE 33 im <core/api> in der Datei common.h
+// definiert werden, diese aber bei Eclipse nicht im Indexer von C++ sauber sind oder es zu Problemen bei
+// der Abfolge der Definitionen im Build-Vorgang kommt.
+// Der Wert RAD_TO_DEG wird im Syntax-Check (lokaler C++ Compiler) nicht erkannt, das Kompilieren über den
+// GCC des Arduino-Board hingegen ist fehlerfrei. Möglicherweise werden dort irgendwelche Default-Includes
+// vorgenommen, die sich beim Indexer in Eclipse nicht zeigen.
+// Es wurde deshalb hier eine extra Definition der Konstanten mit neuem Bezeichner eingeführt, die das
+// beschriebene Problem nicht aufwirft.
+//
+#define smnPI           3.1415926535897932384626433832795
+#define smnHALF_PI      1.5707963267948966192313216916398
+#define smnTWO_PI       6.283185307179586476925286766559
+#define smnDEG_TO_RAD   0.017453292519943295769236907684886
+#define smnRAD_TO_DEG   57.295779513082320876798154814105
+#define smnEULER        2.718281828459045235360287471352
+
 
 // ---------------------------------------------------------------------------
 // Simple type definitions and settings

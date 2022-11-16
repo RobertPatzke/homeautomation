@@ -9,6 +9,8 @@
 
 #include "ProcMeas.h"
 
+#include "arduinoDefs.h"
+
 // ---------------------------------------------------------------------------
 // Konstruktoren und Initialisierungen
 // ---------------------------------------------------------------------------
@@ -58,8 +60,8 @@ void ProcMeas::run()
 #ifdef  ProcMeasDebug
       statistics.pmCalcCnt++;
 #endif
-      posture.pitch = euler.getPitchFromGravity(gravAngles.x, gravAngles.y, gravAngles.z) * RAD_TO_DEG;
-      posture.roll  = euler.getRollFromGravity(gravAngles.y, gravAngles.z) * RAD_TO_DEG;
+      posture.pitch = euler.getPitchFromGravity(gravAngles.x, gravAngles.y, gravAngles.z) * smnRAD_TO_DEG;
+      posture.roll  = euler.getRollFromGravity(gravAngles.y, gravAngles.z) * smnRAD_TO_DEG;
       posture.yaw   = 0.0;
       pMeas->sync(1, 1);
       gravAnglesAvail = true;

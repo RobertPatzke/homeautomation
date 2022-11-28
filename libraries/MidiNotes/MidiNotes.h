@@ -116,7 +116,16 @@ private:
     byte      typeIdx;
     byte      value;
     byte      veloc;
-  }NewNote;
+  } NewNote, *NewNotePtr;
+
+  typedef struct _DeltaNote
+  {
+    bool      newVal;
+    byte      value;
+    byte      oldValue;
+    byte      veloc;
+    byte      oldVeloc;
+  } DeltaNote, *DeltaNotePtr;
 
 #define NoteModeEmpty     0x00
 #define NoteModeRun       0x01
@@ -149,7 +158,10 @@ private:
   NoteTypePtr typePtr;      // Temporärer Notentyp
 
   dword     absPause;       // Pause für den zyklischen Ablauf
-  NewNote   newNote[MaxNrNoteSim];  // Übergabe neuer Noten
+  NewNote   newNote[MaxNrNoteSim];    // Übergabe neuer Noten
+
+  DeltaNote deltaNote[MaxNrNoteSim];  // Speicher für Notenänderung
+  int       lastDeltaIdx;
 
   bool      stopRun;           // Anhalten der Midi-Schleife
   bool      stoppedRun;        // Midi-Schleife angehalten
@@ -165,6 +177,8 @@ private:
   void smInit();
   void smIdle();
 
+  // momSequence
+  //
   void smNoteOn();
   void smAttack();
   void smDecay();
@@ -172,6 +186,12 @@ private:
   void smRelease();
   void smNoteOff();
   void smPause();
+
+  // momRunDelta
+  //
+  void smWaitDeltaNote();
+  void smReleaseOldNote();
+  void smStartNewNote();
 
 
   // --------------------------------------------------------------------------
@@ -205,6 +225,7 @@ public:
   //
   void setOpMode(MidiOpMode mom);
   void setChordNote(int idx, NoteTypeIdx nti, int val, int vel);
+  void setDeltaNote(int idx, byte val, byte vel);
 
   // --------------------------------------------------------------------------
   // Steuerung, Zustandsmaschine

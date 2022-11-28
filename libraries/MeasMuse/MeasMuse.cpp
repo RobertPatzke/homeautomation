@@ -52,7 +52,7 @@ void MeasMuse::Posture2Midi::setKoeffPitch(MeasMap map)
   }
 }
 
-void MeasMuse::Posture2Midi::setKoeffRoll(MeasMap map)
+void MeasMuse::Posture2Midi::setKoeffYaw(MeasMap map)
 {
   switch(map)
   {
@@ -70,11 +70,21 @@ void MeasMuse::Posture2Midi::setKoeffRoll(MeasMap map)
 int MeasMuse::Posture2Midi::getResultRoll(MidiResultPtr refResult, float measValue)
 {
   float inVal = measValue + offsetRoll;
+#ifdef MeasMuseDebug
+  debInValRoll = inVal;
+#endif
   if(inVal < borderLowRoll) return(-1);
   if(inVal > borderHighRoll) return(1);
-  byte value = midiArea[aimRoll].offset + (byte) koeffRoll * inVal;
-  refResult->value  = value;
+  byte value = midiArea[aimRoll].offset + (byte) (koeffRoll * inVal);
+  if(refResult->value != value)
+  {
+    refResult->value  = value;
+    refResult->newVal = true;
+  }
   refResult->type   = aimRoll;
+#ifdef MeasMuseDebug
+  debResVal = value;
+#endif
   return(0);
 }
 
@@ -83,8 +93,12 @@ int MeasMuse::Posture2Midi::getResultPitch(MidiResultPtr refResult, float measVa
   float inVal = measValue + offsetPitch;
   if(inVal < borderLowPitch) return(-1);
   if(inVal > borderHighPitch) return(1);
-  byte value = midiArea[aimPitch].offset + (byte) koeffPitch * inVal;
-  refResult->value  = value;
+  byte value = midiArea[aimPitch].offset + (byte) (koeffPitch * inVal);
+  if(refResult->value != value)
+  {
+    refResult->value  = value;
+    refResult->newVal = true;
+  }
   refResult->type   = aimPitch;
   return(0);
 }
@@ -94,8 +108,12 @@ int MeasMuse::Posture2Midi::getResultYaw(MidiResultPtr refResult, float measValu
   float inVal = measValue + offsetYaw;
   if(inVal < borderLowYaw) return(-1);
   if(inVal > borderHighYaw) return(1);
-  byte value = midiArea[aimYaw].offset + (byte) koeffYaw * inVal;
-  refResult->value  = value;
+  byte value = midiArea[aimYaw].offset + (byte) (koeffYaw * inVal);
+  if(refResult->value != value)
+  {
+    refResult->value  = value;
+    refResult->newVal = true;
+  }
   refResult->type   = aimYaw;
   return(0);
 }

@@ -13,6 +13,8 @@
 
 #include "arduinoDefs.h"
 
+//#define MeasMuseDebug
+
 #define NrOfChannelsMM  16
 
 // ----------------------------------------------------------------------------
@@ -53,6 +55,7 @@ typedef struct _MidiResult
 {
   Meas2Midi type;
   byte      value;
+  bool      newVal;
 } MidiResult, *MidiResultPtr;
 
 typedef struct _MidiArea
@@ -79,6 +82,7 @@ class MeasMuse
 public:
   class Posture2Midi
   {
+  public:
     // Konfigurationsdaten
     // -----------------------------------------------------------------------
     float       offsetRoll;
@@ -110,6 +114,16 @@ public:
     int  getResultRoll(MidiResultPtr refResult, float measValue);
     int  getResultPitch(MidiResultPtr refResult, float measValue);
     int  getResultYaw(MidiResultPtr refResult, float measValue);
+
+#ifdef MeasMuseDebug
+
+    // Debugging
+    // -----------------------------------------------------------------------
+    //
+    float   debInValRoll;
+    byte    debResVal;
+
+#endif
   };
 
 
@@ -131,6 +145,9 @@ private:
   //
 
 private:
+#ifdef MeasMuseDebug
+public:
+#endif
   // -------------------------------------------------------------------------
   // lokale Variablen
   // -------------------------------------------------------------------------

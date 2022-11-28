@@ -148,6 +148,16 @@ void MidiNotes::setChannel(int chnVal)
   chn = chnVal - 1;
 }
 
+void MidiNotes::setDeltaNote(int idx, byte val, byte vel)
+{
+  deltaNote[idx].oldValue   = deltaNote[idx].value;
+  deltaNote[idx].oldVeloc   = deltaNote[idx].veloc;
+  deltaNote[idx].value  = val;
+  deltaNote[idx].veloc  = vel;
+  deltaNote[idx].newVal = true;
+  lastDeltaIdx = idx;
+}
+
 // ----------------------------------------------------------------------------
 // Betrieb
 // ----------------------------------------------------------------------------
@@ -218,10 +228,15 @@ void MidiNotes::smIdle()
       break;
 
     case momRunDelta:
+      next(smWaitDeltaNote);
       break;
   }
 }
 
+// ============================================================================
+// m o m S e q u e n c e
+// ============================================================================
+//
 void MidiNotes::smNoteOn()
 {
   int   i, j, tIdx;
@@ -371,7 +386,7 @@ void MidiNotes::smNoteOff()
     }
 
     noteSeq[j++] = notePtr->value;    //Erste und weitere Noten liefern Liste  **
-    noteSeq[j++] = 0;
+    noteSeq[j++] = 64;
   }
 
   crb->putSeq(noteSeq, j);            // Sequenz an Puffer übergeben   *****
@@ -388,6 +403,45 @@ void MidiNotes::smPause()
   }
 
   next(smNoteOn);
+}
+
+// ============================================================================
+// m o m R u n D e l t a
+// ============================================================================
+//
+void MidiNotes::smWaitDeltaNote()
+{
+  if(!deltaNote[lastDeltaIdx].newVal) return;
+
+  next(smReleaseOldNote);
+}
+
+void MidiNotes::smReleaseOldNote()
+{
+  int j = 0;
+
+  if(deltaNote[lastDeltaIdx].oldValue != 0)
+  {
+    noteSeq[j++] = 0x80 | chn;
+    noteSeq[j++] = deltaNote[lastDeltaIdx].oldValue;
+    noteSeq[j++] = 64;
+    crb->putSeq(noteSeq, j);
+  }
+
+  next(smStartNewNote);
+}
+
+void MidiNotes::smStartNewNote()
+{
+  int j = 0;
+
+  noteSeq[j++] = 0x90 | chn;
+  noteSeq[j++] = deltaNote[lastDeltaIdx].value;
+  noteSeq[j++] = deltaNote[lastDeltaIdx].veloc;
+  crb->putSeq(noteSeq, j);
+
+  deltaNote[lastDeltaIdx].newVal = false;
+  next(smWaitDeltaNote);
 }
 
 // ----------------------------------------------------------------------------

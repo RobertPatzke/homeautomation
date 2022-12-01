@@ -164,6 +164,10 @@ void MeasMuse::setMapping(int channel, MeasMap mapRoll, MeasMap mapPitch, MeasMa
   config[channel].setKoeffYaw(mapYaw);
 }
 
+void MeasMuse::setOpMode(int channel, int opMode)
+{
+  config[channel].midiOpMode = opMode;
+}
 
 // ----------------------------------------------------------------------------
 // Anwenderfunktionen
@@ -182,5 +186,10 @@ int MeasMuse::resultPitch(int channel, MidiResultPtr refResult, float measValue)
 int MeasMuse::resultYaw(int channel, MidiResultPtr refResult, float measValue)
 {
   return(config[channel].getResultYaw(refResult, measValue));
+}
+
+int MeasMuse::getOpMode(int channel)
+{
+  return(config[channel].midiOpMode);
 }
 

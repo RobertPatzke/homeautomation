@@ -402,7 +402,10 @@ void MidiNotes::smPause()
     return;
   }
 
-  next(smNoteOn);
+  if(opMode != momSequence)
+    next(smIdle);
+  else
+    next(smNoteOn);
 }
 
 // ============================================================================
@@ -411,6 +414,12 @@ void MidiNotes::smPause()
 //
 void MidiNotes::smWaitDeltaNote()
 {
+  if(opMode != momRunDelta)
+  {
+    next(smReleaseOldNote);
+    return;
+  }
+
   if(!deltaNote[lastDeltaIdx].newVal) return;
 
   next(smReleaseOldNote);
@@ -428,7 +437,10 @@ void MidiNotes::smReleaseOldNote()
     crb->putSeq(noteSeq, j);
   }
 
-  next(smStartNewNote);
+  if(opMode != momRunDelta)
+    next(smIdle);
+  else
+    next(smStartNewNote);
 }
 
 void MidiNotes::smStartNewNote()

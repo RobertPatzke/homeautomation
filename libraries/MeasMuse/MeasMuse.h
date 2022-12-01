@@ -102,6 +102,7 @@ public:
     Meas2Midi   aimYaw;
     byte        signAreaValue[4];
     byte        signAreaCtrl[4];
+    int         midiOpMode;
     MidiArea    midiArea[NrM2M];
 
     // Hilfsfunktionen
@@ -171,6 +172,7 @@ public:
   void setAims(int channel, Meas2Midi aimRoll, Meas2Midi aimPitch, Meas2Midi aimYaw);
   void setMidiArea(int channel, Meas2Midi midi, byte low, byte high);
   void setMapping(int channel, MeasMap mapRoll, MeasMap mapPitch, MeasMap mapYaw);
+  void setOpMode(int channel, int opMode);
 
   // -------------------------------------------------------------------------
   // Anwenderfunktionen
@@ -179,7 +181,7 @@ public:
   int resultRoll(int channel, MidiResultPtr refResult, float measValue);
   int resultPitch(int channel, MidiResultPtr refResult, float measValue);
   int resultYaw(int channel, MidiResultPtr refResult, float measValue);
-
+  int getOpMode(int channel);
 };
 
 //-----------------------------------------------------------------------------

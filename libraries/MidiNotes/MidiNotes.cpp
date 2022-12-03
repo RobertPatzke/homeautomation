@@ -148,16 +148,6 @@ void MidiNotes::setChannel(int chnVal)
   chn = chnVal - 1;
 }
 
-void MidiNotes::setDeltaNote(int idx, byte val, byte vel)
-{
-  deltaNote[idx].oldValue   = deltaNote[idx].value;
-  deltaNote[idx].oldVeloc   = deltaNote[idx].veloc;
-  deltaNote[idx].value  = val;
-  deltaNote[idx].veloc  = vel;
-  deltaNote[idx].newVal = true;
-  lastDeltaIdx = idx;
-}
-
 // ----------------------------------------------------------------------------
 // Betrieb
 // ----------------------------------------------------------------------------
@@ -165,6 +155,11 @@ void MidiNotes::setDeltaNote(int idx, byte val, byte vel)
 void MidiNotes::setOpMode(MidiOpMode mom)
 {
   opMode = mom;
+}
+
+int MidiNotes::getOpMode()
+{
+  return(opMode);
 }
 
 
@@ -183,6 +178,16 @@ void MidiNotes::setChordNote(int idx, NoteTypeIdx nti, int val, int vel)
     newNote[idx].veloc = vel;
 
   newNote[idx].newVal = true;
+}
+
+void MidiNotes::setDeltaNote(int idx, byte val, byte vel)
+{
+  deltaNote[idx].oldValue   = deltaNote[idx].value;
+  deltaNote[idx].oldVeloc   = deltaNote[idx].veloc;
+  deltaNote[idx].value  = val;
+  deltaNote[idx].veloc  = vel;
+  deltaNote[idx].newVal = true;
+  lastDeltaIdx = idx;
 }
 
 

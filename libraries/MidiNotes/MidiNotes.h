@@ -224,6 +224,7 @@ public:
   // --------------------------------------------------------------------------
   //
   void setOpMode(MidiOpMode mom);
+  int  getOpMode();
   void setChordNote(int idx, NoteTypeIdx nti, int val, int vel);
   void setDeltaNote(int idx, byte val, byte vel);
 

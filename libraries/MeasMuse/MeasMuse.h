@@ -104,6 +104,7 @@ public:
     byte        signAreaCtrl[4];
     int         midiOpMode;
     MidiArea    midiArea[NrM2M];
+    bool        ready;
 
     // Hilfsfunktionen
     // -----------------------------------------------------------------------

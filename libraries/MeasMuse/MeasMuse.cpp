@@ -167,6 +167,7 @@ void MeasMuse::setMapping(int channel, MeasMap mapRoll, MeasMap mapPitch, MeasMa
 void MeasMuse::setOpMode(int channel, int opMode)
 {
   config[channel].midiOpMode = opMode;
+  config[channel].ready = true;
 }
 
 // ----------------------------------------------------------------------------
@@ -190,6 +191,7 @@ int MeasMuse::resultYaw(int channel, MidiResultPtr refResult, float measValue)
 
 int MeasMuse::getOpMode(int channel)
 {
-  return(config[channel].midiOpMode);
+  if(!config[channel].ready) return(-1);
+  else return(config[channel].midiOpMode);
 }
 

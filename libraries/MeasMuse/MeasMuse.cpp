@@ -29,7 +29,7 @@ void MeasMuse::Posture2Midi::setKoeffRoll(MeasMap map)
     case BiLinear:
       koeffRoll = (midiArea[aimRoll].high - midiArea[aimRoll].low)
                 / (borderHighRoll - borderLowRoll);
-      midiArea[aimRoll].offset = midiArea[aimRoll].low - (byte) koeffRoll * borderLowRoll;
+      midiArea[aimRoll].offset = midiArea[aimRoll].low - (byte) (koeffRoll * borderLowRoll);
       break;
 
     default:
@@ -44,7 +44,7 @@ void MeasMuse::Posture2Midi::setKoeffPitch(MeasMap map)
     case BiLinear:
       koeffPitch = (midiArea[aimPitch].high - midiArea[aimPitch].low)
                 / (borderHighPitch - borderLowPitch);
-      midiArea[aimPitch].offset = midiArea[aimPitch].low - (byte) koeffPitch * borderLowPitch;
+      midiArea[aimPitch].offset = midiArea[aimPitch].low - (byte) (koeffPitch * borderLowPitch);
       break;
 
     default:
@@ -59,7 +59,7 @@ void MeasMuse::Posture2Midi::setKoeffYaw(MeasMap map)
     case BiLinear:
       koeffYaw = (midiArea[aimYaw].high - midiArea[aimYaw].low)
                 / (borderHighYaw - borderLowYaw);
-      midiArea[aimYaw].offset = midiArea[aimYaw].low - (byte) koeffYaw * borderLowYaw;
+      midiArea[aimYaw].offset = midiArea[aimYaw].low - (byte) (koeffYaw * borderLowYaw);
       break;
 
     default:
@@ -69,13 +69,24 @@ void MeasMuse::Posture2Midi::setKoeffYaw(MeasMap map)
 
 int MeasMuse::Posture2Midi::getResultRoll(MidiResultPtr refResult, float measValue)
 {
+  float refVal;
   float inVal = measValue + offsetRoll;
 #ifdef MeasMuseDebug
   debInValRoll = inVal;
 #endif
   if(inVal < borderLowRoll) return(-1);
   if(inVal > borderHighRoll) return(1);
-  byte value = midiArea[aimRoll].offset + (byte) (koeffRoll * inVal);
+  byte dValue = (byte) (koeffRoll * inVal);
+  byte value = midiArea[aimRoll].offset + dValue;
+
+  if(doGapRoll)
+  {
+    refVal = (float) dValue / koeffRoll;
+
+    if((inVal < refVal - gapRoll) || (inVal > refVal + gapRoll))
+      return(0);
+  }
+
   if(refResult->value != value)
   {
     refResult->value  = value;
@@ -90,10 +101,21 @@ int MeasMuse::Posture2Midi::getResultRoll(MidiResultPtr refResult, float measVal
 
 int MeasMuse::Posture2Midi::getResultPitch(MidiResultPtr refResult, float measValue)
 {
+  float refVal;
   float inVal = measValue + offsetPitch;
   if(inVal < borderLowPitch) return(-1);
   if(inVal > borderHighPitch) return(1);
-  byte value = midiArea[aimPitch].offset + (byte) (koeffPitch * inVal);
+  byte dValue = (byte) (koeffPitch * inVal);
+  byte value = midiArea[aimPitch].offset + dValue;
+
+  if(doGapPitch)
+  {
+    refVal = (float) dValue / koeffPitch;
+
+    if((inVal < refVal - gapPitch) || (inVal > refVal + gapPitch))
+      return(0);
+  }
+
   if(refResult->value != value)
   {
     refResult->value  = value;
@@ -130,6 +152,12 @@ void MeasMuse::setRollArea(int channel, float offset, float min, float max)
   config[channel].borderHighRoll  = max;
 }
 
+void MeasMuse::setRollGap(int channel, float gap)
+{
+  config[channel].gapRoll = gap;
+  config[channel].doGapRoll = true;
+}
+
 void MeasMuse::setPitchArea(int channel, float offset, float min, float max)
 {
   config[channel].offsetPitch      = offset;
@@ -137,11 +165,23 @@ void MeasMuse::setPitchArea(int channel, float offset, float min, float max)
   config[channel].borderHighPitch  = max;
 }
 
+void MeasMuse::setPitchGap(int channel, float gap)
+{
+  config[channel].gapPitch = gap;
+  config[channel].doGapPitch = true;
+}
+
 void MeasMuse::setYawArea(int channel, float offset, float min, float max)
 {
   config[channel].offsetYaw      = offset;
   config[channel].borderLowYaw   = min;
   config[channel].borderHighYaw  = max;
+}
+
+void MeasMuse::setYawGap(int channel, float gap)
+{
+  config[channel].gapYaw = gap;
+  config[channel].doGapYaw = true;
 }
 
 void MeasMuse::setAims(int channel, Meas2Midi aimRoll, Meas2Midi aimPitch, Meas2Midi aimYaw)

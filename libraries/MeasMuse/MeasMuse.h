@@ -89,17 +89,26 @@ public:
     float       borderLowRoll;
     float       borderHighRoll;
     float       koeffRoll;
+    float       gapRoll;
+    bool        doGapRoll;
+    Meas2Midi   aimRoll;
+
     float       offsetPitch;
     float       borderLowPitch;
     float       borderHighPitch;
     float       koeffPitch;
+    float       gapPitch;
+    bool        doGapPitch;
+    Meas2Midi   aimPitch;
+
     float       offsetYaw;
     float       borderLowYaw;
     float       borderHighYaw;
     float       koeffYaw;
-    Meas2Midi   aimRoll;
-    Meas2Midi   aimPitch;
+    float       gapYaw;
+    bool        doGapYaw;
     Meas2Midi   aimYaw;
+
     byte        signAreaValue[4];
     byte        signAreaCtrl[4];
     int         midiOpMode;
@@ -168,8 +177,11 @@ public:
   // -------------------------------------------------------------------------
   //
   void setRollArea(int channel, float offset, float min, float max);
+  void setRollGap(int channel, float gap);
   void setPitchArea(int channel, float offset, float min, float max);
+  void setPitchGap(int channel, float gap);
   void setYawArea(int channel, float offset, float min, float max);
+  void setYawGap(int channel, float gap);
   void setAims(int channel, Meas2Midi aimRoll, Meas2Midi aimPitch, Meas2Midi aimYaw);
   void setMidiArea(int channel, Meas2Midi midi, byte low, byte high);
   void setMapping(int channel, MeasMap mapRoll, MeasMap mapPitch, MeasMap mapYaw);

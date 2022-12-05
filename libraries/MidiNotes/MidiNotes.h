@@ -162,9 +162,13 @@ private:
 
   DeltaNote deltaNote[MaxNrNoteSim];  // Speicher für Notenänderung
   int       lastDeltaIdx;
+  int       deltaNoteDelay;     // Verzögerung vor neuer Note
+  int       deltaNoteDelCnt;
 
-  bool      stopRun;           // Anhalten der Midi-Schleife
-  bool      stoppedRun;        // Midi-Schleife angehalten
+  bool      stopRun;            // Anhalten der Midi-Schleife
+  bool      stoppedRun;         // Midi-Schleife angehalten
+  bool      stopOp;             // Anhalten des aktuellen Betriebs
+  bool      stoppedOp;          // Betrieb angehalten
 
 
   // --------------------------------------------------------------------------
@@ -192,6 +196,7 @@ private:
   void smWaitDeltaNote();
   void smReleaseOldNote();
   void smStartNewNote();
+  void smOpStopped();
 
 
   // --------------------------------------------------------------------------
@@ -219,6 +224,8 @@ public:
 
   void  setChannel(int chnVal);
 
+  void  setNoteDelay(int delay);  // Verzögerung vor Einschalten in Mikrosekunden
+
   // --------------------------------------------------------------------------
   // Betrieb
   // --------------------------------------------------------------------------
@@ -227,6 +234,8 @@ public:
   int  getOpMode();
   void setChordNote(int idx, NoteTypeIdx nti, int val, int vel);
   void setDeltaNote(int idx, byte val, byte vel);
+  void opOff();
+  void opOn();
 
   // --------------------------------------------------------------------------
   // Steuerung, Zustandsmaschine

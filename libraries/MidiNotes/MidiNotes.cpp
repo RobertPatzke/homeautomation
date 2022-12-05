@@ -148,6 +148,13 @@ void MidiNotes::setChannel(int chnVal)
   chn = chnVal - 1;
 }
 
+// Verzögerung vor Einschalten in Mikrosekunden
+//
+void  MidiNotes::setNoteDelay(int delay)
+{
+  deltaNoteDelay = delay / midiCycle;
+}
+
 // ----------------------------------------------------------------------------
 // Betrieb
 // ----------------------------------------------------------------------------
@@ -188,6 +195,17 @@ void MidiNotes::setDeltaNote(int idx, byte val, byte vel)
   deltaNote[idx].veloc  = vel;
   deltaNote[idx].newVal = true;
   lastDeltaIdx = idx;
+}
+
+void MidiNotes::opOff()
+{
+  stopOp = true;
+}
+
+void MidiNotes::opOn()
+{
+  stopOp = false;
+  stoppedOp = false;
 }
 
 
@@ -419,7 +437,7 @@ void MidiNotes::smPause()
 //
 void MidiNotes::smWaitDeltaNote()
 {
-  if(opMode != momRunDelta)
+  if((opMode != momRunDelta) || stopOp)
   {
     next(smReleaseOldNote);
     return;
@@ -438,19 +456,41 @@ void MidiNotes::smReleaseOldNote()
   {
     noteSeq[j++] = 0x80 | chn;
     noteSeq[j++] = deltaNote[lastDeltaIdx].oldValue;
-    noteSeq[j++] = 64;
+    noteSeq[j++] = 0;
     crb->putSeq(noteSeq, j);
+    deltaNote[lastDeltaIdx].oldValue = 0;
   }
+
+  deltaNoteDelCnt = deltaNoteDelay;
 
   if(opMode != momRunDelta)
     next(smIdle);
   else
     next(smStartNewNote);
+
+  if(stopOp)
+  {
+    stoppedOp = true;
+    next(smOpStopped);
+  }
 }
 
 void MidiNotes::smStartNewNote()
 {
   int j = 0;
+
+  if(stopOp)
+  {
+    stoppedOp = true;
+    next(smOpStopped);
+    return;
+  }
+
+  if(deltaNoteDelCnt > 0)
+  {
+    deltaNoteDelCnt--;
+    return;
+  }
 
   noteSeq[j++] = 0x90 | chn;
   noteSeq[j++] = deltaNote[lastDeltaIdx].value;
@@ -460,6 +500,13 @@ void MidiNotes::smStartNewNote()
   deltaNote[lastDeltaIdx].newVal = false;
   next(smWaitDeltaNote);
 }
+
+void MidiNotes::smOpStopped()
+{
+  if(stoppedOp) return;
+  next(smWaitDeltaNote);
+}
+
 
 // ----------------------------------------------------------------------------
 // Debugging

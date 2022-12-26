@@ -25,19 +25,29 @@ typedef struct _nrfSer
   volatile  dword  TASKS_STOPTX;            // 00C
   volatile  dword  Reserve01[3];            // 010
   volatile  dword  TASKS_SUSPEND;           // 01C
-  volatile  dword  Reserve02[56];           // 020
+  volatile  dword  Reserve01a[3];           // 020
+  volatile  dword  TASKS_FLUSHRX;           // 02C
+  volatile  dword  Reserve02[52];           // 030
   volatile  dword  EVENTS_CTS;              // 100
   volatile  dword  EVENTS_NCTS;             // 104
   volatile  dword  EVENTS_RXDRDY;           // 108
-  volatile  dword  Reserve03[4];            // 10C
+  volatile  dword  Reserve03;               // 10C
+  volatile  dword  EVENTS_ENDRX;            // 110
+  volatile  dword  Reserve04[2];            // 114
   volatile  dword  EVENTS_TXDRDY;           // 11C
-  volatile  dword  Reserve04;               // 120
+  volatile  dword  EVENTS_ENDTX;            // 120
   volatile  dword  EVENTS_ERROR;            // 124
   volatile  dword  Reserve05[7];            // 128
   volatile  dword  EVENTS_RXTO;             // 144
-  volatile  dword  Reserve06[46];           // 148
+  volatile  dword  Reserve05a;              // 148
+  volatile  dword  EVENTS_RXSTARTED;        // 14C
+  volatile  dword  EVENTS_TXSTARTED;        // 150
+  volatile  dword  Reserve05b;              // 154
+  volatile  dword  EVENTS_TXSTOPPED;        // 158
+  volatile  dword  Reserve06[41];           // 15C
   volatile  dword  SHORTS;                  // 200
-  volatile  dword  Reserve07[64];           // 204
+  volatile  dword  Reserve07[63];           // 204
+  volatile  dword  INTEN;                   // 300
   volatile  dword  INTENSET;                // 304
   volatile  dword  INTENCLR;                // 308
   volatile  dword  Reserve08[93];           // 30C
@@ -53,12 +63,22 @@ typedef struct _nrfSer
   volatile  dword  TXD;                     // 51C
   volatile  dword  Reserve11;               // 520
   volatile  dword  BAUDRATE;                // 524
-  volatile  dword  Reserve12[17];           // 528
+  volatile  dword  Reserve12[3];            // 528
+  volatile  dword  RXD_PTR;                 // 534
+  volatile  dword  RXD_MAXCNT;              // 538
+  volatile  dword  RXD_AMOUNT;              // 53C
+  volatile  dword  Reserve13;               // 540
+  volatile  dword  TXD_PTR;                 // 544
+  volatile  dword  TXD_MAXCNT;              // 548
+  volatile  dword  TXD_AMOUNT;              // 54C
+  volatile  dword  Reserve14[7];            // 550
   volatile  dword  CONFIG;                  // 56C
 } nrfSer, *nrfSerPtr;
 
 #define NrfSerBase0   0x40002000
 #define NrfSerPtr0    ((nrfSerPtr) NrfSerBase0)
+#define NrfSerBase1   0x40028000
+#define NrfSerPtr1    ((nrfSerPtr) NrfSerBase1)
 
 #ifndef nrfGpioDef
 

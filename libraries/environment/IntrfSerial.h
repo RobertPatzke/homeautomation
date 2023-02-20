@@ -47,9 +47,18 @@ typedef enum _SerType
   stCur       // Open Collector/Drain ca. 10 mA Stromschleife
 } SerType;
 
+typedef enum _SerNumber
+{
+  SerCom1,
+  SerCom2,
+  SerCom3,
+  SerCom4,
+  SerCom5
+} SerNumber;
+
 typedef struct _SerParams
 {
-  int         inst;           // Nummer (Index) der Ser-Instanz
+  SerNumber   inst;           // Nummer (Index) der Ser-Instanz
   int         txdPort;        // Nummer (Index) des Port fuer TX
   int         txdPin;         // Nummer (Index) des Pin fuer TX
   int         rxdPort;        // Nummer (Index) des Port fuer RX
